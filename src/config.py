@@ -6,7 +6,7 @@ import exceptions
 class Settings:
     def __read_settings_file(self):
         config = self.config
-        config.read('./settings.ini')
+        config.read('../settings.ini')
         self.__test_settings()
 
     def __test_settings(self):
@@ -43,7 +43,7 @@ class Settings:
         config['database'] = {'host': '', 'name': '', 'user': '', 'port': '3306', 'password': '', 'min conns': '1',
                               'max conns': '5'}
         config['misc'] = {'use-test': 'False'}
-        with open('./settings.ini', 'w') as settings_file:
+        with open('../settings.ini', 'w') as settings_file:
             config.write(settings_file)
 
     def __load_values_to_attribute(self):
@@ -55,11 +55,11 @@ class Settings:
         db_section = config_file['database']
         self.db_host = db_section['host']
         self.db_name = db_section['name']
-        self.db_port = db_section['port']
+        self.db_port: int = literal_eval(db_section['port'])
         self.db_user = db_section['user']
         self.db_password = db_section['password']
-        self.min_db_conns = literal_eval(db_section['min conns'])
-        self.max_db_conns = literal_eval(db_section['max conns'])
+        self.min_db_conns: int = literal_eval(db_section['min conns'])
+        self.max_db_conns: int = literal_eval(db_section['max conns'])
 
     def __init__(self):
         self.bot_section = None
