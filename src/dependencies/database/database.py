@@ -1,11 +1,8 @@
 import asyncio
-import json
-import time
-from random import randint
 
 import aiomysql
 
-from . import database_exceptions
+from database import database_exceptions
 
 
 class Database:
@@ -62,8 +59,7 @@ class Database:
         self.db_connections[cursor] = connection
         return cursor
 
-    async def __cursor_recycle__(self, cursor: aiomysql.Cursor):
-        await self.__init_check__()
+    def __cursor_recycle__(self, cursor: aiomysql.Cursor):
         connection: aiomysql.Connection = self.db_connections[cursor]
         self.db_pool.release(connection)
         del self.db_connections[cursor]
@@ -81,33 +77,41 @@ class Database:
         await cursor.execute(query, ids)
         data = await cursor.fetchone()
         permission = data[0]
-        self.tasks.append(self.loop.create_task(self.__cursor_recycle__(cursor)))
-        if permission is None:
-            return 0
+        self.__cursor_recycle__(cursor)
+        if with_name:
+            return permission, data[1]
         else:
-            if with_name:
-                return permission, data[1]
-            else:
-                return permission
+            return permission
 
-    async def auth_retriever(self, roles: bool = False):
+    async def auth_retriever(self, include_roles: bool = False):
         cursor = await self.__cursor_creator__()
         query = 'SELECT USER_AUTH.`ITEM_ID`, USER_AUTH.`LEVEL`, PERMISSIONS_NAMES.`Name`, USER_AUTH.`ROLE` ' \
                 'FROM USER_AUTH, PERMISSIONS_NAMES WHERE USER_AUTH.`LEVEL` = PERMISSIONS_NAMES.`LEVEL`'
-        if roles is False:
+        if include_roles is False:
             query = ' '.join((query, 'AND USER_AUTH.`ROLE` = 0'))
         await cursor.execute(query)
         data = await cursor.fetchall()
-        self.tasks.append(self.loop.create_task(self.__cursor_recycle__(cursor)))
+        self.__cursor_recycle__(cursor)
         return ({'id': item[0], 'level': item[1], 'nick': item[2], 'role': bool(item[3])} for item in data)
 
-    async def auth_adder(self, item_id: int, level: int, role: bool = False):
+    async def auth_adder(self, target_id: int, level: int, role: bool = False):
         query = 'INSERT INTO USER_AUTH (ITEM_ID, LEVEL, ROLE) VALUES (%s, %s, %s)'
         cursor = await self.__cursor_creator__()
         try:
-            await cursor.execute(query, (item_id, level, int(role)))
+            await cursor.execute(query, (target_id, level, int(role)))
         except Exception as e:
-            print(e)
+            # print(e, type(e))
+            if isinstance(e, aiomysql.IntegrityError):
+                raise database_exceptions.DatabaseDuplicateEntry
         finally:
-            self.tasks.append(self.loop.create_task(self.__cursor_recycle__(cursor)))
-        return
+            self.__cursor_recycle__(cursor)
+
+    async def auth_changer(self, target_id: int, level: int):
+        query = 'UPDATE USER_AUTH set LEVEL = %s where ITEM_ID = %s'
+        cursor = await self.__cursor_creator__()
+        try:
+            await cursor.execute(query, (level, target_id))
+        except Exception as e:
+            raise e
+        finally:
+            self.__cursor_recycle__(cursor)
