@@ -12,6 +12,8 @@ def check_permission_level(required_level: int = 0):
         author: discord.Member = ctx.author
         ids = [author.id, *[role.id for role in author.roles]]
         perm = await db.permission_retriever(*ids)
+        if perm is None:
+            perm = 0
         if perm > required_level:
             return True
         else:
