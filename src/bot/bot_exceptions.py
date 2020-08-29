@@ -7,3 +7,7 @@ class NotImplementedFunction(CommandError):
 
 class NotEnoughPerms(CommandError):
     """Raised when a user doesn't have enough permissions to run the command"""
+
+
+class NotOnWhiteList(CommandError):
+    """Raised When a channel isn't on the whitelist"""

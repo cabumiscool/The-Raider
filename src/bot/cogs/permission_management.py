@@ -7,6 +7,7 @@ from typing import Union
 
 from dependencies import utils
 from dependencies.database import Database
+import database
 from . import bot_checks
 
 
@@ -22,6 +23,8 @@ class PermissionManagement(commands.Cog):
             await ctx.send(f"What you are attempting to do isn't implemented by the lazy devs 😱 | error: {error}")
         elif isinstance(error, bot_exceptions.NotEnoughPerms):
             await ctx.send(f"Who told you that you could do that? | error:  {error}")
+        elif isinstance(error, bot_exceptions.NotOnWhiteList):
+            await ctx.send(f"This command can't be done on this channel!")
 
     @commands.command()
     @bot_checks.check_permission_level(2)
@@ -90,6 +93,33 @@ class PermissionManagement(commands.Cog):
                 await db.auth_changer(item_id, level)
                 await ctx.send(f"successfully changed `{item.name}` clearance level from {target_level} to {level}")
         return
+
+    @commands.command()
+    @bot_checks.check_permission_level(6)
+    async def whitelist(self, ctx: Context, channel: Union[discord.TextChannel]):
+        channel_id = channel.id
+        server_id: int = channel.guild.id
+        try:
+            await self.db.whitelist_add(server_id, channel_id)
+        except database.DatabaseDuplicateEntry:
+            await ctx.send(f'It appears that `{channel.name}` is already part of the whitelist')
+            return
+        except Exception as e:
+            raise e
+        await ctx.send(f"Successfully added channel `{channel.name}` to the whitelist! :smiley:")
+
+    @commands.command()
+    @bot_checks.check_permission_level(6)
+    async def whitelist_remove(self, ctx: Context, channel: discord.TextChannel):
+        db = self.db
+        channel_is_whitelist = await db.whitelist_check(channel.guild.id, channel.id)
+        if channel_is_whitelist:
+            await db.whitelist_remove(channel.guild.id, channel.id)
+            await ctx.send(f"Channel `{channel.name}` was successfully removed!")
+            return
+        else:
+            await ctx.send(f"Channel `{channel.name}` is not on the whitelist!")
+            return
 
     @commands.command()
     @bot_checks.check_permission_level(8)

@@ -2,7 +2,8 @@ import asyncio
 
 import aiomysql
 
-from database import database_exceptions
+# from . import database_exceptions
+from database import *
 
 
 class Database:
@@ -99,10 +100,11 @@ class Database:
         cursor = await self.__cursor_creator__()
         try:
             await cursor.execute(query, (target_id, level, int(role)))
+        except aiomysql.IntegrityError:
+            raise DatabaseDuplicateEntry
         except Exception as e:
             # print(e, type(e))
-            if isinstance(e, aiomysql.IntegrityError):
-                raise database_exceptions.DatabaseDuplicateEntry
+            raise e
         finally:
             self.__cursor_recycle__(cursor)
 
@@ -115,3 +117,40 @@ class Database:
             raise e
         finally:
             self.__cursor_recycle__(cursor)
+
+    async def whitelist_check(self, server_id: int, channel_id: int):
+        query = 'SELECT count(1) FROM CHANNEL_AUTH WHERE SERVER_ID = %s AND CHANNEL_ID = %s'
+        cursor = await self.__cursor_creator__()
+        try:
+            await cursor.execute(query, (server_id, channel_id))
+            data = await cursor.fetchone()
+            result = bool(data[0])
+        except Exception as e:
+            raise e
+        finally:
+            self.__cursor_recycle__(cursor)
+        return result
+
+    async def whitelist_add(self, server_id: int, channel_id: int):
+        query = 'INSERT INTO CHANNEL_AUTH (SERVER_ID, CHANNEL_ID) VALUES (%s, %s)'
+        cursor = await self.__cursor_creator__()
+        try:
+            await cursor.execute(query, (server_id, channel_id))
+        except aiomysql.IntegrityError:
+            raise DatabaseDuplicateEntry('Duplicate values at CHANNEL AUTH')
+        except Exception as e:
+            raise e
+        finally:
+            self.__cursor_recycle__(cursor)
+        return
+
+    async def whitelist_remove(self, server_id: int, channel_id: int):
+        query = 'DELETE FROM CHANNEL_AUTH WHERE SERVER_ID = %s AND CHANNEL_ID = %s'
+        cursor = await self.__cursor_creator__()
+        try:
+            await cursor.execute(query, (server_id, channel_id))
+        except Exception as e:
+            raise e
+        finally:
+            self.__cursor_recycle__(cursor)
+        return
