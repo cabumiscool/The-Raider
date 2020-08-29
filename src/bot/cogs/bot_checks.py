@@ -10,11 +10,12 @@ def check_permission_level(required_level: int = 0):
         bot = ctx.bot
         db: Database = bot.db
         author: discord.Member = ctx.author
+        is_owner: bool = await ctx.bot.is_owner(ctx.author)
         ids = [author.id, *[role.id for role in author.roles]]
         perm = await db.permission_retriever(*ids)
         if perm is None:
             perm = 0
-        if perm > required_level:
+        if perm > required_level or is_owner:
             return True
         else:
             raise bot_exceptions.NotEnoughPerms(f"{ctx.author} does not have enough permission to run the command")
