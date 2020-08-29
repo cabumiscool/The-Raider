@@ -65,12 +65,14 @@ class PermissionManagement(commands.Cog):
     async def authorize(self, ctx: Context, item: Union[discord.member.User, discord.guild.Role], level: int):
         db = self.db
         role = False
+        role_server_id = 0
         if level > 10:
             await ctx.send('You are attempting to give a permission higher than the max. Do you want to usurp the '
                            'god\'s power?')
             return
         if isinstance(item, discord.role.Role):
             item_id = item.id
+            role_server_id = item.guild.id
             role = True
         else:
             item_id = item.id
@@ -78,10 +80,17 @@ class PermissionManagement(commands.Cog):
         # Level checker between target and self
         self_author: discord.Member = ctx.author
         self_level = await db.permission_retriever(*[self_author.id, *[role.id for role in self_author.roles]])
+        is_owner: bool = await ctx.bot.is_owner(self_author)
+        if self_level is None:
+            if is_owner:
+                self_level = 11
+            else:
+                self_level = 6
         target_level: Union[None, int] = await db.permission_retriever(item_id)
         if target_level is None:
-            await db.auth_adder(item_id, level, role)
+            await db.auth_adder(item_id, level, role, role_server_id)
             await ctx.send(f'Successfully authorized `{item.name}` to clearance level {level}')
+            return
         if target_level == level:
             await ctx.send('The target already has that clearance level!')
             return
@@ -123,8 +132,8 @@ class PermissionManagement(commands.Cog):
 
     @commands.command()
     @bot_checks.check_permission_level(8)
-    async def test(self, ctx: Context, mention: Union[discord.member.User, discord.guild.Role]):
-        await ctx.send(f"mention is :  {mention},  type:  {type(mention)}")
+    async def test(self, ctx: Context, mention: Union[discord.TextChannel, str]):
+        await ctx.send(f"channel is :  {mention},  type:  {type(mention)}")
 
 
 

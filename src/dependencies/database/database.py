@@ -95,11 +95,11 @@ class Database:
         self.__cursor_recycle__(cursor)
         return ({'id': item[0], 'level': item[1], 'nick': item[2], 'role': bool(item[3])} for item in data)
 
-    async def auth_adder(self, target_id: int, level: int, role: bool = False):
-        query = 'INSERT INTO USER_AUTH (ITEM_ID, LEVEL, ROLE) VALUES (%s, %s, %s)'
+    async def auth_adder(self, target_id: int, level: int, role: bool = False, server_id: int = 0):
+        query = 'INSERT INTO USER_AUTH (ITEM_ID, LEVEL, ROLE, SERVER_ID) VALUES (%s, %s, %s, %s)'
         cursor = await self.__cursor_creator__()
         try:
-            await cursor.execute(query, (target_id, level, int(role)))
+            await cursor.execute(query, (target_id, level, int(role), server_id))
         except aiomysql.IntegrityError:
             raise DatabaseDuplicateEntry
         except Exception as e:
