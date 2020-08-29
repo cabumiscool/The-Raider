@@ -25,6 +25,8 @@ class PermissionManagement(commands.Cog):
             await ctx.send(f"Who told you that you could do that? | error:  {error}")
         elif isinstance(error, bot_exceptions.NotOnWhiteList):
             await ctx.send(f"This command can't be done on this channel!")
+        elif isinstance(error, discord.ext.commands.MissingRequiredArgument):
+            await ctx.send(f"You are missing required arguments in the command. :frowning:")
 
     @commands.command()
     @bot_checks.check_permission_level(2)
