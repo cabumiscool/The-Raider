@@ -30,11 +30,8 @@ class PermissionManagement(commands.Cog):
 
     @commands.command()
     @bot_checks.check_permission_level(2)
-    async def check_permissions(self, ctx: Context, user: Union[int, str]):
-        try:
-            user_id = utils.look_for_user_id(user)
-        except NotImplementedError:
-            raise bot_exceptions.NotImplementedFunction('Mentions still not supported')
+    async def check_permissions(self, ctx: Context, user: discord.member.User):
+        user_id = user.id
         if user_id is None:
             await ctx.send(f'I could not understand what that, did you type a user id or a mention? '
                            f'{ctx.author.mention}?')
