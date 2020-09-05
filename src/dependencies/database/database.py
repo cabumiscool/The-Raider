@@ -3,7 +3,7 @@ import asyncio
 import aiomysql
 
 # from . import database_exceptions
-from database import *
+from . import *
 
 
 class Database:
