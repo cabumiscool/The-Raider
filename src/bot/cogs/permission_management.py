@@ -7,7 +7,7 @@ from typing import Union
 
 from dependencies import utils
 from dependencies.database import Database
-import database
+from dependencies import database
 from . import bot_checks
 
 

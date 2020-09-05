@@ -13,7 +13,7 @@ from config import Settings
 from dependencies.database import Database
 
 
-initial_extensions = ('cogs.permission_management',)
+initial_extensions = ('bot.cogs.permission_management',)
 
 
 def _custom_prefix_adder(*args):
