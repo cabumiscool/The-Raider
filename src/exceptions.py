@@ -1,6 +1,6 @@
-
 class NotConfiguredSettingsFile(Exception):
     """Is raised when the settings file is missing information"""
+
     def __init__(self, missing_setting: str = 'Unknown', comment: str = 'None'):
         self.missing = missing_setting
         self.comment = comment

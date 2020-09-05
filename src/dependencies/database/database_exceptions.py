@@ -1,4 +1,3 @@
-
 class DatabaseInitError(Exception):
     """raised when the database fails to init"""
 

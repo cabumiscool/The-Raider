@@ -1,17 +1,15 @@
 # import asyncio
-import aiohttp
-import traceback
 import datetime
 import sys
+import traceback
+from collections import deque, defaultdict
 
+import aiohttp
 import discord
 from discord.ext import commands
 
-from collections import Counter, deque, defaultdict
-
 from config import Settings
 from dependencies.database import Database
-
 
 initial_extensions = ('bot.cogs.permission_management',)
 
@@ -23,6 +21,7 @@ def _custom_prefix_adder(*args):
         base = [f'<@!{user_id}> ', f'<@{user_id}> ']
         base.extend(args)
         return base
+
     return _prefix_callable
 
 
@@ -190,5 +189,3 @@ class Raider(commands.AutoShardedBot):
         #                 fp.write(f'{data}\n')
         #             else:
         #                 fp.write(f'{x}\n')
-
-

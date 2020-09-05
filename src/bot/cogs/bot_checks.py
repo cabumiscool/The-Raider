@@ -1,8 +1,9 @@
-from dependencies.database import Database
+import discord
 from discord.ext import commands
 from discord.ext.commands import Context
-import discord
+
 from bot import bot_exceptions
+from dependencies.database import Database
 
 
 def check_permission_level(required_level: int = 0):
@@ -19,6 +20,7 @@ def check_permission_level(required_level: int = 0):
             return True
         else:
             raise bot_exceptions.NotEnoughPerms(f"{ctx.author} does not have enough permission to run the command")
+
     return commands.check(check)
 
 
@@ -32,4 +34,5 @@ def is_whitelist():
             return check_
         else:
             raise bot_exceptions.NotOnWhiteList
+
     return commands.check(check)

@@ -1,13 +1,12 @@
+from typing import Union
+
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
+
 from bot import bot_exceptions
-
-from typing import Union
-
-from dependencies import utils
-from dependencies.database import Database
 from dependencies import database
+from dependencies.database import Database
 from . import bot_checks
 
 
