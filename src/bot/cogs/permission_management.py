@@ -97,7 +97,7 @@ class PermissionManagement(commands.Cog):
             await ctx.send('The target already has that clearance level!')
             return
         else:
-            if target_level >= self_level and self_level != 10:
+            if target_level >= self_level != 10:
                 await ctx.send('You do know you are attempting to commit insubordination right? (target has a '
                                'higher or equal clearance level)')
             else:
@@ -136,10 +136,6 @@ class PermissionManagement(commands.Cog):
     @bot_checks.check_permission_level(8)
     async def test(self, ctx: Context, mention: Union[discord.TextChannel, str]):
         await ctx.send(f"channel is :  {mention},  type:  {type(mention)}")
-
-
-
-
 
 
 def setup(bot):
