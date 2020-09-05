@@ -79,10 +79,14 @@ class Raider(commands.AutoShardedBot):
         await super().before_identify_hook(shard_id, initial=initial)
 
     async def on_command_error(self, ctx, error):
-        if isinstance(error, commands.NoPrivateMessage):
-            await ctx.author.send('This command cannot be used in private messages.')
+        if isinstance(error, commands.errors.CommandInvokeError):
+            await ctx.send(f"What you are attempting to do isn't implemented by the lazy devs 😱 | error: {error}")
         elif isinstance(error, commands.DisabledCommand):
-            await ctx.author.send('Sorry. This command is disabled and cannot be used.')
+            await ctx.send('Sorry. This command is disabled and cannot be used.')
+        elif isinstance(error, commands.NoPrivateMessage):
+            await ctx.send('This command cannot be used in private messages.')
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(f"You are missing required arguments in the command. :frowning:")
         elif isinstance(error, commands.CommandInvokeError):
             original = error.original
             if not isinstance(original, discord.HTTPException):
