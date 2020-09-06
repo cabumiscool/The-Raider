@@ -1,17 +1,15 @@
 # import asyncio
-import aiohttp
-import traceback
 import datetime
 import sys
+import traceback
+from collections import deque, defaultdict
 
+import aiohttp
 import discord
 from discord.ext import commands
 
-from collections import Counter, deque, defaultdict
-
 from config import Settings
 from dependencies.database import Database
-
 
 initial_extensions = ('bot.cogs.permission_management',)
 
@@ -23,6 +21,7 @@ def _custom_prefix_adder(*args):
         base = [f'<@!{user_id}> ', f'<@{user_id}> ']
         base.extend(args)
         return base
+
     return _prefix_callable
 
 
@@ -79,10 +78,14 @@ class Raider(commands.AutoShardedBot):
         await super().before_identify_hook(shard_id, initial=initial)
 
     async def on_command_error(self, ctx, error):
-        if isinstance(error, commands.NoPrivateMessage):
-            await ctx.author.send('This command cannot be used in private messages.')
+        if isinstance(error, commands.errors.CommandInvokeError):
+            await ctx.send(f"What you are attempting to do isn't implemented by the lazy devs 😱 | error: {error}")
         elif isinstance(error, commands.DisabledCommand):
-            await ctx.author.send('Sorry. This command is disabled and cannot be used.')
+            await ctx.send('Sorry. This command is disabled and cannot be used.')
+        elif isinstance(error, commands.NoPrivateMessage):
+            await ctx.send('This command cannot be used in private messages.')
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(f"You are missing required arguments in the command. :frowning:")
         elif isinstance(error, commands.CommandInvokeError):
             original = error.original
             if not isinstance(original, discord.HTTPException):
@@ -186,5 +189,3 @@ class Raider(commands.AutoShardedBot):
         #                 fp.write(f'{data}\n')
         #             else:
         #                 fp.write(f'{x}\n')
-
-

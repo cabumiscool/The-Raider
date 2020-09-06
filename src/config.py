@@ -1,5 +1,6 @@
 from ast import literal_eval
 from configparser import ConfigParser
+
 import exceptions
 
 
@@ -77,4 +78,3 @@ class Settings:
         self.min_db_conns = 0
         self.max_db_conns = 0
         self.__load_values_to_attribute()
-

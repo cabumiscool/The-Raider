@@ -1,6 +1,5 @@
-
 class DatabaseInitError(Exception):
-    """raised when the database failes to init"""
+    """raised when the database fails to init"""
 
 
 class DatabaseMissingArguments(Exception):
@@ -8,4 +7,4 @@ class DatabaseMissingArguments(Exception):
 
 
 class DatabaseDuplicateEntry(Exception):
-    """raised when a method of the database failes because an similar entry already exists"""
+    """raised when a method of the database fails because an similar entry already exists"""
