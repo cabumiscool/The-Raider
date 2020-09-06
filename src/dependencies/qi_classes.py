@@ -1,6 +1,5 @@
-import aiohttp
-import asyncio
 import typing
+from operator import attrgetter
 
 
 class DataDescriptorChecker:
@@ -68,9 +67,13 @@ class Volume:
         self._last_index = last_index
         self._missing_indexes = missing
 
+    def check_if_index_in_db(self, index: int):
+        return self._start_index <= index <= self._last_index and index not in self._missing_indexes
+
     def retrieve_chapter_by_index(self, chapter_index: int) -> Chapter:
-        if self._start_index <= chapter_index <= self._last_index and chapter_index not in self._missing_indexes:
-            return self._chapters[chapter_index]
+        if self.check_if_index_in_db(chapter_index):
+            chapter_id = self._chapters[chapter_index]
+            return self._chapters[chapter_id]
         else:
             raise ValueError(f"The index '{chapter_index}' is not part of this volume")
 
@@ -84,7 +87,10 @@ class Book:
         self.name = book_name
         self.type = novel_type
         self.total_chapters = total_chapter_count
-        self.chapter_list = []
+        self.volume_list = []
+
+    def add_volume_list(self, volume_list: typing.List[Chapter]):
+        self.volume_list = sorted(volume_list, key=attrgetter('index'))
 
 
 class Account:
