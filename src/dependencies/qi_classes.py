@@ -28,12 +28,13 @@ class DataDescriptorChecker:
 
 
 class Chapter:
-    def __init__(self, chapter_level: int, chapter_id: int, index: int, is_vip: int, name: str):
+    def __init__(self, chapter_level: int, chapter_id: int, book_id: int, index: int, is_vip: int, name: str):
         self.id = chapter_id
         self.is_privilege = bool(chapter_level)
         self.index = index
         self.is_vip = is_vip
         self.name = name
+        self.book_id = book_id
 
 
 class Volume:
@@ -56,11 +57,13 @@ class Volume:
                         missing_indexes.append(expected_index)
         return first_index, last_index, missing_indexes
 
-    def __init__(self, chapters_list: typing.List[Chapter], volume_index: int, volume_name: str = "No-Name"):
+    def __init__(self, chapters_list: typing.List[Chapter], volume_index: int, book_id: int,
+                 volume_name: str = "No-Name"):
         self.containing_items = {chapter.index: chapter.id for chapter in chapters_list}
         self._chapters = {chapter.id: chapter for chapter in chapters_list}
         self.index = volume_index
         self.name = volume_name
+        self.book_id = book_id
         starting_index, last_index, missing = self.__find_first_last_and_missing_indexes(*[chapter.index for chapter
                                                                                            in chapters_list])
         self._start_index = starting_index
@@ -94,4 +97,17 @@ class Book:
 
 
 class Account:
-    pass
+    def __init__(self, id_: int, qi_email: str, qi_pass: str, cookies: dict, ticket: str, expired: bool,
+                 update_time: int, fp: int, library: int, library_pages: int, main_email: str, main_email_pass: str):
+        self.id = id_
+        self.email = qi_email
+        self.password = qi_pass
+        self.cookies = cookies
+        self.ticket = ticket
+        self.expired = expired
+        self.update_time = update_time
+        self.fast_pass_count = fp
+        self.library_type = library
+        self.library_pages = library_pages
+        self.host_email = main_email
+        self.host_email_password = main_email_pass
