@@ -1,4 +1,7 @@
 import typing
+import requests
+import aiohttp
+import json
 from operator import attrgetter
 
 
@@ -85,15 +88,32 @@ class Volume:
 
 
 class Book:
-    def __init__(self, book_id: int, book_name: str, novel_type: int, total_chapter_count: int):
+    types = {1: 'Translated', 2: 'Original'}
+    payment_method = ["Free", "Adwall", "Premium"]
+    NovelType = 0
+
+    def __init__(self, book_id: int, book_name: str,total_chapter_count: int): # , novel_type_is_tl: int, reading_type: int):
         self.id = book_id
         self.name = book_name
-        self.type = novel_type
+        # self.book_type = self.types[novel_type_is_tl]
+        # self.read_type = self.payment_method[reading_type]
         self.total_chapters = total_chapter_count
         self.volume_list = []
 
     def add_volume_list(self, volume_list: typing.List[Chapter]):
         self.volume_list = sorted(volume_list, key=attrgetter('index'))
+
+
+class Comic:
+    payment_method = ["Free", "Adwall", "Premium"]
+    NovelType = 100
+
+    def __init__(self, comic_id: int, comic_name: str, total_chapters: int):  #, is_privilege: bool, reading_type: int):
+        self.id = comic_id
+        self.name = comic_name
+        # self.privilege = is_privilege
+        self.total_chapters = total_chapters
+        # self.reading_type = self.payment_method[reading_type]
 
 
 class Account:
@@ -111,3 +131,18 @@ class Account:
         self.library_pages = library_pages
         self.host_email = main_email
         self.host_email_password = main_email_pass
+
+    def check(self):
+        params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
+        response_bin = requests.get('https://www.webnovel.com/apiajax/task/taskList', params=params,
+                                    cookies=self.cookies)
+        response_str = response_bin.content.decode()
+        response_dict = json.loads(response_str)
+        print(response_dict)
+
+    async def async_check(self):
+        params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
+        async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
+                                   cookies=self.cookies) as req:
+            response = await req.json()
+        print(response)
