@@ -1,5 +1,6 @@
 # import asyncio
 import aiohttp
+import aiohttp_socks
 import typing
 import json
 from urllib.parse import quote
@@ -48,15 +49,16 @@ def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[ty
 
 
 async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSession = None,
-                                account: qi_classes.Account = None) -> (typing.List[typing.Union[qi_classes.Book,
-                                                                                                 qi_classes.Comic]],
-                                                                        bool):
+                                account: qi_classes.Account = None, proxy: aiohttp_socks.ProxyConnector =
+                                aiohttp.TCPConnector(force_close=True)) -> (
+        typing.List[typing.Union[qi_classes.Book, qi_classes.Comic]], bool):
     """Retrieves a page from the library
         :arg page_index is the page number that will be requested from the library
         :arg session receives a session object from aiohttp that already contains the cookies for the respective
         account
         :arg account receives an account object, will be ignored if a session object is given; if a session object is
         not given it will use the account object to generate a request
+        :arg proxy accepts an aiohhtp proxy connector object, will be ignored if session is given
         :returns a tuple containing a list which containing a dict for every book present in the library page and a
         bool representing if this is the last page on the library
     """
@@ -70,7 +72,7 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
             response_str = response_bin.decode()
             response = json.loads(response_str)
     else:
-        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies) as req:
+        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies, connector=proxy) as req:
             response_bin = await req.read()
             response_str = response_bin.decode()
             response = json.loads(response_str)
@@ -89,13 +91,15 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
 
 
 async def add_item_to_library(item: typing.Union[qi_classes.Book, qi_classes.Comic],
-                              session: aiohttp.ClientSession = None, account: qi_classes.Account = None) -> bool:
+                              session: aiohttp.ClientSession = None, account: qi_classes.Account = None,
+                              proxy: aiohttp_socks.ProxyConnector = aiohttp.TCPConnector()) -> bool:
     """Add an item to the library
         :arg item receives either a book or a comic object to be added to the library
         :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
         account arg to generate a request
         :arg account receives an account object to generate a request with it, will be ignored if a session object is
         given
+        :arg proxy accepts an aiohhtp proxy connector object, will be ignored if session is given
 
         :returns a bool value representing if the request was completed successfully
     """
@@ -111,7 +115,7 @@ async def add_item_to_library(item: typing.Union[qi_classes.Book, qi_classes.Com
             response_str = response_bin.decode()
             response = json.loads(response_str)
     else:
-        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies) as req:
+        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies, connector=proxy) as req:
             response_bin = await req.read()
             response_str = response_bin.decode()
             response = json.loads(response_str)
@@ -125,13 +129,15 @@ async def add_item_to_library(item: typing.Union[qi_classes.Book, qi_classes.Com
 
 
 async def remove_item_from_library(item: typing.Union[qi_classes.Book, qi_classes.Comic],
-                                   session: aiohttp.ClientSession = None, account: qi_classes.Account = None) -> bool:
+                                   session: aiohttp.ClientSession = None, account: qi_classes.Account = None,
+                                   proxy: aiohttp_socks.ProxyConnector = aiohttp.TCPConnector()) -> bool:
     """Removes an item from the library
         :arg item receives either a book or a comic object to be added to the library
         :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
         account arg to generate a request
         :arg account receives an account object to generate a request with it, will be ignored if a session object is
         given
+        :arg proxy accepts an aiohhtp proxy connector object, will be ignored if session is given
 
         :returns a bool value representing if the request was completed successfully
     """
@@ -150,7 +156,7 @@ async def remove_item_from_library(item: typing.Union[qi_classes.Book, qi_classe
             response_str = response_bin.decode()
             response = json.loads(response_str)
     else:
-        async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
+        async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies, connector=proxy,
                                    headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
             response_bin = await req.read()
             response_str = response_bin.decode()
