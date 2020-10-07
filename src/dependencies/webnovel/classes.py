@@ -62,7 +62,7 @@ class Volume:
 
     def __init__(self, chapters_list: typing.List[Chapter], volume_index: int, book_id: int,
                  volume_name: str = "No-Name"):
-        self.containing_items = {chapter.index: chapter.id for chapter in chapters_list}
+        # self.containing_items = {chapter.index: chapter.id for chapter in chapters_list}
         self._chapters = {chapter.id: chapter for chapter in chapters_list}
         self.index = volume_index
         self.name = volume_name
@@ -73,11 +73,11 @@ class Volume:
         self._last_index = last_index
         self._missing_indexes = missing
 
-    def check_if_index_in_db(self, index: int):
+    def __check_if_index_in_db(self, index: int):
         return self._start_index <= index <= self._last_index and index not in self._missing_indexes
 
     def retrieve_chapter_by_index(self, chapter_index: int) -> Chapter:
-        if self.check_if_index_in_db(chapter_index):
+        if self.__check_if_index_in_db(chapter_index):
             chapter_id = self._chapters[chapter_index]
             return self._chapters[chapter_id]
         else:
@@ -92,9 +92,12 @@ class Book:
     payment_method = ["Free", "Adwall", "Premium"]
     NovelType = 0
 
-    def __init__(self, book_id: int, book_name: str,total_chapter_count: int): # , novel_type_is_tl: int, reading_type: int):
+    def __init__(self, book_id: int, book_name: str, total_chapter_count: int, book_abbreviation: str,
+                 is_priv: bool, action_status: int = None, novel_type_is_tl: int = None, reading_type: int = None):
         self.id = book_id
         self.name = book_name
+        self.sub_name = book_abbreviation
+        self.privilege = is_priv
         # self.book_type = self.types[novel_type_is_tl]
         # self.read_type = self.payment_method[reading_type]
         self.total_chapters = total_chapter_count
