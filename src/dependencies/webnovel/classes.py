@@ -87,36 +87,55 @@ class Volume:
         return self._chapters[chapter_id]
 
 
-class Book:
+class SimpleBook:
+    """To be used when not all of the book metadata is needed"""
+    def __init__(self, book_id: int, book_name: str, book_abbreviation: str, cover_id: int, total_chapters: int):
+        self.id = book_id
+        self.name = book_name
+        self.abbreviation = book_abbreviation
+        self.cover_id = cover_id
+        self.total_chapters = total_chapters
+
+
+class Book(SimpleBook):
+    """To be used when almost the complete metadata is needed. To assemble it requires as a minimum the chapter
+    list api"""
     types = {1: 'Translated', 2: 'Original'}
     payment_method = ["Free", "Adwall", "Premium"]
     NovelType = 0
 
-    def __init__(self, book_id: int, book_name: str, total_chapter_count: int, book_abbreviation: str,
-                 is_priv: bool, action_status: int = None, novel_type_is_tl: int = None, reading_type: int = None):
-        self.id = book_id
-        self.name = book_name
-        self.sub_name = book_abbreviation
+    def __init__(self, book_id: int, book_name: str, total_chapter_count: int, book_abbreviation: str, cover_id: int,
+                 is_priv: bool = None, novel_type_is_tl: int = None,
+                 reading_type: int = None):
+        super().__init__(book_id, book_name, book_abbreviation, cover_id, total_chapter_count)
         self.privilege = is_priv
-        # self.book_type = self.types[novel_type_is_tl]
-        # self.read_type = self.payment_method[reading_type]
-        self.total_chapters = total_chapter_count
+        self.book_type = self.types[novel_type_is_tl]
+        self.read_type = self.payment_method[reading_type]
         self.volume_list = []
 
     def add_volume_list(self, volume_list: typing.List[Chapter]):
         self.volume_list = sorted(volume_list, key=attrgetter('index'))
 
 
-class Comic:
+class SimpleComic:
+    """To be used when not of all the comic metadata is needed"""
+    def __init__(self, comic_id: int, comic_name: str, cover_id: int, total_chapters: int):
+        self.id = comic_id
+        self.name = comic_name
+        self.cover_id = cover_id
+        self.total_chapters = total_chapters
+
+
+class Comic(SimpleComic):
+    """To be used when almost the complete metadata is needed. To assemble it requires as a minimum the chapter
+        list api"""
     payment_method = ["Free", "Adwall", "Premium"]
     NovelType = 100
 
-    def __init__(self, comic_id: int, comic_name: str, total_chapters: int):  #, is_privilege: bool, reading_type: int):
-        self.id = comic_id
-        self.name = comic_name
-        # self.privilege = is_privilege
-        self.total_chapters = total_chapters
-        # self.reading_type = self.payment_method[reading_type]
+    def __init__(self, comic_id: int, comic_name: str, cover_id: int, total_chapters: int, is_privilege: bool,
+                 reading_type: int):
+        super().__init__(comic_id, comic_name, cover_id, total_chapters)
+        self.reading_type = self.payment_method[reading_type]
 
 
 class Account:
@@ -135,6 +154,7 @@ class Account:
         self.host_email = main_email
         self.host_email_password = main_email_pass
 
+    # Todo finish working on this 2 funcs
     def check(self):
         params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
         response_bin = requests.get('https://www.webnovel.com/apiajax/task/taskList', params=params,
