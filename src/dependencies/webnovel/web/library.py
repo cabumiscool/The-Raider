@@ -32,16 +32,18 @@ def __request_data_generator(session: aiohttp.ClientSession, account: classes.Ac
     return use_session, add_data
 
 
-def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[typing.Union[classes.Book,
-                                                                                           classes.Comic]]:
+def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[typing.Union[classes.SimpleBook,
+                                                                                           classes.SimpleComic]]:
     items = []
     for item in library_page_list:
         type_ = item['novelType']
         if type_ == 0:
-            book_obj = classes.Book(item['bookId'], item['bookName'], item['totalChapterNum'])
+            book_obj = classes.SimpleBook(item['bookId'], item['bookName'], item['totalChapterNum'],
+                                          item['coverUpdateTime'])
             items.append(book_obj)
         elif type_ == 100:
-            comic_obj = classes.Comic(item['bookId'], item['comicName'], item['newChapterIndex'])
+            comic_obj = classes.SimpleComic(item['bookId'], item['comicName'], item['coverUpdateTime'],
+                                            item['newChapterIndex'])
             items.append(comic_obj)
         else:
             raise ValueError(f"Unknown item type found {item}")
@@ -51,7 +53,7 @@ def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[ty
 async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSession = None,
                                 account: classes.Account = None, proxy: aiohttp_socks.ProxyConnector =
                                 aiohttp.TCPConnector(force_close=True)) -> (
-        typing.List[typing.Union[classes.Book, classes.Comic]], bool):
+        typing.Tuple[typing.Union[classes.SimpleBook, classes.SimpleComic]], bool):
     """Retrieves a page from the library
         :arg page_index is the page number that will be requested from the library
         :arg session receives a session object from aiohttp that already contains the cookies for the respective
@@ -90,7 +92,7 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
         raise ValueError(f"Unknown value of {result} as a response")
 
 
-async def add_item_to_library(item: typing.Union[classes.Book, classes.Comic],
+async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook], typing.Type[classes.SimpleComic]],
                               session: aiohttp.ClientSession = None, account: classes.Account = None,
                               proxy: aiohttp_socks.ProxyConnector = aiohttp.TCPConnector()) -> bool:
     """Add an item to the library
@@ -103,7 +105,9 @@ async def add_item_to_library(item: typing.Union[classes.Book, classes.Comic],
 
         :returns a bool value representing if the request was completed successfully
     """
-    assert isinstance(item, classes.Comic) or isinstance(item, classes.Book)
+
+    assert issubclass(item, (classes.SimpleBook, classes.SimpleComic)) or isinstance(item, (classes.SimpleBook,
+                                                                                            classes.SimpleComic))
     use_session, payload_data = __request_data_generator(session, account)
     payload_data['bookIds'] = item.id
     payload_data['novelType'] = item.NovelType
@@ -128,7 +132,8 @@ async def add_item_to_library(item: typing.Union[classes.Book, classes.Comic],
         raise ValueError(f"Unknown value of {result} as a response")
 
 
-async def remove_item_from_library(item: typing.Union[classes.Book, classes.Comic],
+async def remove_item_from_library(item: typing.Union[typing.Type[classes.SimpleBook],
+                                                      typing.Type[classes.SimpleComic]],
                                    session: aiohttp.ClientSession = None, account: classes.Account = None,
                                    proxy: aiohttp_socks.ProxyConnector = aiohttp.TCPConnector()) -> bool:
     """Removes an item from the library
@@ -141,7 +146,8 @@ async def remove_item_from_library(item: typing.Union[classes.Book, classes.Comi
 
         :returns a bool value representing if the request was completed successfully
     """
-    assert isinstance(item, classes.Comic) or isinstance(item, classes.Book)
+    supported_types = (classes.SimpleBook, classes.SimpleComic)
+    assert issubclass(item, supported_types) or isinstance(item, supported_types)
     use_session, payload_data = __request_data_generator(session, account)
     full_data = {**payload_data, 'bookItems': '[{"bookId":"%s","novelType":%s}]' % (item.id, item.NovelType)}
     api_url = '/'.join((main_api_url, 'DeleteLibraryItemsAjax'))
@@ -170,15 +176,15 @@ async def remove_item_from_library(item: typing.Union[classes.Book, classes.Comi
         raise ValueError(f"Unknown value of {result} as a response")
 
 
-async def test1():
-    book = classes.Book(6831827102000005, 'Gourmet Food Supplier', 1002, 'GFS', True)
-    account = classes.Account(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
-                              {'_csrfToken': 'uqOW6kXolFEy0P7qnB7Z023a8gA1A3wCOEtYt08x', 'alk':
-                                     'ta728c503841914bda8646f7cfde76ae14%7C4311122791', 'alkts': '1601839387', 'uid':
-                                     '4311122791', 'ukey': 'utxegYxk2MR'}, 'tt3fd9b58dfaba4c19b9751bbcdd68d2c2', False,
-                              1601545517431, 21, 1, 0, 'theseeker@cock.li', 'qwerty123456')
-    result = await add_item_to_library(book, account=account)
-    print(result)
+# async def test1():
+#     book = classes.SimpleBook(6831827102000005, 'Gourmet Food Supplier', 'GFS',  1002)
+#     account = classes.Account(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
+#                               {'_csrfToken': 'uqOW6kXolFEy0P7qnB7Z023a8gA1A3wCOEtYt08x', 'alk':
+#                                      'ta728c503841914bda8646f7cfde76ae14%7C4311122791', 'alkts': '1601839387', 'uid':
+#                                      '4311122791', 'ukey': 'utxegYxk2MR'}, 'tt3fd9b58dfaba4c19b9751bbcdd68d2c2', False,
+#                               1601545517431, 21, 1, 0, 'theseeker@cock.li', 'qwerty123456')
+#     result = await add_item_to_library(book, account=account)
+#     print(result)
 
 
 async def test():
