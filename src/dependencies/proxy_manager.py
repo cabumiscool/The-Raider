@@ -40,6 +40,8 @@ class Proxy:
         self.speed = int(speed)
 
     def generate_connector(self, **kwargs):
+        """Generates a connector
+            :arg kwargs accept all the valid keywords for tcp connector from aiohttp"""
         return aiohttp_socks.ProxyConnector(self._type, self._ip, self._port, **kwargs)
 
     async def test(self):
