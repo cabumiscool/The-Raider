@@ -1,8 +1,8 @@
 import typing
 import requests
 import aiohttp
-import json
 from operator import attrgetter
+from dependencies.utils import decode_qi_content
 
 
 class DataDescriptorChecker:
@@ -189,18 +189,24 @@ class Account:
         self.host_email = main_email
         self.host_email_password = main_email_pass
 
-    # Todo finish working on this 2 funcs
-    def check(self):
-        params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
-        response_bin = requests.get('https://www.webnovel.com/apiajax/task/taskList', params=params,
-                                    cookies=self.cookies)
-        response_str = response_bin.content.decode()
-        response_dict = json.loads(response_str)
-        print(response_dict)
+    def _read_valid(self, user_dict: dict) -> bool:
+        if user_dict['userName'] == '':
+            return False
+        else:
+            self.fast_pass_count = user_dict['fastPass']
+            return True
 
-    async def async_check(self):
+    def check_valid(self) -> bool:
+        params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
+        response = requests.get('https://www.webnovel.com/apiajax/task/taskList', params=params, cookies=self.cookies)
+        response_dict = decode_qi_content(response.content)
+        user_dict = response_dict['user']
+        return self._read_valid(user_dict)
+
+    async def async_check_valid(self) -> bool:
         params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
         async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
                                    cookies=self.cookies) as req:
-            response = await req.json()
-        print(response)
+            response_dict = decode_qi_content(await req.read())
+        user_dict = response_dict['user']
+        return self._read_valid(user_dict)
