@@ -30,14 +30,43 @@ class DataDescriptorChecker:
         return self._value
 
 
-class Chapter:
-    def __init__(self, chapter_level: int, chapter_id: int, book_id: int, index: int, is_vip: int, name: str):
+class ChapterNote:
+    def __init__(self, uut: int, avatar_pic_url: str, author: str, content: str, author_pen_name: str,
+                 author_type: str):
+        self.uut = uut
+        self.avatar_url = avatar_pic_url
+        self.author = author
+        self.pen_name = author_pen_name
+        self.author_type = author_type
+        self.content = content
+
+
+class SimpleChapter:
+    def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, is_vip: int, name: str):
         self.id = chapter_id
         self.is_privilege = bool(chapter_level)
         self.index = index
         self.is_vip = is_vip
         self.name = name
-        self.book_id = book_id
+        self.parent_id = parent_id
+
+
+class Chapter(SimpleChapter):
+    def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, vip_status: int, name: str,
+                 full_content: bool, content: str, price: int, chapter_note: ChapterNote = None,
+                 editor: str = None, translator: str = None):
+        """Full metadata object for chapters
+                :arg chapter_note takes the content of the author note at the end of chapters, may be
+                safely ignored
+                :arg chapter_note takes a ChapterNote obj, can be safetly ignored
+                """
+        super().__init__(chapter_level, chapter_id, parent_id, index, vip_status, name)
+        self.is_preview = full_content
+        self.content = content
+        self.note = chapter_note
+        self.editor = editor
+        self.translator = translator
+        self.price = price
 
 
 class Volume:
@@ -60,7 +89,7 @@ class Volume:
                         missing_indexes.append(expected_index)
         return first_index, last_index, missing_indexes
 
-    def __init__(self, chapters_list: typing.List[Chapter], volume_index: int, book_id: int,
+    def __init__(self, chapters_list: typing.List[SimpleChapter], volume_index: int, book_id: int,
                  volume_name: str = "No-Name"):
         # self.containing_items = {chapter.index: chapter.id for chapter in chapters_list}
         self._chapters = {chapter.id: chapter for chapter in chapters_list}
@@ -76,48 +105,55 @@ class Volume:
     def __check_if_index_in_db(self, index: int):
         return self._start_index <= index <= self._last_index and index not in self._missing_indexes
 
-    def retrieve_chapter_by_index(self, chapter_index: int) -> Chapter:
+    def retrieve_chapter_by_index(self, chapter_index: int) -> SimpleChapter:
         if self.__check_if_index_in_db(chapter_index):
             chapter_id = self._chapters[chapter_index]
             return self._chapters[chapter_id]
         else:
             raise ValueError(f"The index '{chapter_index}' is not part of this volume")
 
-    def retrieve_chapter_by_id(self, chapter_id: int) -> Chapter:
+    def retrieve_chapter_by_id(self, chapter_id: int) -> SimpleChapter:
         return self._chapters[chapter_id]
 
 
 class SimpleBook:
+    NovelType = 0
     """To be used when not all of the book metadata is needed"""
-    def __init__(self, book_id: int, book_name: str, book_abbreviation: str, cover_id: int, total_chapters: int):
+    def __init__(self, book_id: int, book_name: str, total_chapters: int, cover_id: int, book_abbreviation: str = None):
         self.id = book_id
         self.name = book_name
-        self.abbreviation = book_abbreviation
-        self.cover_id = cover_id
+        if book_abbreviation is None:
+            self.qi_abbreviation = False
+            words = book_name.split(' ')
+            pseudo_abbreviation = ''.join([word[0] for word in words])
+            self.abbreviation = pseudo_abbreviation
+        else:
+            self.qi_abbreviation = True
+            self.abbreviation = book_abbreviation
         self.total_chapters = total_chapters
+        self.cover_id = cover_id
 
 
 class Book(SimpleBook):
-    """To be used when almost the complete metadata is needed. To assemble it requires as a minimum the chapter
-    list api"""
+    """To be used when almost the complete metadata is needed. To assemble it requires the chapter api book section"""
     types = {1: 'Translated', 2: 'Original'}
     payment_method = ["Free", "Adwall", "Premium"]
-    NovelType = 0
 
-    def __init__(self, book_id: int, book_name: str, total_chapter_count: int, book_abbreviation: str, cover_id: int,
-                 is_priv: bool = None, novel_type_is_tl: int = None,
-                 reading_type: int = None):
-        super().__init__(book_id, book_name, book_abbreviation, cover_id, total_chapter_count)
+    def __init__(self, book_id: int, book_name: str, total_chapter_count: int, is_priv: bool,
+                 type_is_tl: int, cover_id: int,
+                 reading_type: int = None, book_abbreviation: str = None):
+        super().__init__(book_id, book_name, total_chapter_count, cover_id, book_abbreviation=book_abbreviation)
         self.privilege = is_priv
-        self.book_type = self.types[novel_type_is_tl]
+        self.book_type = self.types[type_is_tl]
         self.read_type = self.payment_method[reading_type]
-        self.volume_list = []
+        self._volume_list = []
 
-    def add_volume_list(self, volume_list: typing.List[Chapter]):
-        self.volume_list = sorted(volume_list, key=attrgetter('index'))
+    def add_volume_list(self, volume_list: typing.List[SimpleChapter]):
+        self._volume_list = sorted(volume_list, key=attrgetter('index'))
 
 
 class SimpleComic:
+    NovelType = 100
     """To be used when not of all the comic metadata is needed"""
     def __init__(self, comic_id: int, comic_name: str, cover_id: int, total_chapters: int):
         self.id = comic_id
@@ -130,7 +166,6 @@ class Comic(SimpleComic):
     """To be used when almost the complete metadata is needed. To assemble it requires as a minimum the chapter
         list api"""
     payment_method = ["Free", "Adwall", "Premium"]
-    NovelType = 100
 
     def __init__(self, comic_id: int, comic_name: str, cover_id: int, total_chapters: int, is_privilege: bool,
                  reading_type: int):
