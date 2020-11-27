@@ -9,6 +9,8 @@ import os
 import platform
 import asyncio
 
+from dependencies.proxy_manager import Proxy
+
 from urllib.parse import urlparse
 from io import BytesIO, StringIO
 import io
@@ -371,7 +373,7 @@ class Speedtest(object):
     """Class for performing standard speedtest.net testing operations"""
 
     def __init__(self, config=None, source_address=None, timeout=10,
-                 secure=False, shutdown_event=None, proxy_obj=None):
+                 secure=False, shutdown_event=None, proxy_obj: Proxy = None):
         self.config = {}
 
         self._source_address = source_address
@@ -387,7 +389,7 @@ class Speedtest(object):
 
         if proxy_obj is not None:
             self.proxy = proxy_obj
-            self.proxy_connector = aiohttp.TCPConnector(enable_cleanup_closed=True)
+            self.proxy_connector = proxy_obj.generate_connector(enable_cleanup_closed=True)
         else:
             self.proxy = None
             self.proxy_connector = aiohttp.TCPConnector(enable_cleanup_closed=True)
