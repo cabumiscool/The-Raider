@@ -119,7 +119,8 @@ class Volume:
 class SimpleBook:
     NovelType = 0
     """To be used when not all of the book metadata is needed"""
-    def __init__(self, book_id: int, book_name: str, total_chapters: int, cover_id: int, book_abbreviation: str = None):
+    def __init__(self, book_id: int, book_name: str, total_chapters: int, cover_id: int, book_abbreviation: str = None,
+                 library_number: int = None):
         self.id = book_id
         self.name = book_name
         if book_abbreviation is None:
@@ -132,6 +133,7 @@ class SimpleBook:
             self.abbreviation = book_abbreviation
         self.total_chapters = total_chapters
         self.cover_id = cover_id
+        self.library_number = library_number
 
 
 class Book(SimpleBook):
@@ -145,7 +147,9 @@ class Book(SimpleBook):
         super().__init__(book_id, book_name, total_chapter_count, cover_id, book_abbreviation=book_abbreviation)
         self.privilege = is_priv
         self.book_type = self.types[type_is_tl]
+        self.book_type_num = type_is_tl
         self.read_type = self.payment_method[reading_type]
+        self.read_type_num = reading_type
         self._volume_list = []
 
     def add_volume_list(self, volume_list: typing.List[SimpleChapter]):
@@ -175,7 +179,7 @@ class Comic(SimpleComic):
 
 class Account:
     def __init__(self, id_: int, qi_email: str, qi_pass: str, cookies: dict, ticket: str, expired: bool,
-                 update_time: int, fp: int, library: int, library_pages: int, main_email: str, main_email_pass: str):
+                 update_time: int, fp: int, library_type: int, library_pages: int, main_email: str, main_email_pass: str):
         self.id = id_
         self.email = qi_email
         self.password = qi_pass
@@ -184,7 +188,7 @@ class Account:
         self.expired = expired
         self.update_time = update_time
         self.fast_pass_count = fp
-        self.library_type = library
+        self.library_type = library_type
         self.library_pages = library_pages
         self.host_email = main_email
         self.host_email_password = main_email_pass
