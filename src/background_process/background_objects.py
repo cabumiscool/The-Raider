@@ -2,12 +2,17 @@ import time
 import typing
 
 
-class ErrorReport:
+class ErrorReport(BaseException):
     def __init__(self, error: typing.Type[BaseException], error_comment: str, traceback: str, error_object=None):
         self.error = error
         self.comment = error_comment
         self.traceback = traceback
         self.error_object = error_object
+
+
+class ErrorList(BaseException):
+    def __init__(self, *errors):
+        self.errors = errors
 
 
 class Command:
