@@ -1,6 +1,6 @@
 import asyncio
-# import typing
-# from multiprocessing.queues import Queue
+import typing
+from multiprocessing.queues import Queue
 from queue import Empty, Full
 from .base_service import BaseService
 from . import *
@@ -71,6 +71,3 @@ class BackgroundProcess:
                         pass
                     else:
                         pass
-
-
-

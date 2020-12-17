@@ -16,9 +16,9 @@ class ErrorList(BaseException):
 
 
 class Command:
+    """"Base class for all the background process command objects"""
     def __init__(self, command_id: int):
         self.id = command_id
-    """base class for all the background process command objects"""
 
 
 class Ping:

@@ -3,12 +3,12 @@ import aiohttp_socks
 import typing
 import json
 from time import time
-from dependencies.webnovel import classes, qi_exceptions
+from dependencies.webnovel import classes, exceptions
 from dependencies.proxy_manager import Proxy
-from dependencies.utils import decode_qi_content
-
+from dependencies.webnovel.utils import decode_qi_content
 
 main_api = 'https://www.webnovel.com/apiajax/chapter'
+
 # possible_second_api = 'https://www.webnovel.com/go/pcm/chapter/getContent'
 
 # TODO change the input from the proxy connector to the proxy class where required
@@ -19,11 +19,11 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
                                  aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
                                  ) -> typing.List[classes.Volume]:
     """Add an item to the library
-            :arg book receives either a book or a comic object to be added to the library
-            :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
+        :arg book receives either a book or a comic object to be added to the library
+        :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
             account arg to generate a request
-            :arg proxy accepts an aiohhtp proxy connector object, will be ignored if session is given
-            :returns a list containing Volume objects
+        :arg proxy accepts an aiohttp proxy connector object, will be ignored if session is given
+        :returns a list containing Volume objects
     """
     params = {'bookId': str(book.id), '_': time()}
     api = '/'.join((main_api, 'GetChapterList'))
@@ -60,17 +60,17 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
                 chapter_level = chapter['chapterLevel']
                 chapter_id = chapter['id']
                 chapter_index = chapter['index']
-                chapter_vip_level = chapter['isVip']
+                chapter_vip = chapter['isVip']
                 chapter_name = chapter['name']
-                chapters.append(classes.SimpleChapter(chapter_level, chapter_id, book.id, chapter_index, chapter_vip_level,
+                chapters.append(classes.SimpleChapter(chapter_level, chapter_id, book.id, chapter_index, chapter_vip,
                                                       chapter_name))
             volumes.append(classes.Volume(chapters, volume_index, book.id, volume_name))
         return volumes
     elif code == 1:
-        # TODO check if 1 is error
+        # TODO check if 1 is error and log the error to database for later review
         pass
     else:
-        qi_exceptions.UnknownResponseCode(code, resp_dict['msg'])
+        exceptions.UnknownResponseCode(code, resp_dict['msg'])
 
 
 async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
@@ -101,7 +101,7 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
             return resp_dict['data']['bookInfo']
     else:
         # TODO check exceptions codes
-        raise qi_exceptions.UnknownResponseCode(resp_code, resp_dict['msg'])
+        raise exceptions.UnknownResponseCode(resp_code, resp_dict['msg'])
 
 
 async def chapter_retriever(book_id: int, chapter_id: int,
@@ -157,7 +157,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
                                 cookies: dict = None, proxy_connector: aiohttp_socks.ProxyConnector =
                                 aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
                                 unlock_type: int = 5, chapter_type: int = 2, chapter_price: int = 1):
-    """Will buy a chapter with fastpass unless the rest of the data are modified"""
+    """Will buy a chapter with fastpass unless the rest of the data are modified    """
     api_url = 'https://www.webnovel.com/apiajax/SpiritStone/useSSAjax'
 
     # check to see if the csrftken can be extracted from a session
@@ -186,19 +186,19 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
         paragraphs_dict = content_dict['contents']
         return '\n'.join([paragraph['content'] for paragraph in paragraphs_dict])
     elif request_code == 1:
-        raise qi_exceptions.FailedChapterBuy
+        raise exceptions.FailedChapterBuy()
     elif request_code == 2:
-        raise qi_exceptions.AlreadyBoughtChapter
+        raise exceptions.AlreadyBoughtChapter()
     else:
-        raise qi_exceptions.UnknownResponseCode(request_code, content_dict['msg'])
+        raise exceptions.UnknownResponseCode(request_code, content_dict['msg'])
 
 
 async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
                         account: classes.Account = None, proxy: Proxy = None, *, use_ss=False) -> classes.Chapter:
-    if account is None:
-        cookies = None
-    else:
+    cookies = None
+    if account is not None:
         cookies = account.cookies
+
     if proxy is None:
         proxy_connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
     else:

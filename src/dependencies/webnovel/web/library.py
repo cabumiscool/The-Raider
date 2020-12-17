@@ -7,29 +7,27 @@ from urllib.parse import quote
 from dependencies.webnovel import classes
 
 main_api_url = "https://www.webnovel.com/apiajax/Library"
+
+
 # TODO compact most of the request making code
 
 
 def __request_data_generator(session: aiohttp.ClientSession, account: classes.Account) -> (bool, dict):
-    use_session = True
-    if session is None:
-        if account is None:
-            raise ValueError(f"No valid value was passed to either session or "
-                             f"account")
-        else:
-            assert isinstance(account, classes.Account)
-            use_session = False
-            add_data = {'_csrfToken': account.cookies['_csrfToken']}
-    else:
+    """Returns the initial return values indicates if a session should be used the other is the payload data"""
+    if session is None and account is None:
+        raise ValueError(f"No valid value was passed to either session or account")
+    # TODO: Ask bum why only csrf token is being sent.
+    if session:
         assert isinstance(session, aiohttp.ClientSession)
-        csrf = ''
+        csrf_token = ''
         for cookie in session.cookie_jar:
             if cookie.key == '_csrfToken':
-                csrf = cookie.value
-            else:
-                continue
-        add_data = {'_csrfToken': csrf}
-    return use_session, add_data
+                csrf_token = cookie.value
+        return True, {'_csrfToken': csrf_token}
+
+    elif account:
+        assert isinstance(account, classes.Account)
+        return True, {'_csrfToken': account.cookies['_csrfToken']}
 
 
 def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[typing.Union[classes.SimpleBook,
@@ -57,12 +55,12 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
     """Retrieves a page from the library
         :arg page_index is the page number that will be requested from the library
         :arg session receives a session object from aiohttp that already contains the cookies for the respective
-        account
+            account
         :arg account receives an account object, will be ignored if a session object is given; if a session object is
-        not given it will use the account object to generate a request
+            not given it will use the account object to generate a request
         :arg proxy accepts an aiohhtp proxy connector object, will be ignored if session is given
         :returns a tuple containing a list which containing a dict for every book present in the library page and a
-        bool representing if this is the last page on the library
+            bool representing if this is the last page on the library
     """
     api_url = '/'.join([main_api_url, 'LibraryAjax'])
     use_session, payload_data = __request_data_generator(session, account)
@@ -139,9 +137,9 @@ async def remove_item_from_library(item: typing.Union[typing.Type[classes.Simple
     """Removes an item from the library
         :arg item receives either a book or a comic object to be added to the library
         :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
-        account arg to generate a request
+            account arg to generate a request
         :arg account receives an account object to generate a request with it, will be ignored if a session object is
-        given
+            given
         :arg proxy accepts an aiohhtp proxy connector object, will be ignored if session is given
 
         :returns a bool value representing if the request was completed successfully
@@ -176,15 +174,12 @@ async def remove_item_from_library(item: typing.Union[typing.Type[classes.Simple
         raise ValueError(f"Unknown value of {result} as a response")
 
 
-# async def test1():
-#     book = classes.SimpleBook(6831827102000005, 'Gourmet Food Supplier', 'GFS',  1002)
-#     account = classes.Account(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
-#                               {'_csrfToken': 'uqOW6kXolFEy0P7qnB7Z023a8gA1A3wCOEtYt08x', 'alk':
-#                                      'ta728c503841914bda8646f7cfde76ae14%7C4311122791', 'alkts': '1601839387', 'uid':
-#                                      '4311122791', 'ukey': 'utxegYxk2MR'}, 'tt3fd9b58dfaba4c19b9751bbcdd68d2c2', False,
-#                               1601545517431, 21, 1, 0, 'theseeker@cock.li', 'qwerty123456')
-#     result = await add_item_to_library(book, account=account)
-#     print(result)
+# async def test1(): book = classes.SimpleBook(6831827102000005, 'Gourmet Food Supplier', 'GFS',  1002) account =
+# classes.Account(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456', {'_csrfToken':
+# 'uqOW6kXolFEy0P7qnB7Z023a8gA1A3wCOEtYt08x', 'alk': 'ta728c503841914bda8646f7cfde76ae14%7C4311122791',
+# 'alkts': '1601839387', 'uid': '4311122791', 'ukey': 'utxegYxk2MR'}, 'tt3fd9b58dfaba4c19b9751bbcdd68d2c2', False,
+# 1601545517431, 21, 1, 0, 'theseeker@cock.li', 'qwerty123456') result = await add_item_to_library(book,
+# account=account) print(result)
 
 
 async def test():

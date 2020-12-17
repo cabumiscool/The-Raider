@@ -24,10 +24,10 @@ class PgDatabase:
                                       f'@{database_host}:{database_port}/{database_name}', 'min_size': min_conns,
                                'max_size': max_conns}
 
-        if loop is None:
+        self.loop = loop
+        if self.loop is None:
             self.loop = asyncio.get_event_loop()
-        else:
-            self.loop = loop
+
         self.__async_init_task = self.loop.create_task(self.__pool_starter__())
 
     async def __pool_starter__(self):
@@ -325,10 +325,11 @@ if __name__ == '__main__':
         await database_obj.test()
         print(True)
 
+
     asyncio.run(main())
-        # IP:
-        # user:
-        # password:
-        # port: 5432
-        # database
-        # name:
+    # IP:
+    # user:
+    # password:
+    # port: 5432
+    # database
+    # name:
