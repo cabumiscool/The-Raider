@@ -4,7 +4,7 @@ from background_process.base_service import BaseService
 from background_process.background_objects import LibraryRetrievalError
 from dependencies.database.database import PgDatabase
 from dependencies.webnovel.web import library
-from dependencies.webnovel.classes import Account, SimpleBook
+from dependencies.webnovel.classes import Account, SimpleBook, SimpleComic
 from dependencies.proxy_manager import Proxy
 
 
@@ -22,8 +22,9 @@ async def test_account(account: Account):
     return account_status, account
 
 
-async def retrieve_library_content(account: Account, proxy: Proxy):
-    await library.retrieve_all_library_pages(account=account, proxy=Proxy)
+async def retrieve_library_content(account: Account, proxy: Proxy = None):
+    library_items, pages_in_library = await library.retrieve_all_library_pages(account=account, proxy=proxy)
+    return library_items, pages_in_library, account
 
 
 class BooksLibraryChecker(BaseService):
@@ -75,5 +76,27 @@ class BooksLibraryChecker(BaseService):
                 await self.database.expired_proxy(proxy)
                 proxy = await self.database.retrieve_proxy()
 
+        # will compare internal db to qi library
         tasks = [asyncio.create_task(retrieve_library_content(account)) for account in working_accounts]
         results = await asyncio.gather(*tasks)
+        for library_items, library_page, account in results:
+            library_items: typing.List[typing.Union[SimpleBook, SimpleComic]]
+            library_page: int
+            account: Account
+            extra_books = []
+            for library_item in library_items:
+                try:
+                    db_item = books_dict[account.library_type][library_item.id]
+                    if library_item > db_item:
+                        self._output_queue.append(library_item)
+                    else:
+                        continue
+                except KeyError:
+                    extra_books.append(library_item)
+                    continue
+
+            if len(extra_books) > 1:
+                await library.batch_remove_books_from_library(*extra_books, account=account, proxy=proxy)
+            elif len(extra_books) == 1:
+                await library.remove_item_from_library(extra_books[0], account=account,
+                                                       proxy=proxy.generate_connector())
