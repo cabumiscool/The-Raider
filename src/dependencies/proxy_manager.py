@@ -41,7 +41,7 @@ class Proxy:
 
     def generate_connector(self, **kwargs):
         """Generates a connector
-            :arg kwargs accept all the valid keywords for tcp connector from aiohttp"""
+            :arg kwargs accept all the valid keywords for tcp connector from aiohttp and aiohttp_socks"""
         return aiohttp_socks.ProxyConnector(self._type, self._ip, self._port, **kwargs)
 
     async def test(self):
@@ -52,7 +52,7 @@ class Proxy:
             except asyncio.TimeoutError:
                 return False
             else:
-                return True
+                return req.status == 200
 
 
 class ProxyManager:
