@@ -5,6 +5,7 @@ import asyncpg
 import typing
 
 from dependencies.webnovel.classes import *
+from dependencies.proxy_manager import Proxy
 
 # from . import database_exceptions
 try:
@@ -166,6 +167,17 @@ class PgDatabase:
     async def retrieve_library_account(self, library_type: int) -> Account:
         pass
 
+    async def expired_account(self, account: Account):
+        pass
+
+    async def retrieve_proxy(self) -> Proxy:
+        pass
+
+    async def expired_proxy(self, proxy: Proxy):
+        pass
+
+    async def set_library_pages_number(self, account: Account, pages_number: int):
+        pass
 
 class Database:
     """to be deleted once migrated to other class"""
