@@ -15,6 +15,10 @@ class ErrorList(BaseException):
         self.errors = errors
 
 
+class LibraryRetrievalError(BaseException):
+    pass
+
+
 class Command:
     def __init__(self, command_id: int):
         self.id = command_id
