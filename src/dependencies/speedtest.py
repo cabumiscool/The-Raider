@@ -17,9 +17,11 @@ import io
 
 import xml
 import xml.etree.ElementTree as ET
+
 etree_iter = ET.Element.iter
 
 module_version = '2.1.2'
+
 
 # def printer(string, quiet=False, debug=False, error=False, **kwargs):
 #     """Helper function print a string with various features"""
@@ -313,7 +315,6 @@ async def catch_request(request, limited_read: int = 0):
         return (None, None), e
 
 
-
 class SpeedtestResults(object):
     """Class for holding the results of a speedtest, including:
 
@@ -412,7 +413,6 @@ class Speedtest(object):
         await self.get_config()
         await self.get_servers()
         await self.get_best_server()
-
 
     @property
     def best(self):
@@ -909,7 +909,7 @@ class Speedtest(object):
         stop = timeit.default_timer()
         self.results.bytes_received = sum(finished)
         self.results.download = (
-            (self.results.bytes_received / (stop - start)) * 8.0
+                (self.results.bytes_received / (stop - start)) * 8.0
         )
         if self.results.download > 100000:
             self.config['threads']['upload'] = 8
@@ -985,6 +985,7 @@ class Speedtest(object):
             await asyncio.gather(*requests_only)
             for data_obj in data_only:
                 finished.append(sum(data_obj.total))
+
         # def consumer(q, request_count):
         #     _is_alive = thread_is_alive
         #     while len(finished) < request_count:
@@ -1013,7 +1014,7 @@ class Speedtest(object):
         stop = timeit.default_timer()
         self.results.bytes_sent = sum(finished)
         self.results.upload = (
-            (self.results.bytes_sent / (stop - start)) * 8.0
+                (self.results.bytes_sent / (stop - start)) * 8.0
         )
         return self.results.upload
 
@@ -1057,7 +1058,6 @@ async def shell():
     # printer('Testing from %(isp)s (%(ip)s)...' % speedtest.config['client'],
     #         quiet)
 
-
     # printer('Retrieving speedtest.net server list...', quiet)
     try:
         await speedtest.get_servers()
@@ -1079,7 +1079,6 @@ async def shell():
     #     printer('Selecting best server based on ping...', quiet)
     await speedtest.get_best_server()
 
-
     results = speedtest.results
 
     # printer('Hosted by %(sponsor)s (%(name)s) [%(d)0.2f km]: '
@@ -1094,16 +1093,17 @@ async def shell():
 
     print('Testing upload speed', end='\n')
     await speedtest.upload()
-    print('Upload: %0.2f M%s/s' %((results.upload / 1000.0 / 1000.0) / 1, 'bit'))
+    print('Upload: %0.2f M%s/s' % ((results.upload / 1000.0 / 1000.0) / 1, 'bit'))
 
     print('Results:\n%r' % results.dict())
 
     # if not args.simple and args.share:
     #     results.share()
 
-    print('Ping: %s ms\nDownload: %0.2f M%s/s\nUpload: %0.2f M%s/s' %(results.ping,(results.download / 1000.0 / 1000.0)
-                                                                      / 1, 'bit',(results.upload / 1000.0 / 1000.0) / 1,
-                                                                      'bit'))
+    print(
+        'Ping: %s ms\nDownload: %0.2f M%s/s\nUpload: %0.2f M%s/s' % (results.ping, (results.download / 1000.0 / 1000.0)
+                                                                     / 1, 'bit', (results.upload / 1000.0 / 1000.0) / 1,
+                                                                     'bit'))
     # elif args.csv:
     #     printer(results.csv(delimiter=args.csv_delimiter))
     # elif args.json:

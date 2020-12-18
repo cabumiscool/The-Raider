@@ -2,7 +2,7 @@ import typing
 import requests
 import aiohttp
 from operator import attrgetter
-from dependencies.utils import decode_qi_content
+from .utils import decode_qi_content
 
 
 class DataDescriptorChecker:
@@ -56,10 +56,10 @@ class Chapter(SimpleChapter):
                  full_content: bool, content: str, price: int, chapter_note: ChapterNote = None,
                  editor: str = None, translator: str = None):
         """Full metadata object for chapters
-                :arg chapter_note takes the content of the author note at the end of chapters, may be
+            :arg chapter_note takes the content of the author note at the end of chapters, may be
                 safely ignored
-                :arg chapter_note takes a ChapterNote obj, can be safetly ignored
-                """
+            :arg chapter_note takes a ChapterNote obj, can be safely ignored
+        """
         super().__init__(chapter_level, chapter_id, parent_id, index, vip_status, name)
         self.is_preview = full_content
         self.content = content
@@ -117,8 +117,9 @@ class Volume:
 
 
 class SimpleBook:
-    NovelType = 0
     """To be used when not all of the book metadata is needed"""
+    NovelType = 0
+
     def __init__(self, book_id: int, book_name: str, total_chapters: int, cover_id: int, book_abbreviation: str = None,
                  library_number: int = None):
         self.id = book_id
@@ -141,24 +142,25 @@ class Book(SimpleBook):
     types = {1: 'Translated', 2: 'Original'}
     payment_method = ["Free", "Adwall", "Premium"]
 
-    def __init__(self, book_id: int, book_name: str, total_chapter_count: int, is_priv: bool,
+    def __init__(self, book_id: int, book_name: str, total_chapter_count: int, is_privileged: bool,
                  type_is_tl: int, cover_id: int,
                  reading_type: int = None, book_abbreviation: str = None):
         super().__init__(book_id, book_name, total_chapter_count, cover_id, book_abbreviation=book_abbreviation)
-        self.privilege = is_priv
+        self.privilege = is_privileged
         self.book_type = self.types[type_is_tl]
         self.book_type_num = type_is_tl
         self.read_type = self.payment_method[reading_type]
         self.read_type_num = reading_type
-        self._volume_list = []
+        self._volumes_list = []
 
     def add_volume_list(self, volume_list: typing.List[SimpleChapter]):
-        self._volume_list = sorted(volume_list, key=attrgetter('index'))
+        self._volumes_list = sorted(volume_list, key=attrgetter('index'))
 
 
 class SimpleComic:
-    NovelType = 100
     """To be used when not of all the comic metadata is needed"""
+    NovelType = 100
+
     def __init__(self, comic_id: int, comic_name: str, cover_id: int, total_chapters: int):
         self.id = comic_id
         self.name = comic_name
@@ -167,11 +169,11 @@ class SimpleComic:
 
 
 class Comic(SimpleComic):
-    """To be used when almost the complete metadata is needed. To assemble it requires as a minimum the chapter
-        list api"""
+    """To be used when almost the complete metadata is needed. To assemble it requires as a minimum the chapter list
+    api """
     payment_method = ["Free", "Adwall", "Premium"]
 
-    def __init__(self, comic_id: int, comic_name: str, cover_id: int, total_chapters: int, is_privilege: bool,
+    def __init__(self, comic_id: int, comic_name: str, cover_id: int, total_chapters: int, is_privileged: bool,
                  reading_type: int):
         super().__init__(comic_id, comic_name, cover_id, total_chapters)
         self.reading_type = self.payment_method[reading_type]
@@ -179,7 +181,7 @@ class Comic(SimpleComic):
 
 class Account:
     def __init__(self, id_: int, qi_email: str, qi_pass: str, cookies: dict, ticket: str, expired: bool,
-                 update_time: int, fp: int, library_type: int, library_pages: int, main_email: str, main_email_pass: str):
+                 update_time: int, fp: int, library_type: int, library_pages: int, main_email: str):
         self.id = id_
         self.email = qi_email
         self.password = qi_pass
@@ -191,14 +193,12 @@ class Account:
         self.library_type = library_type
         self.library_pages = library_pages
         self.host_email = main_email
-        self.host_email_password = main_email_pass
 
     def _read_valid(self, user_dict: dict) -> bool:
-        if user_dict['userName'] == '':
-            return False
-        else:
+        if user_dict['userName'] != '':
             self.fast_pass_count = user_dict['fastPass']
             return True
+        return False
 
     def check_valid(self) -> bool:
         params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}

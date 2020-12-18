@@ -101,6 +101,7 @@ class ProxyManager:
                                            timeout=aiohttp.ClientTimeout(30)) as request:
                     # await request.read()
                     request_code = request.status
+        # TODO: BUM add proper catching of exceptions
         except:
             return False, proxy
         if request_code == 200:
@@ -139,7 +140,6 @@ class ProxyManager:
             self._failed_proxies.append(proxy)
         else:
             return
-
 
 # if __name__ == '__main__':
 #     with open('usa_proxies', 'r') as file:

@@ -11,19 +11,19 @@ class BaseService:
             self.name = self.__class__.__name__
         else:
             self.name = name
-        self._input_cache = []
-        self._output_cache = []
+        self._input_queue = []
+        self._output_queue = []
         self._encountered_errors = []
         self._running = False
-        self._loop_time = loop_time
+        self._loop_interval = loop_time
 
     def add_to_queue(self, *input_data):
-        self._input_cache.extend(input_data)
+        self._input_queue.extend(input_data)
 
     def retrieve_completed_cache(self) -> typing.Iterable:
         if len(self._encountered_errors) == 0:
-            return_data = self._output_cache.copy()
-            self._output_cache.clear()
+            return_data = self._output_queue.copy()
+            self._output_queue.clear()
             return return_data
         elif len(self._encountered_errors) == 1:
             error_report = self._encountered_errors[0]
@@ -46,4 +46,4 @@ class BaseService:
                 error = background_objects.ErrorReport(Exception, 'error caught at top level execution of service',
                                                        traceback.format_exc(), e)
                 self._encountered_errors.append(error)
-            await asyncio.sleep(self._loop_time)
+            await asyncio.sleep(self._loop_interval)
