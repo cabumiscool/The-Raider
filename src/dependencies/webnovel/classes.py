@@ -136,6 +136,13 @@ class SimpleBook:
         self.cover_id = cover_id
         self.library_number = library_number  # this value can only be in the internal db
 
+    def __gt__(self, other):
+        if issubclass(other, (SimpleBook, SimpleComic)) or isinstance(other, (SimpleBook, SimpleComic)):
+            return self.total_chapters > other.total_chapters
+        else:
+            raise NotImplementedError(f"Don't know how to compare object type '{type(other)}' with self type"
+                                      f" '{type(self)}'")
+
 
 class Book(SimpleBook):
     """To be used when almost the complete metadata is needed. To assemble it requires the chapter api book section"""
