@@ -133,7 +133,7 @@ class SimpleBook:
             self.abbreviation = book_abbreviation
         self.total_chapters = total_chapters
         self.cover_id = cover_id
-        self.library_number = library_number
+        self.library_number = library_number  # this value can only be in the internal db
 
 
 class Book(SimpleBook):
