@@ -12,6 +12,7 @@ main_api_url = "https://www.webnovel.com/apiajax/Library"
 
 # TODO compact most of the request making code
 
+# TODO deal with the connector to be able to self close or something... Needs further thinking
 
 def __request_data_generator(session: aiohttp.ClientSession, account: classes.Account) -> (bool, dict):
     """Returns the initial return values indicates if a session should be used the other is the payload data"""
@@ -28,7 +29,7 @@ def __request_data_generator(session: aiohttp.ClientSession, account: classes.Ac
 
     elif account:
         assert isinstance(account, classes.Account)
-        return True, {'_csrfToken': account.cookies['_csrfToken']}
+        return False, {'_csrfToken': account.cookies['_csrfToken']}
 
 
 def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[typing.Union[classes.SimpleBook,
@@ -148,7 +149,7 @@ async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, acco
 
 async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook], typing.Type[classes.SimpleComic]],
                               session: aiohttp.ClientSession = None, account: classes.Account = None,
-                              proxy: aiohttp_socks.ProxyConnector = aiohttp.TCPConnector()) -> bool:
+                              proxy: Proxy = None) -> bool:
     """Add an item to the library
         :arg item receives either a book or a comic object to be added to the library
         :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
@@ -160,8 +161,12 @@ async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook]
         :returns a bool value representing if the request was completed successfully
     """
 
-    assert issubclass(item, (classes.SimpleBook, classes.SimpleComic)) or isinstance(item, (classes.SimpleBook,
+    assert issubclass(type(item), (classes.SimpleBook, classes.SimpleComic)) or isinstance(item, (classes.SimpleBook,
                                                                                             classes.SimpleComic))
+    if proxy:
+        proxy_connector = proxy.generate_connector()
+    else:
+        proxy_connector = aiohttp.TCPConnector()
     use_session, payload_data = __request_data_generator(session, account)
     payload_data['bookIds'] = item.id
     payload_data['novelType'] = item.NovelType
@@ -173,7 +178,8 @@ async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook]
             response_str = response_bin.decode()
             response = json.loads(response_str)
     else:
-        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies, connector=proxy) as req:
+        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies,
+                                   connector=proxy_connector) as req:
             response_bin = await req.read()
             response_str = response_bin.decode()
             response = json.loads(response_str)
@@ -200,7 +206,7 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
         :returns a bool value representing if the request was completed successfully
     """
     supported_types = (classes.SimpleBook, classes.SimpleComic)
-    assert issubclass(item, supported_types) or isinstance(item, supported_types)
+    assert issubclass(type(item), supported_types) or isinstance(item, supported_types)
     use_session, payload_data = __request_data_generator(session, account)
     full_data = {**payload_data, 'bookItems': '[{"bookId":"%s","novelType":%s}]' % (item.id, item.NovelType)}
     api_url = '/'.join((main_api_url, 'DeleteLibraryItemsAjax'))
@@ -231,31 +237,86 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
         raise ValueError(f"Unknown value of {result} as a response")
 
 
-async def batch_remove_books_from_library(*items: typing.Union[typing.Type[classes.SimpleBook],
-                                                               typing.Type[classes.SimpleComic]],
+async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBook,
+                                                               classes.SimpleComic],
                                           session: aiohttp.ClientSession = None, account: classes.Account = None,
                                           proxy: Proxy = None) -> bool:
-    pass
+
+    supported_types = (classes.SimpleBook, classes.SimpleComic)
+    use_session, payload_data = __request_data_generator(session, account)
+    items_dict_string = []
+    for item in items:
+        try:
+            assert issubclass(type(item), supported_types) or isinstance(item, supported_types)
+        except AssertionError:
+            continue
+        items_dict_string.append('{"bookId":"%s","novelType":%s}' % (item.id, item.NovelType))
+
+    full_data = {**payload_data, 'bookItems': f'[{",".join(items_dict_string)}]'}
+    # full_data = {**payload_data, 'bookItems': '[{"bookId":"%s","novelType":%s}]' % (item.id, item.NovelType)}
+    api_url = '/'.join((main_api_url, 'DeleteLibraryItemsAjax'))
+    string = "&".join([f'{key}={value}' for key, value in full_data.items()])
+    string.replace(' ', '')
+    encoded_string = quote(string, encoding='UTF-8', safe='&=')
+    # api_url = 'https://httpbin.org/post'
+
+    if use_session:
+        async with session.post(api_url, data=encoded_string,
+                                headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+            response_bin = await req.read()
+            response_str = response_bin.decode()
+            response = json.loads(response_str)
+    else:
+        if proxy:
+            proxy_connector = proxy.generate_connector()
+        else:
+            proxy_connector = aiohttp.TCPConnector()
+        async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
+                                   connector=proxy_connector,
+                                   headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+            response_bin = await req.read()
+            response_str = response_bin.decode()
+            response = json.loads(response_str)
+    result = response['code']
+    if result == 0:
+        return True
+    elif result == 1006:
+        raise Exception(F"Unknown error")
+    else:
+        raise ValueError(f"Unknown value of {result} as a response")
 
 
+# account = classes.Account(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
+#                               {'_csrfToken': '0ILeykdQRIyAoNGv8r5tUlcA2J4UmpDJhDuqwoFN',
+#                                'alk': 'ta8ad94e034afc49cb9c10bb892d8b743b%7C4311122791', 'alkts': '1609516860',
+#                                'uid': '4311122791', 'ukey': 'uUMXiwm62OY'}, 'tt3fd9b58dfaba4c19b9751bbcdd68d2c2', False,
+#                               1601545517431, 21, 1, 0, 'theseeker@cock.li')#, 'qwerty123456')
+#
+#
 # async def test1():
-#     book = classes.SimpleBook(6831827102000005, 'Gourmet Food Supplier', 'GFS',  1002)
-#     account = classes.Account(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
-#                               {'_csrfToken': 'uqOW6kXolFEy0P7qnB7Z023a8gA1A3wCOEtYt08x', 'alk':
-#                                      'ta728c503841914bda8646f7cfde76ae14%7C4311122791', 'alkts': '1601839387', 'uid':
-#                                      '4311122791', 'ukey': 'utxegYxk2MR'}, 'tt3fd9b58dfaba4c19b9751bbcdd68d2c2', False,
-#                               1601545517431, 21, 1, 0, 'theseeker@cock.li', 'qwerty123456')
+#     book = classes.SimpleBook(6831827102000005, 'Gourmet Food Supplier', 1002, 1101010, 'GFS')
+#     book2 = classes.SimpleBook(6831838302000305, 'Commanding Wind and Cloud', 652, 1010101001)
 #     result = await add_item_to_library(book, account=account)
-#     print(result)
-
-
-async def test():
-    form_data = aiohttp.FormData({'_csrftoken': 'ajdhfsjalhfdlkjhf4'}, charset='UTF-8')
-    form_data.add_field('bookItems', [{"bookId": "16248450905321505", "novelType": 0}, {"bookId": "16248550905321505",
-                                                                                        "novelType": 0}])
-    async with aiohttp.request('Post', 'https://httpbin.org/post',
-                               data=form_data) as req:
-        data = await req.read()
-        data_t = await req.text()
-        print(data)
-        print(data_t)
+#     result2 = await add_item_to_library(book2, account=account)
+#     print(result, result2)
+#     # result3 = await batch_remove_books_from_library(book, book2, account=account)
+#     # print(result3)
+#
+#
+# async def test2():
+#     book = classes.SimpleBook(6831827102000005, 'Gourmet Food Supplier', 1002, 1101010, 'GFS')
+#     book2 = classes.SimpleBook(6831838302000305, 'Commanding Wind and Cloud', 652, 1010101001)
+#     result3 = await batch_remove_books_from_library(book, book2, account=account)
+#     print(result3)
+#
+#
+# async def test():
+#     form_data = aiohttp.FormData({'_csrftoken': 'ajdhfsjalhfdlkjhf4'}, charset='UTF-8')
+#     form_data.add_field('bookItems', [{"bookId": "16248450905321505", "novelType": 0}, {"bookId": "16248550905321505",
+#                                                                                         "novelType": 0}])
+#     async with aiohttp.request('Post', 'https://httpbin.org/post',
+#                                data=form_data) as req:
+#         data = await req.read()
+#         data_t = await req.text()
+#         print(data)
+#         print(data_t)
