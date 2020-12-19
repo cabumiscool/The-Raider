@@ -15,34 +15,46 @@ main_api = 'https://www.webnovel.com/apiajax/chapter'
 
 
 async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.ClientSession = None,
-                                 proxy: aiohttp_socks.ProxyConnector =
-                                 aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
+                                 proxy: Proxy = None
                                  ) -> typing.List[classes.Volume]:
+    #  aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
     """Add an item to the library
         :arg book receives either a book or a comic object to be added to the library
         :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
             account arg to generate a request
         :arg proxy accepts an aiohttp proxy connector object, will be ignored if session is given
         :returns a list containing Volume objects
+
     """
     params = {'bookId': str(book.id), '_': time()}
     api = '/'.join((main_api, 'GetChapterList'))
-    try:
-        if session is None:
-            # TODO check if it is possible to retrieve a specific cookie from the session
-            async with aiohttp.request('GET', api, params=params, connector=proxy) as req:
-                resp_bin = await req.read()
-                resp_str = resp_bin.decode()
-                resp_dict = json.loads(resp_str)
+    while True:
+        try:
+            if session is None:
+                # TODO check if it is possible to retrieve a specific cookie from the session
+
+                if proxy:
+                    proxy_connector = proxy.generate_connector()
+                else:
+                    proxy_connector = aiohttp.TCPConnector()
+
+                async with aiohttp.request('GET', api, params=params, connector=proxy_connector) as req:
+                    resp_bin = await req.read()
+                    resp_str = resp_bin.decode()
+                    resp_dict = json.loads(resp_str)
+            else:
+                async with session.get(api, params=params) as req:
+                    resp_bin = await req.read()
+                    resp_str = resp_bin.decode()
+                    resp_dict = json.loads(resp_str)
+        except json.JSONDecodeError:
+            continue
         else:
-            async with session.get(api, params=params) as req:
-                resp_bin = await req.read()
-                resp_str = resp_bin.decode()
-                resp_dict = json.loads(resp_str)
-    except:
-        # TODO analyze what exceptions can here paying special attention to the exceptions that happen when proxy
-        #  is used
-        pass
+            break
+        # except Exception:
+        #     # TODO analyze what exceptions can here paying special attention to the exceptions that happen when proxy
+        #     #  is used
+        #     pass
     code = resp_dict['code']
     if code == 0:
         # successful request
@@ -74,23 +86,38 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
 
 
 async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
-                                       proxy_connector: aiohttp_socks.ProxyConnector =
-                                       aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
-                                       cookies: dict = None, return_chapter_meta: bool = True) -> dict:
+                                       proxy: Proxy = None, cookies: dict = None, return_chapter_meta: bool = True) -> dict:
     """Retrieves the chapter content json"""
+    # aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
+
     api = '/'.join((main_api, 'GetContent'))
     params = {'bookId': book_id, 'chapterId': chapter_id, '_': time()}
     if session:
         # TODO check if a cookie can be retrieved from the session
-        async with session.get(api, params=params) as req:
-            resp_bin = await req.read()
+        while True:
+            try:
+                async with session.get(api, params=params) as req:
+                    resp_bin = await req.read()
+            except json.JSONDecodeError:
+                continue
+            break
     else:
         if cookies:
             params['_csrfToken'] = cookies['_csrfToken']
         else:
             cookies = {}
-        async with aiohttp.request('GET', api, params=params, connector=proxy_connector, cookies=cookies) as resp:
-            resp_bin = await resp.read()
+        while True:
+            try:
+                if proxy:
+                    proxy_connector = proxy.generate_connector()
+                else:
+                    proxy_connector = aiohttp.TCPConnector()
+
+                async with aiohttp.request('GET', api, params=params, connector=proxy_connector, cookies=cookies) as resp:
+                    resp_bin = await resp.read()
+            except json.JSONDecodeError:
+                continue
+            break
     resp_str = resp_bin.decode()
     resp_dict = json.loads(resp_str)
     resp_code = resp_dict['code']
@@ -154,11 +181,13 @@ async def chapter_retriever(book_id: int, chapter_id: int,
 
 
 async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aiohttp.ClientSession = None,
-                                cookies: dict = None, proxy_connector: aiohttp_socks.ProxyConnector =
-                                aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
+                                cookies: dict = None, proxy: Proxy = None,
                                 unlock_type: int = 5, chapter_type: int = 2, chapter_price: int = 1):
     """Will buy a chapter with fastpass unless the rest of the data are modified    """
     api_url = 'https://www.webnovel.com/apiajax/SpiritStone/useSSAjax'
+
+    # _connector: aiohttp_socks.ProxyConnector =
+    # aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
 
     # check to see if the csrftken can be extracted from a session
     form_data_dict = {'bookId': book_id, 'unlockType': unlock_type}
@@ -173,11 +202,26 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
                                       'chapterType': chapter_type}])
 
     if session:
-        async with session.post(api_url, data=form_data) as req:
-            content_dict = decode_qi_content(await req.read())
+        while True:
+            try:
+                async with session.post(api_url, data=form_data) as req:
+                    content_dict = decode_qi_content(await req.read())
+            except json.JSONDecodeError:
+                continue
+            break
     else:
-        async with aiohttp.request('POST', api_url, data=form_data, cookies=cookies, connector=proxy_connector) as req:
-            content_dict = decode_qi_content(await req.read())
+        while True:
+            try:
+                if proxy:
+                    proxy_connector = proxy.generate_connector(force_close=True, enable_cleanup_closed=True)
+                else:
+                    proxy_connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
+
+                async with aiohttp.request('POST', api_url, data=form_data, cookies=cookies, connector=proxy_connector) as req:
+                    content_dict = decode_qi_content(await req.read())
+            except json.JSONDecodeError:
+                continue
+            break
     request_code = content_dict['code']
 
     # code 0 is success | code 2 is already bought | code 1 is fail or possibly insufficient fp/ss
@@ -208,7 +252,7 @@ async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSe
     chapter = await chapter_retriever(book_id, chapter_id, session, account, proxy)
     if chapter.is_preview:
         chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, cookies=cookies,
-                                                      proxy_connector=proxy_connector)
+                                                      proxy=proxy)
         chapter.is_preview = False
     else:
         return chapter
