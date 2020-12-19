@@ -51,8 +51,7 @@ def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[ty
 
 
 async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSession = None,
-                                account: classes.QiAccount = None, proxy: aiohttp_socks.ProxyConnector =
-                                aiohttp.TCPConnector(force_close=True)) -> (
+                                account: classes.QiAccount = None, proxy: Proxy = None) -> (
         typing.Tuple[typing.List[typing.Union[classes.SimpleBook, classes.SimpleComic]]], bool):
     """Retrieves a page from the library
         :arg page_index is the page number that will be requested from the library
@@ -64,20 +63,36 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
         :returns a tuple containing a list which containing a dict for every book present in the library page and a
             bool representing if this is the last page on the library
     """
+
+    # aiohttp_socks.ProxyConnector =
+    # aiohttp.TCPConnector(force_close=True)
     api_url = '/'.join([main_api_url, 'LibraryAjax'])
     use_session, payload_data = __request_data_generator(session, account)
     payload_data['pageIndex'] = page_index
     payload_data['orderBy'] = 2
-    if use_session:
-        async with session.post(api_url, data=payload_data) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
-    else:
-        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies, connector=proxy) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
+    while True:
+        try:
+
+            if proxy:
+                proxy_connector = proxy.generate_connector()
+            else:
+                proxy_connector = aiohttp.TCPConnector()
+
+            if use_session:
+                async with session.post(api_url, data=payload_data) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+            else:
+                async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies,
+                                           connector=proxy_connector) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+        except json.JSONDecodeError:
+            pass
+        else:
+            break
     result = response['code']
     req_data = response['data']
     req_books = response['books']
@@ -163,26 +178,33 @@ async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook]
 
     assert issubclass(type(item), (classes.SimpleBook, classes.SimpleComic)) or isinstance(item, (classes.SimpleBook,
                                                                                             classes.SimpleComic))
-    if proxy:
-        proxy_connector = proxy.generate_connector()
-    else:
-        proxy_connector = aiohttp.TCPConnector()
+
     use_session, payload_data = __request_data_generator(session, account)
     payload_data['bookIds'] = item.id
     payload_data['novelType'] = item.NovelType
     # add_data = {'_csrfToken': csrf, 'bookIds': item_id, 'novelType': type_}
     api_url = '/'.join((main_api_url, 'AddLibraryItemsAjax'))
-    if use_session:
-        async with session.post(api_url, data=payload_data) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
-    else:
-        async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies,
-                                   connector=proxy_connector) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
+    while True:
+        try:
+            if proxy:
+                proxy_connector = proxy.generate_connector()
+            else:
+                proxy_connector = aiohttp.TCPConnector()
+            if use_session:
+                async with session.post(api_url, data=payload_data) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+            else:
+                async with aiohttp.request('POST', api_url, data=payload_data, cookies=account.cookies,
+                                           connector=proxy_connector) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+        except json.JSONDecodeError:
+            pass
+        else:
+            break
     result = response['code']
     if result == 0:
         return True
@@ -214,20 +236,29 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
     string.replace(' ', '')
     encoded_string = quote(string, encoding='UTF-8', safe='&=')
     # api_url = 'https://httpbin.org/post'
-    if use_session:
-        async with session.post(api_url, data=encoded_string,
-                                headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
-    else:
-        proxy_connector = proxy.generate_connector()
-        async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
-                                   connector=proxy_connector,
-                                   headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
+    while True:
+        try:
+            if use_session:
+                async with session.post(api_url, data=encoded_string,
+                                        headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+            else:
+                if proxy:
+                    proxy_connector = proxy.generate_connector()
+                else:
+                    proxy_connector = aiohttp.TCPConnector()
+                async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
+                                           connector=proxy_connector,
+                                           headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+        except json.JSONDecodeError:
+            pass
+        else:
+            break
     result = response['code']
     if result == 0:
         return True
@@ -260,23 +291,29 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
     encoded_string = quote(string, encoding='UTF-8', safe='&=')
     # api_url = 'https://httpbin.org/post'
 
-    if use_session:
-        async with session.post(api_url, data=encoded_string,
-                                headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
-    else:
-        if proxy:
-            proxy_connector = proxy.generate_connector()
+    while True:
+        try:
+            if use_session:
+                async with session.post(api_url, data=encoded_string,
+                                        headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+            else:
+                if proxy:
+                    proxy_connector = proxy.generate_connector()
+                else:
+                    proxy_connector = aiohttp.TCPConnector()
+                async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
+                                           connector=proxy_connector,
+                                           headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                    response_bin = await req.read()
+                    response_str = response_bin.decode()
+                    response = json.loads(response_str)
+        except json.JSONDecodeError:
+            pass
         else:
-            proxy_connector = aiohttp.TCPConnector()
-        async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
-                                   connector=proxy_connector,
-                                   headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
-            response_bin = await req.read()
-            response_str = response_bin.decode()
-            response = json.loads(response_str)
+            break
     result = response['code']
     if result == 0:
         return True
