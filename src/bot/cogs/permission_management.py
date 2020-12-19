@@ -6,14 +6,14 @@ from discord.ext.commands import Context
 
 from bot import bot_exceptions
 from dependencies import database
-from dependencies.database import Database
+from dependencies.database import PgDatabase
 from . import bot_checks
 
 
 class PermissionManagement(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db: Database = bot.db
+        self.db: PgDatabase = bot.db
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: Context, error):
