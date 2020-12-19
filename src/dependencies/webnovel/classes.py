@@ -186,9 +186,9 @@ class Comic(SimpleComic):
         self.reading_type = self.payment_method[reading_type]
 
 
-class Account:
+class QiAccount:
     def __init__(self, id_: int, qi_email: str, qi_pass: str, cookies: dict, ticket: str, expired: bool,
-                 update_time: int, fp: int, library_type: int, library_pages: int, main_email: str):
+                 update_time: int, fp: int, library_type: int, library_pages: int, main_email_id: int, guid: int):
         self.id = id_
         self.email = qi_email
         self.password = qi_pass
@@ -199,7 +199,8 @@ class Account:
         self.fast_pass_count = fp
         self.library_type = library_type
         self.library_pages = library_pages
-        self.host_email = main_email
+        self.host_email_id = main_email_id
+        self.guid = guid
 
     def _read_valid(self, user_dict: dict) -> bool:
         if user_dict['userName'] != '':
@@ -221,3 +222,10 @@ class Account:
             response_dict = decode_qi_content(await req.read())
         user_dict = response_dict['user']
         return self._read_valid(user_dict)
+
+
+class EmailAccount:
+    def __init__(self, id_: int, email: str, password: str):
+        self.id = id_
+        self.email = email
+        self.password = password
