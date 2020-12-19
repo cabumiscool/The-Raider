@@ -8,4 +8,4 @@ def generate_embed(title: str, author: Member, description: str, color: Union[Co
         title=title,
         color=color,
         description=description
-    ).set_footer(text=f"Requested by {author.display_name}", icon_url=author.avatar_url)
+    ).set_footer(text=author.display_name, icon_url=author.avatar_url)
