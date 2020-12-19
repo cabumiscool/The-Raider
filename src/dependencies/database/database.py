@@ -177,6 +177,10 @@ class PgDatabase:
     async def set_library_pages_number(self, account: QiAccount, pages_number: int):
         pass
 
+    def get_all_books_ids_names_sub_names_dict(self):
+        pass
+
+
 class Database:
     """to be deleted once migrated to other class"""
 
