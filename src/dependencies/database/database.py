@@ -58,22 +58,20 @@ class PgDatabase:
         if len(ids) == 0:
             raise database_exceptions.DatabaseMissingArguments(f'Missing arguments at the permission retriever')
         # cursor = await self.__cursor_creator__()
+        if with_name:
+            query = f'SELECT MAX(USER_AUTH.`LEVEL`), NAME FROM USER_AUTH, PERMISSIONS_NAMES WHERE ITEM_ID IN ' \
+                    f'({", ".join(f"${x}" for x in range(1, len(ids)))}) AND USER_AUTH.`LEVEL` = PERMISSIONS_NAMES.`LEVEL`'
+        else:
+            query = f'SELECT MAX(LEVEL) FROM USER_AUTH WHERE ITEM_ID IN ({", ".join(f"${x}" for x in range(1, len(ids)))}) '
         async with self.db_pool.acquire() as connection:
             connection: asyncpg.Connection
-            if with_name:
-                query = f'SELECT MAX(USER_AUTH.`LEVEL`), NAME FROM USER_AUTH, PERMISSIONS_NAMES WHERE ITEM_ID IN ' \
-                        f'({", ".join(["%s"] * len(ids))}) AND USER_AUTH.`LEVEL` = PERMISSIONS_NAMES.`LEVEL`'
-            else:
-                query = f'SELECT MAX(LEVEL) FROM USER_AUTH WHERE ITEM_ID IN ({", ".join(["%s"] * len(ids))})'
-            # await connection.execute(query, ids)
-            # TODO check how to use the argument input
-            data = await connection.fetchrow(query, )
-            permission = data[0]
+            data = await connection.fetchrow(query, ids)
+            permission_level = data[0]
         # self.__cursor_recycle__(cursor)
         if with_name:
-            return permission, data[1]
+            return permission_level, data[1]
         else:
-            return permission
+            return permission_level
 
     async def auth_retriever(self, include_roles: bool = False):
         # cursor = await self.__cursor_creator__()
@@ -122,7 +120,7 @@ class PgDatabase:
         #     self.__cursor_recycle__(cursor)
 
     async def whitelist_check(self, server_id: int, channel_id: int):
-        query = 'SELECT count(1) FROM CHANNEL_AUTH WHERE SERVER_ID = %s AND CHANNEL_ID = %s'
+        query = 'SELECT count(1) FROM CHANNEL_AUTH WHERE SERVER_ID = $1 AND CHANNEL_ID = $2'
         cursor = await self.__cursor_creator__()
         try:
             await cursor.execute(query, (server_id, channel_id))
@@ -135,7 +133,7 @@ class PgDatabase:
         return result
 
     async def whitelist_add(self, server_id: int, channel_id: int, whitelist_level: int = 1):
-        query = 'INSERT INTO CHANNEL_AUTH (SERVER_ID, CHANNEL_ID) VALUES (%s, %s)'
+        query = 'INSERT INTO CHANNEL_AUTH (SERVER_ID, CHANNEL_ID) VALUES ($1, $2)'
         cursor = await self.__cursor_creator__()
         try:
             await cursor.execute(query, (server_id, channel_id))
@@ -148,7 +146,7 @@ class PgDatabase:
         return
 
     async def whitelist_remove(self, server_id: int, channel_id: int):
-        query = 'DELETE FROM CHANNEL_AUTH WHERE SERVER_ID = %s AND CHANNEL_ID = %s'
+        query = 'DELETE FROM CHANNEL_AUTH WHERE SERVER_ID = $1 AND CHANNEL_ID = $2'
         cursor = await self.__cursor_creator__()
         try:
             await cursor.execute(query, (server_id, channel_id))
