@@ -14,7 +14,7 @@ main_api_url = "https://www.webnovel.com/apiajax/Library"
 
 # TODO deal with the connector to be able to self close or something... Needs further thinking
 
-def __request_data_generator(session: aiohttp.ClientSession, account: classes.Account) -> (bool, dict):
+def __request_data_generator(session: aiohttp.ClientSession, account: classes.QiAccount) -> (bool, dict):
     """Returns the initial return values indicates if a session should be used the other is the payload data"""
     if session is None and account is None:
         raise ValueError(f"No valid value was passed to either session or account")
@@ -28,7 +28,7 @@ def __request_data_generator(session: aiohttp.ClientSession, account: classes.Ac
         return True, {'_csrfToken': csrf_token}
 
     elif account:
-        assert isinstance(account, classes.Account)
+        assert isinstance(account, classes.QiAccount)
         return False, {'_csrfToken': account.cookies['_csrfToken']}
 
 
@@ -51,7 +51,7 @@ def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[ty
 
 
 async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSession = None,
-                                account: classes.Account = None, proxy: aiohttp_socks.ProxyConnector =
+                                account: classes.QiAccount = None, proxy: aiohttp_socks.ProxyConnector =
                                 aiohttp.TCPConnector(force_close=True)) -> (
         typing.Tuple[typing.List[typing.Union[classes.SimpleBook, classes.SimpleComic]]], bool):
     """Retrieves a page from the library
@@ -92,7 +92,7 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
         raise ValueError(f"Unknown value of {result} as a response")
 
 
-async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, account: classes.Account = None,
+async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                                      proxy: Proxy = None) -> \
         typing.Tuple[typing.List[typing.Union[classes.SimpleBook, classes.SimpleComic]], int]:
     """Will retrieve all library items associated with the account"""
@@ -148,7 +148,7 @@ async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, acco
 
 
 async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook], typing.Type[classes.SimpleComic]],
-                              session: aiohttp.ClientSession = None, account: classes.Account = None,
+                              session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                               proxy: Proxy = None) -> bool:
     """Add an item to the library
         :arg item receives either a book or a comic object to be added to the library
@@ -193,7 +193,7 @@ async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook]
 
 
 async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classes.SimpleComic],
-                                   session: aiohttp.ClientSession = None, account: classes.Account = None,
+                                   session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                                    proxy: Proxy = None) -> bool:
     """Removes an item from the library
         :arg item receives either a book or a comic object to be added to the library
@@ -239,7 +239,7 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
 
 async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBook,
                                                                classes.SimpleComic],
-                                          session: aiohttp.ClientSession = None, account: classes.Account = None,
+                                          session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                                           proxy: Proxy = None) -> bool:
 
     supported_types = (classes.SimpleBook, classes.SimpleComic)
@@ -286,7 +286,7 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
         raise ValueError(f"Unknown value of {result} as a response")
 
 
-# account = classes.Account(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
+# account = classes.QiAccount(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
 #                               {'_csrfToken': '0ILeykdQRIyAoNGv8r5tUlcA2J4UmpDJhDuqwoFN',
 #                                'alk': 'ta8ad94e034afc49cb9c10bb892d8b743b%7C4311122791', 'alkts': '1609516860',
 #                                'uid': '4311122791', 'ukey': 'uUMXiwm62OY'}, 'tt3fd9b58dfaba4c19b9751bbcdd68d2c2', False,

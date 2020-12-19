@@ -105,7 +105,7 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
 
 
 async def chapter_retriever(book_id: int, chapter_id: int,
-                            session: aiohttp.ClientSession = None, account: classes.Account = None,
+                            session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                             proxy: Proxy = None) -> classes.Chapter:
     if account is None:
         cookies = {}
@@ -194,7 +194,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
 
 
 async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
-                        account: classes.Account = None, proxy: Proxy = None, *, use_ss=False) -> classes.Chapter:
+                        account: classes.QiAccount = None, proxy: Proxy = None, *, use_ss=False) -> classes.Chapter:
     cookies = None
     if account is not None:
         cookies = account.cookies

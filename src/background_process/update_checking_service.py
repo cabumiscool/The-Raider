@@ -4,25 +4,25 @@ from background_process.base_service import BaseService
 from background_process.background_objects import LibraryRetrievalError
 from dependencies.database.database import PgDatabase
 from dependencies.webnovel.web import library
-from dependencies.webnovel.classes import Account, SimpleBook, SimpleComic
+from dependencies.webnovel.classes import QiAccount, SimpleBook, SimpleComic
 from dependencies.proxy_manager import Proxy
 
 
-async def retrieve_library_accounts(database: PgDatabase) -> typing.List[Account]:
+async def retrieve_library_accounts(database: PgDatabase) -> typing.List[QiAccount]:
     tasks = []
     for library_type in range(1, 11):
         tasks.append(asyncio.create_task(database.retrieve_library_account(library_type)))
     accounts = await asyncio.gather(*tasks)
-    accounts: typing.List[Account]
+    accounts: typing.List[QiAccount]
     return accounts
 
 
-async def test_account(account: Account):
+async def test_account(account: QiAccount):
     account_status = await account.async_check_valid()
     return account_status, account
 
 
-async def retrieve_library_content(account: Account, proxy: Proxy = None):
+async def retrieve_library_content(account: QiAccount, proxy: Proxy = None):
     library_items, pages_in_library = await library.retrieve_all_library_pages(account=account, proxy=proxy)
     return library_items, pages_in_library, account
 
@@ -82,7 +82,7 @@ class BooksLibraryChecker(BaseService):
         for library_items, library_page, account in results:
             library_items: typing.List[typing.Union[SimpleBook, SimpleComic]]
             library_page: int
-            account: Account
+            account: QiAccount
             extra_books = []
             for library_item in library_items:
                 try:

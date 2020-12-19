@@ -164,10 +164,10 @@ class PgDatabase:
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
         pass
 
-    async def retrieve_library_account(self, library_type: int) -> Account:
+    async def retrieve_library_account(self, library_type: int) -> QiAccount:
         pass
 
-    async def expired_account(self, account: Account):
+    async def expired_account(self, account: QiAccount):
         pass
 
     async def retrieve_proxy(self) -> Proxy:
@@ -176,7 +176,7 @@ class PgDatabase:
     async def expired_proxy(self, proxy: Proxy):
         pass
 
-    async def set_library_pages_number(self, account: Account, pages_number: int):
+    async def set_library_pages_number(self, account: QiAccount, pages_number: int):
         pass
 
 class Database:
