@@ -1,17 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dependencies.webnovel.classes import *
+
 import asyncio
 
 import aiomysql
 import asyncpg
 import typing
 
-from dependencies.webnovel.classes import *
+from dependencies.database.database_exceptions import *
 from dependencies.proxy_manager import Proxy
-
-# from . import database_exceptions
-try:
-    from . import *
-except ImportError:
-    from dependencies.database.database_exceptions import *
 
 
 class PgDatabase:
@@ -38,7 +39,7 @@ class PgDatabase:
             await self.__database_initializer__()
             return True
         except Exception as e:
-            raise database_exceptions.DatabaseInitError(f'Databased failed to start with error:  {e}, type:  {type(e)}')
+            raise DatabaseInitError(f'Databased failed to start with error:  {e}, type:  {type(e)}')
 
     async def __init_check__(self):
         if self.running:
@@ -66,7 +67,7 @@ class PgDatabase:
     async def permission_retriever(self, *ids, with_name=False):
         # TODO check if the sql works from mysql to postgres
         if len(ids) == 0:
-            raise database_exceptions.DatabaseMissingArguments(f'Missing arguments at the permission retriever')
+            raise DatabaseMissingArguments(f'Missing arguments at the permission retriever')
         # cursor = await self.__cursor_creator__()
         if with_name:
             query = f'SELECT MAX(USER_AUTH.`LEVEL`), NAME FROM USER_AUTH, PERMISSIONS_NAMES WHERE ITEM_ID IN ' \
@@ -231,7 +232,7 @@ class Database:
             print('Database successfully connected')
             return True
         except Exception as e:
-            raise database_exceptions.DatabaseInitError(f'Databased failed to start with error:  {e}, type:  {type(e)}')
+            raise DatabaseInitError(f'Databased failed to start with error:  {e}, type:  {type(e)}')
 
     async def __init_check__(self):
         if self.running:
@@ -255,7 +256,7 @@ class Database:
 
     async def permission_retriever(self, *ids, with_name=False):
         if len(ids) == 0:
-            raise database_exceptions.DatabaseMissingArguments(f'Missing arguments at the permission retriever')
+            raise DatabaseMissingArguments(f'Missing arguments at the permission retriever')
         cursor = await self.__cursor_creator__()
         if with_name:
             query = f'SELECT MAX(USER_AUTH.`LEVEL`), NAME FROM USER_AUTH, PERMISSIONS_NAMES WHERE ITEM_ID IN ' \
