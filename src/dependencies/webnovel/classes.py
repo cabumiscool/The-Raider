@@ -91,7 +91,7 @@ class Volume:
 
     def __init__(self, chapters_list: typing.List[SimpleChapter], volume_index: int, book_id: int,
                  volume_name: str = "No-Name"):
-        # self.containing_items = {chapter.index: chapter.id for chapter in chapters_list}
+        self._chapters_with_index = {chapter.index: chapter for chapter in chapters_list}
         self._chapters = {chapter.id: chapter for chapter in chapters_list}
         self.index = volume_index
         self.name = volume_name
@@ -102,13 +102,12 @@ class Volume:
         self._last_index = last_index
         self._missing_indexes = missing
 
-    def __check_if_index_in_db(self, index: int):
+    def __check_if_index_in_volume(self, index: int):
         return self._start_index <= index <= self._last_index and index not in self._missing_indexes
 
     def retrieve_chapter_by_index(self, chapter_index: int) -> SimpleChapter:
-        if self.__check_if_index_in_db(chapter_index):
-            chapter_id = self._chapters[chapter_index]
-            return self._chapters[chapter_id]
+        if self.__check_if_index_in_volume(chapter_index):
+            return self._chapters_with_index[chapter_index]
         else:
             raise ValueError(f"The index '{chapter_index}' is not part of this volume")
 
