@@ -35,6 +35,7 @@ class PgDatabase:
         try:
             self.db_pool: asyncpg.pool.Pool = await asyncpg.create_pool(**self._database_data)
             self.running = True
+            await self.__database_initializer__()
             return True
         except Exception as e:
             raise database_exceptions.DatabaseInitError(f'Databased failed to start with error:  {e}, type:  {type(e)}')
@@ -52,6 +53,15 @@ class PgDatabase:
             connection: asyncpg.Connection
             data = await connection.fetch('SELECT version();')
             print(data)
+
+    async def __database_initializer__(self):
+        try:
+
+            with open('./dependencies/database/database_initialization.sql') as file:
+                query = file.read()
+                await self.db_pool.execute(query)
+        except Exception as e:
+            print(e)
 
     async def permission_retriever(self, *ids, with_name=False):
         # TODO check if the sql works from mysql to postgres
