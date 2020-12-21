@@ -207,20 +207,22 @@ class QiAccount:
             return True
         return False
 
-    def check_valid(self) -> bool:
-        params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
-        response = requests.get('https://www.webnovel.com/apiajax/task/taskList', params=params, cookies=self.cookies)
-        response_dict = decode_qi_content(response.content)
-        user_dict = response_dict['user']
-        return self._read_valid(user_dict)
-
-    async def async_check_valid(self) -> bool:
-        params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
-        async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
-                                   cookies=self.cookies) as req:
-            response_dict = decode_qi_content(await req.read())
-        user_dict = response_dict['user']
-        return self._read_valid(user_dict)
+    # TODO: Should this be moved to auth.py or a new file?
+    # Also Do we need a sync version?
+    # def check_valid(self) -> bool:
+    #     params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
+    #     response = requests.get('https://www.webnovel.com/apiajax/task/taskList', params=params, cookies=self.cookies)
+    #     response_dict = decode_qi_content(response.content)
+    #     user_dict = response_dict['user']
+    #     return self._read_valid(user_dict)
+    #
+    # async def async_check_valid(self) -> bool:
+    #     params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
+    #     async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
+    #                                cookies=self.cookies) as req:
+    #         response_dict = decode_qi_content(await req.read())
+    #     user_dict = response_dict['user']
+    #     return self._read_valid(user_dict)
 
 
 class EmailAccount:

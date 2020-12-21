@@ -7,7 +7,7 @@ idna==2.10
 multidict==5.0.2
 websockets==8.1
 yarl==1.6.3
-aiomysql~=0.0.20
 aiohttp_socks~=0.5.3
 requests~=2.25.0
 asyncpg~=0.21.0
+fuzzywuzzy~=0.18.0
