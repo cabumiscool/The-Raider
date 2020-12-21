@@ -95,7 +95,7 @@ class PgDatabase:
         await self.db_pool.execute(query, level, target_id)
 
     async def whitelist_check(self, server_id: int, channel_id: int) -> int:
-        query = 'SELECT count(1) FROM CHANNEL_AUTH WHERE SERVER_ID = $1 AND CHANNEL_ID = $2'
+        query = 'SELECT WHITELIST_LEVEL FROM CHANNEL_AUTH WHERE SERVER_ID = $1 AND CHANNEL_ID = $2'
         data = await self.db_pool.fetchval(query, server_id, channel_id)
         return data
 
