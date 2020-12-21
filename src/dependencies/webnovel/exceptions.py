@@ -6,6 +6,10 @@ class FailedChapterBuy(Exception):
     """Used when a buy request fails"""
 
 
+class FailedRequest(Exception):
+    pass
+
+
 class UnknownResponseCode(Exception):
     """Used when a request returns an unknown response code"""
 
