@@ -20,6 +20,11 @@ class BaseService:
     def add_to_queue(self, *input_data):
         self._input_queue.extend(input_data)
 
+    def _retrieve_input_queue(self) -> list:
+        queue_content = self._input_queue.copy()
+        self._input_queue.clear()
+        return queue_content
+
     def retrieve_completed_cache(self) -> typing.Iterable:
         if len(self._encountered_errors) == 0:
             return_data = self._output_queue.copy()
