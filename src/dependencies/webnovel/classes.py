@@ -245,14 +245,14 @@ class QiAccount:
     #     response_dict = decode_qi_content(response.content)
     #     user_dict = response_dict['user']
     #     return self._read_valid(user_dict)
-    #
-    # async def async_check_valid(self) -> bool:
-    #     params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
-    #     async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
-    #                                cookies=self.cookies) as req:
-    #         response_dict = decode_qi_content(await req.read())
-    #     user_dict = response_dict['user']
-    #     return self._read_valid(user_dict)
+
+    async def async_check_valid(self) -> bool:
+        params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
+        async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
+                                   cookies=self.cookies) as req:
+            response_dict = decode_qi_content(await req.read())
+        user_dict = response_dict['user']
+        return self._read_valid(user_dict)
 
 
 class EmailAccount:
