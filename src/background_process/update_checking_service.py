@@ -29,7 +29,7 @@ async def retrieve_library_content(account: QiAccount, proxy: Proxy = None):
 
 class BooksLibraryChecker(BaseService):
     def __init__(self, database: PgDatabase):
-        super().__init__('Book Checker Module')
+        super().__init__('Library Checker Module')
         self.database = database
 
     async def main(self):
