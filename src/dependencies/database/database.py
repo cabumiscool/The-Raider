@@ -13,7 +13,7 @@ from dependencies.proxy_manager import Proxy
 from .database_exceptions import *
 
 
-class PgDatabase:
+class Database:
     def __init__(self, database_host: str, database_name: str, database_user: str, database_password,
                  database_port: int = 5432, min_conns: int = 3, max_conns: int = 10,
                  loop: asyncio.AbstractEventLoop = None):
@@ -60,7 +60,6 @@ class PgDatabase:
             print('Please run the the launcher with the repository as the working directory.')
 
     async def permission_retriever(self, *ids, with_name=False):
-        # TODO check if the sql works from mysql to postgres
         if len(ids) == 0:
             raise DatabaseMissingArguments(f'Missing arguments at the permission retriever')
         if with_name:

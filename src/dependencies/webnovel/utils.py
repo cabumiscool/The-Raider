@@ -4,7 +4,7 @@ from typing import List, Union, Tuple
 from fuzzywuzzy import process
 
 from dependencies.webnovel.classes import *
-from dependencies.database import PgDatabase
+from dependencies.database import Database
 
 SELECTION_SCORE_DIFF: int = 3
 SELECTION_SCORE: int = 80
@@ -16,7 +16,7 @@ def decode_qi_content(binary_content: bytes):
     return json.loads(content_str)
 
 
-async def book_string_matcher(database: PgDatabase, book_string, limit: int = 5, *, base_score: int = SELECTION_SCORE,
+async def book_string_matcher(database: Database, book_string, limit: int = 5, *, base_score: int = SELECTION_SCORE,
                               selection_difference: int = SELECTION_SCORE_DIFF) -> Union[None, List[Tuple[Book, int]]]:
     all_valid_book_strings = await database.get_all_books_ids_names_sub_names_dict()
     matches = process.extractBests(book_string, all_valid_book_strings, limit=limit)

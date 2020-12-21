@@ -9,7 +9,7 @@ import discord
 from discord.ext import commands
 
 from config import Settings
-from dependencies.database import PgDatabase
+from dependencies.database import Database
 
 initial_extensions = ('bot.cogs.permission_management',)
 
@@ -32,8 +32,8 @@ class Raider(commands.AutoShardedBot):
                          description=self.configs.bot_description, pm_help=None, help_attrs=dict(hidden=True),
                          fetch_offline_members=False, heartbeat_timeout=150.0)
         self.bot_token = self.configs.bot_token
-        self.db = PgDatabase(self.configs.db_host, self.configs.db_name, self.configs.db_user, self.configs.db_password,
-                             self.configs.db_port, self.configs.min_db_conns, self.configs.max_db_conns, loop=self.loop)
+        self.db = Database(self.configs.db_host, self.configs.db_name, self.configs.db_user, self.configs.db_password,
+                           self.configs.db_port, self.configs.min_db_conns, self.configs.max_db_conns, loop=self.loop)
 
         self.uptime: datetime.datetime = datetime.datetime.now()
 

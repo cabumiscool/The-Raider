@@ -6,14 +6,14 @@ from discord.ext.commands import Context
 
 from bot import bot_exceptions
 from dependencies import database
-from dependencies.database import PgDatabase
+from dependencies.database import Database
 from . import bot_checks
 
 
 class PermissionManagement(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db: PgDatabase = bot.db
+        self.db: Database = bot.db
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: Context, error):
@@ -95,7 +95,6 @@ class PermissionManagement(commands.Cog):
             else:
                 await db.auth_changer(item_id, level)
                 await ctx.send(f"successfully changed `{item.name}` clearance level from {target_level} to {level}")
-        return
 
     @commands.command()
     @bot_checks.check_permission_level(6)
@@ -122,7 +121,6 @@ class PermissionManagement(commands.Cog):
             return
         else:
             await ctx.send(f"Channel `{channel.name}` is not on the whitelist!")
-            return
 
     @commands.command()
     @bot_checks.check_permission_level(8)
