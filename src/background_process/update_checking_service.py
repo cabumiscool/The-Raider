@@ -2,13 +2,13 @@ import typing
 import asyncio
 from background_process.base_service import BaseService
 from background_process.background_objects import LibraryRetrievalError
-from dependencies.database.database import PgDatabase
+from dependencies.database.database import Database
 from dependencies.webnovel.web import library
 from dependencies.webnovel.classes import QiAccount, SimpleBook, SimpleComic
 from dependencies.proxy_manager import Proxy
 
 
-async def retrieve_library_accounts(database: PgDatabase) -> typing.List[QiAccount]:
+async def retrieve_library_accounts(database: Database) -> typing.List[QiAccount]:
     tasks = []
     for library_type in range(1, 11):
         tasks.append(asyncio.create_task(database.retrieve_library_account(library_type)))
@@ -28,7 +28,7 @@ async def retrieve_library_content(account: QiAccount, proxy: Proxy = None):
 
 
 class BooksLibraryChecker(BaseService):
-    def __init__(self, database: PgDatabase):
+    def __init__(self, database: Database):
         super().__init__('Library Checker Module')
         self.database = database
 

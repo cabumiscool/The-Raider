@@ -8,13 +8,13 @@ from . import bot_checks
 from bot.bot_utils import *
 from dependencies.webnovel.classes import *
 from dependencies.webnovel.utils import book_string_matcher
-from dependencies.database import PgDatabase
+from dependencies.database import Database
 
 
 class QiCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db: PgDatabase = bot.db
+        self.db: Database = bot.db
 
     @commands.command(aliases=['b'])
     @bot_checks.check_permission_level(2)
