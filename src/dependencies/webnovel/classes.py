@@ -59,6 +59,7 @@ class Chapter(SimpleChapter):
             :arg chapter_note takes the content of the author note at the end of chapters, may be
                 safely ignored
             :arg chapter_note takes a ChapterNote obj, can be safely ignored
+            :arg vip_status probably stands if it is premium, free or ad... needs confirmation
         """
         super().__init__(chapter_level, chapter_id, parent_id, index, vip_status, name)
         self.is_preview = full_content
@@ -114,13 +115,38 @@ class Volume:
     def retrieve_chapter_by_id(self, chapter_id: int) -> SimpleChapter:
         return self._chapters[chapter_id]
 
+    def retrieve_volume_ranges(self, *, return_first: bool = True, return_last: bool = True,
+                               return_missing: bool = True):
+        """will return the available ranges found on the chapter or just a select few
+
+            Args:
+                :arg return_first if it should return the first index in the volume
+                :arg return_last if it should return the last index in the volume
+                :arg return_missing if it should return a list containing all the indexes that are missing in between
+
+                """
+        return_value = []
+        if return_first:
+            return_value.append(self._start_index)
+        if return_last:
+            return_value.append(self._last_index)
+        if return_missing:
+            return_value.append(self._missing_indexes)
+
+        if len(return_value) > 1:
+            return tuple(return_value)
+        elif len(return_value) == 0:
+            raise ValueError('Missing enough arguments in the request')
+        else:
+            return return_value[0]
+
 
 class SimpleBook:
     """To be used when not all of the book metadata is needed"""
     NovelType = 0
 
-    def __init__(self, book_id: int, book_name: str, total_chapters: int, cover_id: int, book_abbreviation: str = None,
-                 library_number: int = None):
+    def __init__(self, book_id: int, book_name: str, total_chapters: int, cover_id: int = None,
+                 book_abbreviation: str = None, library_number: int = None):
         self.id = book_id
         self.name = book_name
         if book_abbreviation is None:
@@ -133,7 +159,7 @@ class SimpleBook:
             self.abbreviation = book_abbreviation
         self.total_chapters = total_chapters
         self.cover_id = cover_id
-        self.library_number = library_number  # this value can only be in the internal db
+        self.library_number = library_number  # this value can only be found in the internal db
 
     def __gt__(self, other):
         if issubclass(other, (SimpleBook, SimpleComic)) or isinstance(other, (SimpleBook, SimpleComic)):
@@ -155,11 +181,15 @@ class Book(SimpleBook):
         self.privilege = is_privileged
         self.book_type = self.types[type_is_tl]
         self.book_type_num = type_is_tl
-        self.read_type = self.payment_method[reading_type]
-        self.read_type_num = reading_type
+        if reading_type is not None:
+            self.read_type = self.payment_method[reading_type]
+            self.read_type_num = reading_type
+        else:
+            self.read_type = None
+            self.read_type_num = None
         self._volumes_list = []
 
-    def add_volume_list(self, volume_list: typing.List[SimpleChapter]):
+    def add_volume_list(self, volume_list: typing.List[Volume]):
         self._volumes_list = sorted(volume_list, key=attrgetter('index'))
 
 
