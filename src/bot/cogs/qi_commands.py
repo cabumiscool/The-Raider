@@ -76,3 +76,8 @@ class QiCommands(commands.Cog):
                 book_chapter_requests[book.id] = book, parsed_chapter_requests[book_string]
 
         # TODO: Link up buyer logic with the buyer service in a common location under dependencies or create a new class
+
+
+def setup(bot):
+    cog = QiCommands(bot)
+    bot.add_cog(cog)
