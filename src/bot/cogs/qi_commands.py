@@ -14,6 +14,27 @@ from . import bot_checks
 
 NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '0⃣']
 
+range_matcher = re.compile(r'\[?\**`?(\d+)[ \-]*(\d*)`?\**]?,? ?')
+bloat_content_matcher = re.compile(r'((:sparkles: )?\**\d+\** chapter[s]? missing from )')
+title_and_ranges_matcher = re.compile(r'`?([\w\d,!.:()’?\-\' ]+?)`? ?[\s\- ]+((?:\[?\**`?\d+[ \-]*\d*`?\**]?,? ?)+)')
+
+
+def book_string_and_range_matcher(user_string: str) -> Dict[str, List[Tuple[int, int]]]:
+    clean_input = bloat_content_matcher.sub('', user_string)
+    title_ranges_pairs = title_and_ranges_matcher.findall(clean_input)
+    book_string_and_ranges = {}
+    for title, ranges in title_ranges_pairs:
+        chapter_indices = []
+        ranges_list = range_matcher.findall(ranges)
+        for chapter_range in ranges_list:
+            range_start = int(chapter_range[0])
+            range_end = int(chapter_range[1])
+            if not range_end:
+                range_end = range_start
+            chapter_indices.append((range_start, range_end))
+        book_string_and_ranges[title] = chapter_indices
+    return book_string_and_ranges
+
 
 class QiCommands(commands.Cog):
     def __init__(self, bot):
