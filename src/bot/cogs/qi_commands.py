@@ -1,5 +1,5 @@
 import re
-from typing import Union
+from typing import Union, List, Tuple, Dict
 
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -41,11 +41,6 @@ class QiCommands(commands.Cog):
         self.bot = bot
         self.db: Database = bot.db
 
-    @commands.command(aliases=['b'])
-    @bot_checks.check_permission_level(2)
-    async def buy(self, ctx: Context, *args) -> Union[SimpleBook, None]:
-        pass
-
     def __interactive_book_string_to_book(self, ctx: Context, book_string: str, limit: int = 5) -> Union[Book, None]:
         possible_matches = await book_string_matcher(self.db, book_string, limit)
         if possible_matches is None:
@@ -69,3 +64,17 @@ class QiCommands(commands.Cog):
             return None
         else:
             return possible_matches[NUMERIC_EMOTES.index(chosen_emote)][0]
+
+    @commands.command(aliases=['b'])
+    @bot_checks.is_whitelist()
+    @bot_checks.check_permission_level(2)
+    async def buy(self, ctx: Context, *args):
+        user_input = " ".join(args)
+        parsed_chapter_requests = book_string_and_range_matcher(user_input)
+        book_chapter_requests = {}
+        for book_string in parsed_chapter_requests:
+            book: Book = self.__interactive_book_string_to_book(ctx, book_string)
+            if book:
+                book_chapter_requests[book.id] = book, parsed_chapter_requests[book_string]
+
+        # TODO: Link up buyer logic with the buyer service in a common location under dependencies or create a new class
