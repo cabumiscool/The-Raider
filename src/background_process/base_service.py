@@ -1,7 +1,8 @@
 import typing
-import background_objects
-import traceback
 import asyncio
+import traceback
+
+import background_objects
 
 
 class BaseService:
@@ -30,7 +31,7 @@ class BaseService:
             return_data = self._output_queue.copy()
             self._output_queue.clear()
             return return_data
-        elif len(self._encountered_errors) == 1:
+        if len(self._encountered_errors) == 1:
             error_report = self._encountered_errors[0]
             self._encountered_errors.clear()
             raise error_report

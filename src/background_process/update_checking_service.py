@@ -52,8 +52,7 @@ class BooksLibraryChecker(BaseService):
                     accounts.append(await self.database.retrieve_library_account(account.library_type))
             if len(working_accounts) == 10:
                 break
-            else:
-                run_count += 1
+            run_count += 1
             if run_count >= 3:
                 raise LibraryRetrievalError
 
@@ -72,9 +71,8 @@ class BooksLibraryChecker(BaseService):
             working_proxy = await proxy.test()
             if working_proxy:
                 break
-            else:
-                await self.database.expired_proxy(proxy)
-                proxy = await self.database.retrieve_proxy()
+            await self.database.expired_proxy(proxy)
+            proxy = await self.database.retrieve_proxy()
 
         # will compare internal db to qi library
         tasks = [asyncio.create_task(retrieve_library_content(account)) for account in working_accounts]

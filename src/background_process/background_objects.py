@@ -8,11 +8,13 @@ class ErrorReport(BaseException):
         self.comment = error_comment
         self.traceback = traceback
         self.error_object = error_object
+        super().__init__()
 
 
 class ErrorList(BaseException):
     def __init__(self, *errors):
         self.errors = errors
+        super().__init__()
 
 
 class LibraryRetrievalError(BaseException):
@@ -68,22 +70,20 @@ class ServiceCommand(Command):
 
 
 class StartService(ServiceCommand):
-    def __init__(self, command_id: int, service_name: str):
-        super().__init__(command_id, service_name)
+    pass
 
 
 class StopService(ServiceCommand):
-    def __init__(self, command_id: int, service_name: str):
-        super().__init__(command_id, service_name)
+    pass
 
 
 class RestartService(ServiceCommand):
-    def __init__(self, command_id: int, service_name: str):
-        super().__init__(command_id, service_name)
+    pass
 
 
 # class ServiceStatus(ServiceCommand):
-#     pass
+#   def __init__(self, command_id: int, service_name: str):
+#       super().__init__(command_id, service_name)
 
 
 class AllServicesStatus(Command):

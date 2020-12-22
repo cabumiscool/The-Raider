@@ -21,7 +21,7 @@ class PermissionManagement(commands.Cog):
         if isinstance(error, bot_exceptions.NotEnoughPerms):
             await ctx.send(f"Who told you that you could do that? | error:  {error}")
         elif isinstance(error, bot_exceptions.NotOnWhiteList):
-            await ctx.send(f"This command can't be done on this channel!")
+            await ctx.send("This command can't be done on this channel!")
 
     @commands.command()
     @bot_checks.is_whitelist()
@@ -90,7 +90,6 @@ class PermissionManagement(commands.Cog):
             return
         if target_level == level:
             await ctx.send('The target already has that clearance level!')
-            return
         else:
             if target_level >= self_level != 10:
                 await ctx.send('You do know you are attempting to commit insubordination right? (target has a '
@@ -122,7 +121,6 @@ class PermissionManagement(commands.Cog):
         if channel_is_whitelist:
             await db.whitelist_remove(channel.guild.id, channel.id)
             await ctx.send(f"Channel `{channel.name}` was successfully removed!")
-            return
         else:
             await ctx.send(f"Channel `{channel.name}` is not on the whitelist!")
 

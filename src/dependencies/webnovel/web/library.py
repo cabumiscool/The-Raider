@@ -1,9 +1,13 @@
+import json
+import typing
 import asyncio
+
 import aiohttp
 import aiohttp_socks
-import typing
-import json
+# TODO: do we need ^ that?
+
 from urllib.parse import quote
+
 from dependencies.webnovel import classes
 from dependencies.proxy_manager import Proxy
 
@@ -17,7 +21,7 @@ main_api_url = "https://www.webnovel.com/apiajax/Library"
 def __request_data_generator(session: aiohttp.ClientSession, account: classes.QiAccount) -> (bool, dict):
     """Returns the initial return values indicates if a session should be used the other is the payload data"""
     if session is None and account is None:
-        raise ValueError(f"No valid value was passed to either session or account")
+        raise ValueError("No valid value was passed to either session or account")
     # TODO: Ask bum why only csrf token is being sent.
     if session:
         assert isinstance(session, aiohttp.ClientSession)
@@ -27,9 +31,10 @@ def __request_data_generator(session: aiohttp.ClientSession, account: classes.Qi
                 csrf_token = cookie.value
         return True, {'_csrfToken': csrf_token}
 
-    elif account:
+    if account:
         assert isinstance(account, classes.QiAccount)
         return False, {'_csrfToken': account.cookies['_csrfToken']}
+    # TODO: raise an error if both session and account have invalid values?
 
 
 def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[typing.Union[classes.SimpleBook,
@@ -101,10 +106,9 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
         is_last_page = bool(req_data['isLast'])
         parsed_items = __parse_library_page(req_books)
         return parsed_items, is_last_page
-    elif result == 1006:
-        raise Exception(F"Unknown error")
-    else:
-        raise ValueError(f"Unknown value of {result} as a response")
+    if result == 1006:
+        raise Exception("Unknown error")
+    raise ValueError(f"Unknown value of {result} as a response")
 
 
 async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
@@ -130,8 +134,7 @@ async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, acco
                 items.extend(items_list)
                 if is_last_page:
                     break
-                else:
-                    page += 1
+                page += 1
     else:
         if account:
             page = account.library_pages
@@ -208,10 +211,9 @@ async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook]
     result = response['code']
     if result == 0:
         return True
-    elif result == 1006:
-        raise Exception(F"Unknown error")
-    else:
-        raise ValueError(f"Unknown value of {result} as a response")
+    if result == 1006:
+        raise Exception("Unknown error")
+    raise ValueError(f"Unknown value of {result} as a response")
 
 
 async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classes.SimpleComic],
@@ -262,10 +264,9 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
     result = response['code']
     if result == 0:
         return True
-    elif result == 1006:
-        raise Exception(F"Unknown error")
-    else:
-        raise ValueError(f"Unknown value of {result} as a response")
+    if result == 1006:
+        raise Exception("Unknown error")
+    raise ValueError(f"Unknown value of {result} as a response")
 
 
 async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBook,
@@ -318,9 +319,8 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
     if result == 0:
         return True
     elif result == 1006:
-        raise Exception(F"Unknown error")
-    else:
-        raise ValueError(f"Unknown value of {result} as a response")
+        raise Exception("Unknown error")
+    raise ValueError(f"Unknown value of {result} as a response")
 
 
 # account = classes.QiAccount(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',

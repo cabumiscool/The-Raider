@@ -27,13 +27,13 @@ def _custom_prefix_adder(*args):
 
 class Raider(commands.AutoShardedBot):
     def __init__(self):
-        self.configs = Settings()
-        super().__init__(command_prefix=_custom_prefix_adder(self.configs.bot_prefix),
-                         description=self.configs.bot_description, pm_help=None, help_attrs=dict(hidden=True),
+        self.config = Settings()
+        super().__init__(command_prefix=_custom_prefix_adder(self.config.bot_prefix),
+                         description=self.config.bot_description, pm_help=None, help_attrs=dict(hidden=True),
                          fetch_offline_members=False, heartbeat_timeout=150.0)
-        self.bot_token = self.configs.bot_token
-        self.db = Database(self.configs.db_host, self.configs.db_name, self.configs.db_user, self.configs.db_password,
-                           self.configs.db_port, self.configs.min_db_conns, self.configs.max_db_conns, loop=self.loop)
+        self.bot_token = self.config.bot_token
+        self.db = Database(self.config.db_host, self.config.db_name, self.config.db_user, self.config.db_password,
+                           self.config.db_port, self.config.min_db_conns, self.config.max_db_conns, loop=self.loop)
 
         self.uptime: datetime.datetime = datetime.datetime.now()
 
@@ -85,7 +85,7 @@ class Raider(commands.AutoShardedBot):
         elif isinstance(error, commands.NoPrivateMessage):
             await ctx.send('This command cannot be used in private messages.')
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(f"You are missing required arguments in the command. :frowning:")
+            await ctx.send('You are missing required arguments in the command. :frowning:')
         elif isinstance(error, commands.CommandInvokeError):
             original = error.original
             if not isinstance(original, discord.HTTPException):
@@ -177,7 +177,7 @@ class Raider(commands.AutoShardedBot):
     # probably won't be manually implemented
     def run(self):
         try:
-            super().run(self.configs.bot_token, reconnect=True)
+            super().run(self.config.bot_token, reconnect=True)
         except Exception as e:
             print(f"Error at start!  error: {e},  type:  {type(e)}")
         # finally:

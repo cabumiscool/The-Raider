@@ -16,3 +16,4 @@ class UnknownResponseCode(Exception):
     def __init__(self, response_code: int, response_message: str):
         self.code = response_code
         self.message = response_message
+        super().__init__()

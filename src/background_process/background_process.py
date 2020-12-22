@@ -1,11 +1,15 @@
+import time
+import typing
 import asyncio
-import typing
-from multiprocessing.queues import Queue
-from queue import Empty, Full
-from .base_service import BaseService
-from . import *
-import typing
 import traceback
+
+from queue import Empty
+from multiprocessing.queues import Queue
+
+from background_process.base_service import BaseService
+from background_process.background_objects import Ping, Command, ProcessCommand, ServiceCommand, ErrorReport
+
+from ..config import Settings
 
 
 class BackgroundProcess:
@@ -51,12 +55,12 @@ class BackgroundProcess:
                 if isinstance(received_object, Ping):
                     self.__return_data(received_object.generate_return_time())
                 if issubclass(received_object, Command):
-                    if issubclass(received_object, ProcessCommand):
+                    if isinstance(received_object, ProcessCommand):
                         pass
-                    elif issubclass(received_object, ServiceCommand):
+                    elif isinstance(received_object, ServiceCommand):
                         service = self.services[received_object.name]
                     else:
-                        self.__return_data(ErrorReport(ValueError, f"Invalid data type received at background process",
+                        self.__return_data(ErrorReport(ValueError, "Invalid data type received at background process",
                                                        traceback.format_exc(), error_object=received_object))
 
             # will check if a command is done

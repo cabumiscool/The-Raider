@@ -1,13 +1,15 @@
+import json
+import typing
+from time import time
+
 import aiohttp
 import aiohttp_socks
-import typing
-import json
-from time import time
-from dependencies.webnovel import classes, exceptions
+
 from dependencies.proxy_manager import Proxy
+from dependencies.webnovel import classes, exceptions
 from dependencies.webnovel.utils import decode_qi_content
 
-main_api = 'https://www.webnovel.com/apiajax/chapter'
+API_ENDPOINT = 'https://www.webnovel.com/apiajax/chapter'
 
 
 # possible_second_api = 'https://www.webnovel.com/go/pcm/chapter/getContent'
@@ -51,7 +53,7 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
 
     """
     params = {'bookId': str(book.id), '_': time()}
-    api = '/'.join((main_api, 'GetChapterList'))
+    api = '/'.join((API_ENDPOINT, 'GetChapterList'))
     while True:
         try:
             if proxy:
@@ -112,9 +114,8 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
             volumes.append(classes.Volume(chapters, volume_index, book.id, volume_name))
         if return_book:
             return volumes, simple_book
-        else:
-            return volumes
-    elif code == 1:
+        return volumes
+    if code == 1:
         # TODO check if 1 is error and log the error to database for later review
         raise exceptions.FailedRequest(f'returned dit:  {resp_dict}')
     else:
@@ -135,7 +136,7 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
             """
     # aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
 
-    api = '/'.join((main_api, 'GetContent'))
+    api = '/'.join((API_ENDPOINT, 'GetContent'))
     params = {'bookId': book_id, 'chapterId': chapter_id, '_': time()}
     if not proxy:
         proxy = aiohttp.TCPConnector()
@@ -159,14 +160,11 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
     if resp_code == 0:
         if return_both:
             return resp_dict['data']['chapterInfo'], resp_dict['data']['bookInfo']
-        else:
-            if return_chapter_meta:
-                return resp_dict['data']['chapterInfo']
-            else:
-                return resp_dict['data']['bookInfo']
-    else:
-        # TODO check exceptions codes
-        raise exceptions.UnknownResponseCode(resp_code, resp_dict['msg'])
+        if return_chapter_meta:
+            return resp_dict['data']['chapterInfo']
+        return resp_dict['data']['bookInfo']
+    # TODO: check exceptions codes
+    raise exceptions.UnknownResponseCode(resp_code, resp_dict['msg'])
 
 
 def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict) -> classes.Chapter:
@@ -174,7 +172,7 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict) -> 
     is_owned = bool(chapter_info['isAuth'])
     notes_dict = chapter_info['notes']
     uut = notes_dict['UUT']
-    if uut is 0:
+    if uut == 0:
         note_obj = None
     else:
         note_avatar_pic_url = notes_dict['avatar']
@@ -325,7 +323,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
         data = content_dict['data']
         paragraphs_dict = content_dict['contents']
         return '\n'.join([paragraph['content'] for paragraph in paragraphs_dict])
-    elif request_code == 1:
+    if request_code == 1:
         raise exceptions.FailedChapterBuy()
     elif request_code == 2:
         raise exceptions.AlreadyBoughtChapter()

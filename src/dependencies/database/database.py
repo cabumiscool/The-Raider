@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from dependencies.webnovel.classes import *
-
 import asyncio
+import typing
 
 import asyncpg
 
 from dependencies.proxy_manager import Proxy
-from .database_exceptions import *
+from dependencies.database.database_exceptions import *
+
+if typing.TYPE_CHECKING:
+    from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount
 
 
 class Database:
@@ -37,14 +36,12 @@ class Database:
             await self.__database_initializer__()
             return True
         except Exception as e:
-            raise DatabaseInitError(f'Databased failed to start with error:  {e}, type:  {type(e)}')
+            raise DatabaseInitError(f'Databased failed to start with error:  {e}, type:  {type(e)}') from e
 
     async def __init_check__(self):
         if self.running:
             return
-        else:
-            await self.__async_init_task
-            return
+        await self.__async_init_task
 
     async def test(self):
         await self.__init_check__()
@@ -61,18 +58,18 @@ class Database:
 
     async def permission_retriever(self, *ids, with_name=False):
         if len(ids) == 0:
-            raise DatabaseMissingArguments(f'Missing arguments at the permission retriever')
+            raise DatabaseMissingArguments('Missing arguments at the permission retriever')
         if with_name:
             query = f'SELECT MAX("LEVEL"), "NAME" FROM "USER_AUTH" INNER JOIN "PERMISSIONS_NAMES" USING ("LEVEL") ' \
                     f'WHERE "ITEM_ID" IN({", ".join(f"${x + 1}" for x in range(len(ids)))})'
         else:
-            query = f'SELECT MAX("LEVEL") FROM "USER_AUTH" WHERE "ITEM_ID" IN ({", ".join(f"${x + 1}" for x in range(len(ids)))}) '
+            query = f'SELECT MAX("LEVEL") FROM "USER_AUTH" WHERE "ITEM_ID" IN ' \
+                    f'({", ".join(f"${x + 1}" for x in range(len(ids)))}) '
         data = await self.db_pool.fetchrow(query, *ids)
         permission_level = data[0]
         if with_name:
             return permission_level, data[1]
-        else:
-            return permission_level
+        return permission_level
 
     async def auth_retriever(self, include_roles: bool = False):
         query = 'SELECT "ITEM_ID", "LEVEL", "NAME", "ROLE" FROM "USER_AUTH" ' \
@@ -88,7 +85,7 @@ class Database:
         try:
             await self.db_pool.execute(query, target_id, level, int(role), server_id)
         except asyncpg.IntegrityConstraintViolationError:
-            raise DatabaseDuplicateEntry
+            raise DatabaseDuplicateEntry from asyncpg.IntegrityConstraintViolationError
 
     async def auth_changer(self, target_id: int, level: int):
         query = 'UPDATE "USER_AUTH" set "LEVEL" = $1 where "ITEM_ID" = $2'
@@ -104,7 +101,7 @@ class Database:
         try:
             await self.db_pool.execute(query, server_id, channel_id, whitelist_level)
         except asyncpg.IntegrityConstraintViolationError:
-            raise DatabaseDuplicateEntry('Duplicate values at CHANNEL AUTH')
+            raise DatabaseDuplicateEntry('CHANNEL AUTH has duplicates!') from asyncpg.IntegrityConstraintViolationError
 
     async def whitelist_remove(self, server_id: int, channel_id: int):
         query = 'DELETE FROM "CHANNEL_AUTH" WHERE "SERVER_ID" = $1 AND "CHANNEL_ID" = $2'

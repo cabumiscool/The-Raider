@@ -1,7 +1,8 @@
 import typing
-import requests
-import aiohttp
 from operator import attrgetter
+
+import aiohttp
+
 from .utils import decode_qi_content
 
 
@@ -11,9 +12,8 @@ class DataDescriptorChecker:
         self._value = None
         self._owner = None
         if expected_type is None:
-            raise ValueError(f'The descriptor is missing an expected value')
-        else:
-            self.expected_type = expected_type
+            raise ValueError('The descriptor is missing an expected value')
+        self.expected_type = expected_type
 
     def __set_name__(self, owner, name):
         self._name = name
@@ -109,8 +109,7 @@ class Volume:
     def retrieve_chapter_by_index(self, chapter_index: int) -> SimpleChapter:
         if self.__check_if_index_in_volume(chapter_index):
             return self._chapters_with_index[chapter_index]
-        else:
-            raise ValueError(f"The index '{chapter_index}' is not part of this volume")
+        raise ValueError(f"The index '{chapter_index}' is not part of this volume")
 
     def retrieve_chapter_by_id(self, chapter_id: int) -> SimpleChapter:
         return self._chapters[chapter_id]
@@ -135,10 +134,9 @@ class Volume:
 
         if len(return_value) > 1:
             return tuple(return_value)
-        elif len(return_value) == 0:
+        if len(return_value) == 0:
             raise ValueError('Missing enough arguments in the request')
-        else:
-            return return_value[0]
+        return return_value[0]
 
 
 class SimpleBook:
@@ -164,9 +162,7 @@ class SimpleBook:
     def __gt__(self, other):
         if issubclass(other, (SimpleBook, SimpleComic)) or isinstance(other, (SimpleBook, SimpleComic)):
             return self.total_chapters > other.total_chapters
-        else:
-            raise NotImplementedError(f"Don't know how to compare object type '{type(other)}' with self type"
-                                      f" '{type(self)}'")
+        raise NotImplementedError(f"Don't know how to compare object type '{type(other)}' with type '{type(self)}'")
 
 
 class Book(SimpleBook):

@@ -1,8 +1,10 @@
+import asyncio
+
+from typing import Union
+from operator import attrgetter
+
 import aiohttp
 import aiohttp_socks
-import asyncio
-from operator import attrgetter
-from typing import Union
 
 
 class InvalidIpAddress(Exception):
@@ -22,7 +24,7 @@ class Proxy:
                     try:
                         int(part)
                     except ValueError:
-                        raise InvalidIpAddress(f'The Ip address of {ip} is invalid')
+                        raise InvalidIpAddress(f'The Ip address of {ip} is invalid') from ValueError
             else:
                 raise InvalidIpAddress(f'The Ip address of {ip} is invalid')
         else:
@@ -34,7 +36,7 @@ class Proxy:
         try:
             self._type = self.connection_types[connection_type.lower()]
         except KeyError:
-            raise ValueError(f'Invalid proxy type was input')
+            raise ValueError('Invalid proxy type was input') from KeyError
         self.uptime = int(uptime)
         self.latency = int(latency)
         self.speed = int(speed)
@@ -81,16 +83,15 @@ class ProxyManager:
     async def __init_check(self):
         if self._init is True:
             return
-        else:
-            if self._in_check:
-                try:
-                    await self._init_task
-                except:
-                    self._init_task = self._loop.create_task(self.__all_proxies_check())
-                    await self._init_task
-            else:
+        if self._in_check:
+            try:
+                await self._init_task
+            except:
                 self._init_task = self._loop.create_task(self.__all_proxies_check())
                 await self._init_task
+        else:
+            self._init_task = self._loop.create_task(self.__all_proxies_check())
+            await self._init_task
 
     async def __proxy_check(self, proxy: Proxy):
         connector = proxy.generate_connector()
@@ -106,8 +107,7 @@ class ProxyManager:
             return False, proxy
         if request_code == 200:
             return True, proxy
-        else:
-            return False, proxy
+        return False, proxy
 
     async def __all_proxies_check(self):
         self._in_check = True
