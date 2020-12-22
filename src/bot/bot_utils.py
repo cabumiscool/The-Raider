@@ -4,7 +4,6 @@ from typing import Union
 from discord import Color, Member, Embed
 from discord.ext.commands import Context
 
-NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '0⃣']
 
 
 def generate_embed(title: str, author: Member, *, description: str, color: Union[Color, int]) -> Embed:

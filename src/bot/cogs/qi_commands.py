@@ -1,14 +1,18 @@
-import asyncio
+import re
 from typing import Union
 
 from discord.ext import commands
 from discord.ext.commands import Context
 
-from . import bot_checks
-from bot.bot_utils import *
-from dependencies.webnovel.classes import *
+from bot.bot_utils import generate_embed, emoji_selection_detector
+
+from dependencies.webnovel.classes import Book
 from dependencies.webnovel.utils import book_string_matcher
 from dependencies.database import Database
+from . import bot_checks
+
+
+NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '0⃣']
 
 
 class QiCommands(commands.Cog):
@@ -23,7 +27,6 @@ class QiCommands(commands.Cog):
 
     def __interactive_book_string_to_book(self, ctx: Context, book_string: str, limit: int = 5) -> Union[Book, None]:
         possible_matches = await book_string_matcher(self.db, book_string, limit)
-
         if possible_matches is None:
             return None
         elif len(possible_matches) == 1:
@@ -35,7 +38,7 @@ class QiCommands(commands.Cog):
         for x in range(len(possible_matches)):
             book = possible_matches[x][0]
             score = possible_matches[x][1]
-            name = f"{NUMERIC_EMOTES_LIST[x]} {book.name}"
+            name = f"{NUMERIC_EMOTES[x]} {book.name}"
             value = f"Score : `{score}`\n" \
                     f"Abbreviation : `{book.abbreviation}`"
             embed.add_field(name=name, value=value)
