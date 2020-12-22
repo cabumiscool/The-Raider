@@ -5,3 +5,4 @@ requests~=2.25.0
 asyncpg~=0.21.0
 fuzzywuzzy~=0.18.0
 PrivateBinAPI~=1.0.0
+pylint~=2.6.0
