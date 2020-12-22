@@ -43,8 +43,8 @@ class QiCommands(commands.Cog):
                     f"Abbreviation : `{book.abbreviation}`"
             embed.add_field(name=name, value=value)
 
-        chosen_index = await numeric_emoji_selector(ctx, len(possible_matches), 30, embed=embed)
-        if chosen_index is None:
+        chosen_emote = await emoji_selection_detector(ctx, NUMERIC_EMOTES[:len(possible_matches)], embed, 30)
+        if chosen_emote is None:
             return None
         else:
-            return possible_matches[chosen_index][0]
+            return possible_matches[NUMERIC_EMOTES.index(chosen_emote)][0]
