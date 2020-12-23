@@ -1,4 +1,5 @@
 import typing
+import time
 import asyncio
 import traceback
 
@@ -17,6 +18,7 @@ class BaseService:
         self._encountered_errors = []
         self._running = False
         self._loop_interval = loop_time
+        self.last_loop = 0
 
     def add_to_queue(self, *input_data):
         self._input_queue.extend(input_data)
@@ -45,6 +47,10 @@ class BaseService:
         be the actual loop only the logic. The loop will be taken care of by the run func"""
 
     async def run(self):
+        if self._running:
+            raise background_objects.AlreadyRunningServiceError()
+        else:
+            self._running = True
         while self._running:
             try:
                 await self.main()
@@ -52,4 +58,12 @@ class BaseService:
                 error = background_objects.ErrorReport(Exception, 'error caught at top level execution of service',
                                                        traceback.format_exc(), e)
                 self._encountered_errors.append(error)
+            self.last_loop = time.time()
             await asyncio.sleep(self._loop_interval)
+
+    async def stop(self):
+        if self._running:
+            self._running = False
+        else:
+            raise background_objects.ServiceIsNotRunningError(f"service '{self.name}' was attempted to be made to stop "
+                                                              f"when it isn't running")
