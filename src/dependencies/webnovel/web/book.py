@@ -212,6 +212,7 @@ async def full_book_retriever(book: typing.Union[classes.SimpleBook, classes.Boo
         else:
             break
 
+    volumes: typing.List[classes.Volume]
     last_volume = volumes[-1]
     last_chapter_range = last_volume.retrieve_volume_ranges(return_first=False, return_missing=False)
     last_chapter = last_volume.retrieve_chapter_by_index(last_chapter_range)
@@ -244,6 +245,7 @@ async def full_book_retriever(book: typing.Union[classes.SimpleBook, classes.Boo
         abbreviation = None
     full_book = classes.Book(book_id, book_name, total_chapters, is_priv, type_, cover_id, reading_type=reading_type,
                              book_abbreviation=abbreviation)
+    full_book.add_volume_list(volumes)
     return full_book
 
 
