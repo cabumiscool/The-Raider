@@ -2,7 +2,7 @@ import time
 import typing
 
 
-class ErrorReport(BaseException):
+class ErrorReport(Exception):
     def __init__(self, error: typing.Type[BaseException], error_comment: str, traceback: str, error_object=None):
         self.error = error
         self.comment = error_comment
@@ -11,10 +11,18 @@ class ErrorReport(BaseException):
         super().__init__()
 
 
-class ErrorList(BaseException):
+class ErrorList(Exception):
     def __init__(self, *errors):
         self.errors = errors
         super().__init__()
+
+
+class AlreadyRunningServiceError(Exception):
+    pass
+
+
+class ServiceIsNotRunningError(Exception):
+    pass
 
 
 class LibraryRetrievalError(BaseException):
