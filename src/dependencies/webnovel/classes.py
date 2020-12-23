@@ -4,6 +4,7 @@ from operator import attrgetter
 import aiohttp
 
 from .utils import decode_qi_content
+from . import exceptions
 
 
 class DataDescriptorChecker:
@@ -112,6 +113,11 @@ class Volume:
         raise ValueError(f"The index '{chapter_index}' is not part of this volume")
 
     def retrieve_chapter_by_id(self, chapter_id: int) -> SimpleChapter:
+        """
+        :param chapter_id: chapter id to try to retrieve the respective chapter from the volume
+        :raises Keyerror
+        :return: a SimpleChapter object
+        """
         return self._chapters[chapter_id]
 
     def retrieve_volume_ranges(self, *, return_first: bool = True, return_last: bool = True,
@@ -138,6 +144,9 @@ class Volume:
             raise ValueError('Missing enough arguments in the request')
         return return_value[0]
 
+    def return_all_chapters_ids(self):
+        return [chapter_id for chapter_id, chapter in self._chapters.items()]
+
 
 class SimpleBook:
     """To be used when not all of the book metadata is needed"""
@@ -158,6 +167,11 @@ class SimpleBook:
         self.total_chapters = total_chapters
         self.cover_id = cover_id
         self.library_number = library_number  # this value can only be found in the internal db
+
+    def __ne__(self, other):
+        if isinstance(other, (SimpleBook, Book)):
+            return self.total_chapters != other.total_chapters
+        raise NotImplementedError(f"Don't know how to compare object type '{type(other)}' with type '{type(self)}'")
 
     def __gt__(self, other):
         if issubclass(other, (SimpleBook, SimpleComic)) or isinstance(other, (SimpleBook, SimpleComic)):
@@ -184,9 +198,49 @@ class Book(SimpleBook):
             self.read_type = None
             self.read_type_num = None
         self._volumes_list = []
+        self._volume_dict = {}
+
+    def __ne__(self, other):
+        if isinstance(other, Book):
+            if len(self._volumes_list) > 0 and len(self._volumes_list) > 0:
+                return_list = []
+
+                self_chapters_id = [volume.return_all_chapters_ids() for volume in self.__return_volume_list()]
+
+                other_chapters_id = [volume.return_all_chapters_ids() for volume in other.__return_volume_list()]
+
+                for chapter_id in self_chapters_id:
+                    if chapter_id in other_chapters_id:
+                        pass
+                    else:
+                        return_list.append(chapter_id)
+
+                return return_list
+
+            else:
+                raise exceptions.MissingVolumesError("One of the two objects being compared is missing a volume list")
+        else:
+            return NotImplemented
 
     def add_volume_list(self, volume_list: typing.List[Volume]):
         self._volumes_list = sorted(volume_list, key=attrgetter('index'))
+        self._volume_dict = {volume.index: volume for volume in self._volumes_list}
+
+    def __return_volume_list(self) -> typing.List[Volume]:
+        if len(self._volumes_list) == 0:
+            raise ValueError('No the book object contains no volume objects')
+        return self._volumes_list
+
+    def retrieve_chapter_by_id(self, chapter_id: int):
+        if len(self._volumes_list) > 0:
+            for volume in self._volumes_list:
+                try:
+                    chapter = volume.retrieve_chapter_by_id(chapter_id)
+                    return chapter
+                except KeyError:
+                    pass
+            raise ValueError("Chapter not found on the volume")
+        raise exceptions.MissingVolumesError('The book object is missing volume objects')
 
 
 class SimpleComic:
