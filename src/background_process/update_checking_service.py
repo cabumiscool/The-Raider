@@ -85,7 +85,8 @@ class BooksLibraryChecker(BaseService):
             for library_item in library_items:
                 try:
                     db_item = books_dict[account.library_type][library_item.id]
-                    if library_item > db_item:
+
+                    if library_item != db_item:
                         self._output_queue.append(library_item)
                     else:
                         continue
@@ -97,4 +98,4 @@ class BooksLibraryChecker(BaseService):
                 await library.batch_remove_books_from_library(*extra_books, account=account, proxy=proxy)
             elif len(extra_books) == 1:
                 await library.remove_item_from_library(extra_books[0], account=account,
-                                                       proxy=proxy.generate_connector())
+                                                       proxy=proxy)
