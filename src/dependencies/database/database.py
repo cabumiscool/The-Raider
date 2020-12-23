@@ -9,7 +9,7 @@ from dependencies.proxy_manager import Proxy
 from dependencies.database.database_exceptions import *
 
 if typing.TYPE_CHECKING:
-    from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount
+    from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount, Book
 
 
 class Database:
@@ -108,6 +108,9 @@ class Database:
         await self.db_pool.execute(query, server_id, channel_id)
 
     async def retrieve_all_simple_books(self) -> typing.List[SimpleBook]:
+        pass
+
+    async def retrieve_complete_book(self, book: int) -> Book:
         pass
 
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
