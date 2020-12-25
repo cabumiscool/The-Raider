@@ -133,3 +133,7 @@ class Database:
 
     def get_all_books_ids_names_sub_names_dict(self):
         pass
+
+    async def retrieve_buyer_account(self) -> QiAccount:
+        """Will retrieve an account for buying and should mark in the db either here or in sql that the account is being
+         used to prevent a double count and attempting a buy when there aren't anymore fp"""
