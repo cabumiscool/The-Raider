@@ -1,5 +1,5 @@
 import json
-import typing
+from typing import List, Union, Tuple
 from time import time
 
 import aiohttp
@@ -17,7 +17,7 @@ API_ENDPOINT = 'https://www.webnovel.com/apiajax/chapter'
 # TODO change the input from the proxy connector to the proxy class where required
 
 
-async def __chapter_list_retriever_call(params: dict, api_address: str, session: aiohttp.ClientSession = None,
+async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session: aiohttp.ClientSession = None,
                                         proxy_connector: aiohttp_socks.ProxyConnector = None):
     if session is None:
         # TODO check if it is possible to retrieve a specific cookie from the session
@@ -25,23 +25,18 @@ async def __chapter_list_retriever_call(params: dict, api_address: str, session:
         if not proxy_connector:
             proxy_connector = aiohttp.TCPConnector()
 
-        async with aiohttp.request('GET', api_address, params=params, connector=proxy_connector) as req:
-            resp_bin = await req.read()
-            resp_str = resp_bin.decode()
-            resp_dict = json.loads(resp_str)
+        async with aiohttp.request('GET', api_endpoint, params=params, connector=proxy_connector) as req:
+            resp_dict = decode_qi_content(await req.read())
     else:
-        async with session.get(api_address, params=params) as req:
-            resp_bin = await req.read()
-            resp_str = resp_bin.decode()
-            resp_dict = json.loads(resp_str)
+        async with session.get(api_endpoint, params=params) as req:
+            resp_dict = decode_qi_content(await req.read())
 
     return resp_dict
 
 
 async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.ClientSession = None,
                                  proxy: Proxy = None, return_book: bool = False
-                                 ) -> typing.Union[typing.List[classes.Volume],
-                                                   typing.Tuple[typing.List[classes.Volume], classes.SimpleBook]]:
+                                 ) -> Union[List[classes.Volume], Tuple[List[classes.Volume], classes.SimpleBook]]:
     #  aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
     """Add an item to the library
         :arg book receives either a book or a comic object to be added to the library
@@ -56,13 +51,11 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
     api = '/'.join((API_ENDPOINT, 'GetChapterList'))
     while True:
         try:
+            proxy_connector = None
             if proxy:
                 proxy_connector = proxy.generate_connector()
-            else:
-                proxy_connector = None
 
-            resp_dict = await __chapter_list_retriever_call(params, api, session=session,
-                                                            proxy_connector=proxy_connector)
+            resp_dict = await __chapter_list_retriever_call(params, api, session,  proxy_connector=proxy_connector)
             # if session is None:
             #     # TODO check if it is possible to retrieve a specific cookie from the session
             #
@@ -80,10 +73,9 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
             #         resp_bin = await req.read()
             #         resp_str = resp_bin.decode()
             #         resp_dict = json.loads(resp_str)
+            break
         except json.JSONDecodeError:
             pass
-        else:
-            break
         # except Exception:
         #     # TODO analyze what exceptions can here paying special attention to the exceptions that happen when proxy
         #     #  is used
@@ -125,8 +117,7 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
 async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
                                        proxy: aiohttp_socks.ProxyConnector = None, return_both: bool = False,
                                        cookies: dict = None,
-                                       return_chapter_meta: bool = True) -> typing.Union[dict,
-                                                                                         typing.Tuple[dict, dict]]:
+                                       return_chapter_meta: bool = True) -> Union[dict, Tuple[dict, dict]]:
     """Retrieves the chapter content json
             args:
                 :arg return_both will return both type of metadata, if False will return what return_chapter_meta asks
@@ -189,30 +180,27 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict) -> 
     priv_level = chapter_info['chapterLevel']
     index = chapter_info['chapterIndex']
     translator_list: list = chapter_info['translatorItems']
-    if len(translator_list) == 0:
-        translator = None
-    else:
+    translator = None
+    if len(translator_list) > 0:
         translator = translator_list[0]['name']
     editor_list: list = chapter_info['editorItems']
-    if len(editor_list) == 0:
-        editor = None
-    else:
+    editor = None
+    if len(editor_list) > 0:
         editor = editor_list[0]['name']
     return classes.Chapter(priv_level, chapter_id, book_id, index, vip_status, chapter_name, is_owned, content_str,
                            price, note_obj, editor, translator)
 
 
-async def full_book_retriever(book: typing.Union[classes.SimpleBook, classes.Book],
-                              session: aiohttp.ClientSession = None, proxy: Proxy = None):
+async def full_book_retriever(book: Union[classes.SimpleBook, classes.Book], session: aiohttp.ClientSession = None,
+                              proxy: Proxy = None):
     while True:
         try:
             volumes, chapter_list_book_meta = await chapter_list_retriever(book, session, proxy, return_book=True)
+            break
         except json.JSONDecodeError:
             pass
-        else:
-            break
 
-    volumes: typing.List[classes.Volume]
+    volumes: List[classes.Volume]
     last_volume = volumes[-1]
     last_chapter_range = last_volume.retrieve_volume_ranges(return_first=False, return_missing=False)
     last_chapter = last_volume.retrieve_chapter_by_index(last_chapter_range)
@@ -223,22 +211,21 @@ async def full_book_retriever(book: typing.Union[classes.SimpleBook, classes.Boo
                 proxy_connector = proxy.generate_connector()
             else:
                 proxy_connector = aiohttp.TCPConnector()
-            chapter_metadata_dict, book_metadata_dict = await __chapter_metadata_retriever(book.id, last_chapter.id,
-                                                                                           proxy=proxy_connector,
-                                                                                           return_chapter_meta=False)
+            chapter_meta_dict, book_meta_dict = await __chapter_metadata_retriever(book.id, last_chapter.id,
+                                                                                   proxy=proxy_connector,
+                                                                                   return_chapter_meta=False)
+            break
         except json.JSONDecodeError:
             pass
-        else:
-            break
     chapter_list_book_meta: classes.SimpleBook
-    last_chapter_obj = __full_chapter_parser(book.id, last_chapter.id, chapter_metadata_dict)
+    last_chapter_obj = __full_chapter_parser(book.id, last_chapter.id, chapter_meta_dict)
     reading_type = last_chapter_obj.is_vip
     is_priv = last_chapter.is_privilege
-    book_id = book_metadata_dict['bookId']
-    book_name = book_metadata_dict['bookName']
-    total_chapters = book_metadata_dict['totalChapterNum']
-    type_ = book_metadata_dict['type']
-    cover_id = book_metadata_dict['coverUpdateTime']
+    book_id = book_meta_dict['bookId']
+    book_name = book_meta_dict['bookName']
+    total_chapters = book_meta_dict['totalChapterNum']
+    type_ = book_meta_dict['type']
+    cover_id = book_meta_dict['coverUpdateTime']
     if chapter_list_book_meta.qi_abbreviation:
         abbreviation = chapter_list_book_meta.abbreviation
     else:
@@ -249,9 +236,8 @@ async def full_book_retriever(book: typing.Union[classes.SimpleBook, classes.Boo
     return full_book
 
 
-async def chapter_retriever(book_id: int, chapter_id: int,
-                            session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
-                            proxy: Proxy = None) -> classes.Chapter:
+async def chapter_retriever(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
+                            account: classes.QiAccount = None, proxy: Proxy = None) -> classes.Chapter:
     cookies = {}
     if hasattr(account, 'cookies'):
         cookies = account.cookies
@@ -266,17 +252,16 @@ async def chapter_retriever(book_id: int, chapter_id: int,
             # TODO check after usage what excepts can happen here
             chapter_info = await __chapter_metadata_retriever(book_id, chapter_id, session, proxy_connector,
                                                               cookies=cookies)
+            break
         except json.JSONDecodeError:
             pass
-        else:
-            break
 
     return __full_chapter_parser(book_id, chapter_id, chapter_info)
 
 
 async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aiohttp.ClientSession = None,
-                                cookies: dict = None, proxy: Proxy = None,
-                                unlock_type: int = 5, chapter_type: int = 2, chapter_price: int = 1):
+                                cookies: dict = None, proxy: Proxy = None, unlock_type: int = 5, chapter_type: int = 2,
+                                chapter_price: int = 1) -> str:
     """Will buy a chapter with fastpass unless the rest of the data are modified    """
     api_url = 'https://www.webnovel.com/apiajax/SpiritStone/useSSAjax'
 
@@ -288,6 +273,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
     if cookies:
         form_data_dict['_csrfToken'] = cookies['_csrfToken']
     else:
+        # TODO: Why does this exists? it does nothing
         if session:
             pass
 
@@ -338,16 +324,10 @@ async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSe
     if hasattr(account, 'cookies'):
         cookies = account.cookies
 
-    if proxy is None:
-        proxy_connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
-    else:
-        proxy_connector = proxy.generate_connector(force_close=True, enable_cleanup_closed=True)
-
     # TODO check what possible excepts can happen here
     chapter = await chapter_retriever(book_id, chapter_id, session, account, proxy)
     if chapter.is_preview:
         chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, cookies=cookies,
                                                       proxy=proxy)
         chapter.is_preview = False
-    else:
-        return chapter
+    return chapter
