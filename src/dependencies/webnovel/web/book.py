@@ -252,9 +252,8 @@ async def full_book_retriever(book: typing.Union[classes.SimpleBook, classes.Boo
 async def chapter_retriever(book_id: int, chapter_id: int,
                             session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                             proxy: Proxy = None) -> classes.Chapter:
-    if account is None:
-        cookies = {}
-    else:
+    cookies = {}
+    if hasattr(account, 'cookies'):
         cookies = account.cookies
 
     while True:
@@ -336,7 +335,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
 async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
                         account: classes.QiAccount = None, proxy: Proxy = None, *, use_ss=False) -> classes.Chapter:
     cookies = None
-    if account is not None:
+    if hasattr(account, 'cookies'):
         cookies = account.cookies
 
     if proxy is None:
