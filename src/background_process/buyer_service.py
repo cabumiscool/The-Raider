@@ -72,6 +72,9 @@ class WakaBuyer:
     def __init__(self):
         self.tasks = []
 
+    def retrieve_done(self) -> list:
+        pass
+
     def buy(self, chapter: classes.SimpleChapter):
         pass
 
@@ -93,7 +96,7 @@ class BuyerService(BaseService):
                 self.priv_buyer.buy(chapter)
             else:
                 for pool in self.pools:
-                    pool: BuyerPool
+                    pool: typing.Union[BuyerPool, WakaBuyer]
                     if pool.available_capacity():
                         pool.buy(chapter)
                         break
