@@ -12,7 +12,7 @@ SELECTION_SCORE_DIFF: int = 3
 SELECTION_SCORE: int = 80
 
 
-def decode_qi_content(binary_content: bytes):
+def decode_qi_content(binary_content: bytes) -> dict:
     """Decodes the Qi response into a JSON object"""
     content_str = binary_content.decode()
     return json.loads(content_str)
