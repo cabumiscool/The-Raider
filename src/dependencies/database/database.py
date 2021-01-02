@@ -122,7 +122,10 @@ class Database:
     async def expired_account(self, account: QiAccount):
         pass
 
-    async def retrieve_proxy(self) -> Proxy:
+    async def retrieve_proxy(self, proxy_area_id: int = 2) -> Proxy:
+        """Will retrieve a proxy from db
+            :arg proxy_area_id if given will retrieve the proxy with that area id"""
+        # proxy with id of 1 should be the waka proxy, #2 should be U.S. area
         pass
 
     async def expired_proxy(self, proxy: Proxy):
