@@ -23,7 +23,7 @@ class Settings:
         try:
             use_test = literal_eval(misc_section['use-test'])
             if type(use_test) != bool:
-                raise exceptions.SettingsNotConfigured('use-test','The value is not a bool')
+                raise exceptions.SettingsNotConfigured('use-test', 'The value is not a bool')
         except ValueError:
             raise exceptions.SettingsNotConfigured('use-test', 'The value is not a selection of "True" or "False"')
         self.use_test = use_test
@@ -41,7 +41,7 @@ class Settings:
         config['test bot'] = {'token': '', 'prefix': '?', 'description': 'A test bot'}
         config['database'] = {'host': '', 'name': '', 'user': '', 'port': '3306', 'password': '', 'min conns': '1',
                               'max conns': '5'}
-        config['misc'] = {'use-test': 'False'}
+        config['misc'] = {'use-test': 'False', 'auto-start-background': 'True'}
         with open('../settings.ini', 'w') as settings_file:
             config.write(settings_file)
 
@@ -61,10 +61,11 @@ class Settings:
         self.max_db_conns: int = literal_eval(db_section['max conns'])
 
     def __init__(self):
-        self.bot_section = None
+        self.bot_section = None  # this might be wrong
         self.config = ConfigParser()
         self.__read_settings_file()
         self.use_test: bool = literal_eval(self.config['misc']['use-test'])
+        self.auto_start_background = literal_eval(self.config['misc']['auto-start-background'])
         self.bot_token = ''
         self.bot_description = ''
         self.bot_prefix = ''
