@@ -14,9 +14,10 @@ paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%
 data_from = ['qi', 'waka-waka']
 
 
+# TODO add book_id, book_name, chapter range
 class Paste:
     def __init__(self, paste_id: int, paste_full_url: str, paste_delete_token: str, paste_passcode: str, status: int,
-                 name: str):
+                 book_name: str, book_id: int, chapters_id: typing.List[int], ranges: typing.Tuple[int, int]):
         if type(paste_id) != int:
             self.id = int(paste_id)
         else:
@@ -25,11 +26,14 @@ class Paste:
         self.delete_token = paste_delete_token
         self.passcode = paste_passcode
         self.status_code = status
-        self.name = name
+        self.book_name = book_name
+        self.book_id = book_id
+        self.chapters_ids = chapters_id
+        self.ranges = ranges
 
 
 class MultiPasteRequest:
-    def __init__(self, *chapters: classes.Chapter, book: classes.Book):
+    def __init__(self, *chapters: classes.Chapter, book: classes.SimpleBook):
         self.chapters = sorted(chapters, key=attrgetter('index'))
         self.request_time = time.time()
         self.book = book
@@ -45,7 +49,7 @@ class MultiPasteRequest:
 
 
 class PasteRequest:
-    def __init__(self, chapter: classes.Chapter, book: classes.Book):
+    def __init__(self, chapter: classes.Chapter, book: classes.SimpleBook):
         self.chapter = chapter
         self.request_time = time.time()
         self.book = book
@@ -62,10 +66,13 @@ async def paste_builder(paste_request: typing.Union[PasteRequest, MultiPasteRequ
                                                 formatting='markdown')
     if isinstance(paste_request, PasteRequest):
         return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
-                     paste_dict['status'], f"{paste_request.book.name} - {paste_request.chapter.index}")
+                     paste_dict['status'], paste_request.book.name, paste_request.book.id, [paste_request.chapter.id],
+                     (paste_request.chapter.index, paste_request.chapter.index))
     elif isinstance(paste_request, MultiPasteRequest):
         return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
-                     paste_dict['status'], f"{paste_request.book.name} - {paste_request.range[0]}-{paste_request.range[1]}")
+                     paste_dict['status'], paste_request.book.name, paste_request.book.id,
+                     [chapter.id for chapter in paste_request.chapters], (paste_request.chapters[0].index,
+                                                                          paste_request.chapters[-1].index))
     else:
         # should an error be raised here in case an unknown object is passed?
         pass
@@ -83,6 +90,7 @@ class PasteCreator(BaseService):
         for item in input_content:
             pastes.append(asyncio.create_task(paste_builder(item)))
 
+        # maybe write a wrapper here to catch the exceptions and retry
         results = await asyncio.gather(*pastes, return_exceptions=True)
         for paste in results:
             if issubclass(type(paste), Exception):
