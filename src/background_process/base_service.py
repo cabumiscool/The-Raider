@@ -54,11 +54,18 @@ class BaseService:
         while self._running:
             try:
                 await self.main()
+            except asyncio.CancelledError:
+                error = background_objects.ErrorReport(asyncio.CancelledError, f'Service {self.name} received a cancel '
+                                                                               f'command and was executed',
+                                                       traceback.format_exc())
+                self._encountered_errors.append(error)
+                raise asyncio.CancelledError
             except Exception as e:
                 error = background_objects.ErrorReport(Exception, 'error caught at top level execution of service',
                                                        traceback.format_exc(), e)
                 self._encountered_errors.append(error)
-            self.last_loop = time.time()
+            finally:
+                self.last_loop = time.time()
             await asyncio.sleep(self._loop_interval)
 
     async def stop(self):
