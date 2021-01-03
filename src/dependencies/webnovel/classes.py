@@ -173,6 +173,11 @@ class SimpleBook:
             return self.total_chapters != other.total_chapters
         raise NotImplementedError(f"Don't know how to compare object type '{type(other)}' with type '{type(self)}'")
 
+    def __eq__(self, other):
+        if isinstance(other, (SimpleBook, Book)):
+            return self.total_chapters == other.total_chapters
+        raise NotImplementedError(f"Don't know how to compare object type '{type(other)}' with type '{type(self)}'")
+
     def __gt__(self, other):
         if issubclass(other, (SimpleBook, SimpleComic)) or isinstance(other, (SimpleBook, SimpleComic)):
             return self.total_chapters > other.total_chapters
