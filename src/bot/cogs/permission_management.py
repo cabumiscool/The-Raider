@@ -5,7 +5,8 @@ from discord.ext import commands
 from discord.ext.commands import Context
 
 from bot import bot_exceptions
-from dependencies.database import Database, DatabaseDuplicateEntry
+from dependencies.database.database import Database
+from dependencies.database.database_exceptions import DatabaseDuplicateEntry
 from . import bot_checks
 
 

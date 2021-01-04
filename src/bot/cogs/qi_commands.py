@@ -5,9 +5,9 @@ from discord.ext import commands
 from discord.ext.commands import Context
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
-from dependencies.database import Database
+from dependencies.database.database import Database
 from dependencies.webnovel.classes import Book
-from dependencies.webnovel.utils import book_string_matcher
+# from dependencies.webnovel.utils import book_string_matcher
 from . import bot_checks
 
 NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '0⃣']
@@ -41,7 +41,11 @@ class QiCommands(commands.Cog):
 
     async def __interactive_book_string_to_book(self, ctx: Context, book_string: str, limit: int = 5
                                                 ) -> Union[Book, None]:
-        possible_matches = await book_string_matcher(self.db, book_string, limit)
+        # commented as this func causes cyclic import
+
+        # possible_matches = await book_string_matcher(self.db, book_string, limit)
+
+        possible_matches = None
         if possible_matches is None:
             return None
         if len(possible_matches) == 1:
@@ -76,6 +80,15 @@ class QiCommands(commands.Cog):
                 book_chapter_requests[book.id] = book, parsed_chapter_requests[book_string]
 
         # TODO: Link up buyer logic with the buyer service in a common location under dependencies or create a new class
+
+    @commands.command(aliases=['qi', 'q'])
+    @bot_checks.check_permission_level(6)
+    async def qi_book(self, ctx: Context, book_id: int):
+        pass
+
+    @commands.command(aliases=['batch_add, many_add'])
+    async def batch_add_books(self, ctx: Context, *book_ids):
+        pass
 
 
 def setup(bot):

@@ -9,7 +9,7 @@ import discord
 from discord.ext import commands
 
 from config import Settings
-from dependencies.database import Database
+from dependencies.database.database import Database
 
 initial_extensions = ('bot.cogs.permission_management',)
 

@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.ext.commands import Context
 
 from bot import bot_exceptions
-from dependencies.database import Database
+from dependencies.database.database import Database
 
 
 def check_permission_level(required_level: int = 0):
