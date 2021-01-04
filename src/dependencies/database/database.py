@@ -8,8 +8,7 @@ import asyncpg
 from dependencies.proxy_manager import Proxy
 from dependencies.database.database_exceptions import *
 
-if typing.TYPE_CHECKING:
-    from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount, Book
+from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount, Book, Chapter, SimpleChapter
 
 
 class Database:
@@ -140,3 +139,21 @@ class Database:
     async def retrieve_buyer_account(self) -> QiAccount:
         """Will retrieve an account for buying and should mark in the db either here or in sql that the account is being
          used to prevent a double count and attempting a buy when there aren't anymore fp"""
+
+    async def __update_simple_book(self, chapter: SimpleBook):
+        pass
+
+    async def __update_complete_book(self, book: Book):
+        pass
+
+    async def update_book(self, book: typing.Union[SimpleBook, Book], *, update_full: bool = True):
+        """Will update the database entries to update"""
+        assert issubclass(type(book), (SimpleBook, Book)) or isinstance(book, (SimpleBook, Book))
+        if isinstance(book, SimpleBook) or update_full is False:
+            await self.__update_simple_book(book)
+        else:
+            await self.__update_complete_book(book)
+
+    async def batch_add_chapters(self, *chapters: typing.Union[SimpleChapter, Chapter]):
+        for chapter in chapters:
+            assert isinstance(chapter, (Chapter, SimpleChapter)) or issubclass(type(chapter), (Chapter, SimpleChapter))
