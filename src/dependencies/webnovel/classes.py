@@ -43,18 +43,20 @@ class ChapterNote:
 
 
 class SimpleChapter:
-    def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, is_vip: int, name: str):
+    def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, is_vip: int, name: str,
+                 volume_index: int):
         self.id = chapter_id
         self.is_privilege = bool(chapter_level)
         self.index = index
         self.is_vip = is_vip
         self.name = name
         self.parent_id = parent_id
+        self.volume_index = volume_index
 
 
 class Chapter(SimpleChapter):
     def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, vip_status: int, name: str,
-                 full_content: bool, content: str, price: int, chapter_note: ChapterNote = None,
+                 full_content: bool, content: str, price: int, volume_index: int, chapter_note: ChapterNote = None,
                  editor: str = None, translator: str = None):
         """Full metadata object for chapters
             :arg chapter_note takes the content of the author note at the end of chapters, may be
@@ -62,7 +64,7 @@ class Chapter(SimpleChapter):
             :arg chapter_note takes a ChapterNote obj, can be safely ignored
             :arg vip_status probably stands if it is premium, free or ad... needs confirmation
         """
-        super().__init__(chapter_level, chapter_id, parent_id, index, vip_status, name)
+        super().__init__(chapter_level, chapter_id, parent_id, index, vip_status, name, volume_index)
         self.is_preview = full_content
         self.content = content
         self.note = chapter_note
@@ -106,6 +108,9 @@ class Volume:
 
     def __check_if_index_in_volume(self, index: int):
         return self._start_index <= index <= self._last_index and index not in self._missing_indexes
+
+    def check_if_id_in_volume(self, id_: int):
+        return id_ in self._chapters
 
     def retrieve_chapter_by_index(self, chapter_index: int) -> SimpleChapter:
         if self.__check_if_index_in_volume(chapter_index):
@@ -268,6 +273,7 @@ class Comic(SimpleComic):
                  reading_type: int):
         super().__init__(comic_id, comic_name, cover_id, total_chapters)
         self.reading_type = self.payment_method[reading_type]
+        self.privileged = is_privileged
 
 
 class QiAccount:
