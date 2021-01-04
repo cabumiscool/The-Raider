@@ -17,10 +17,20 @@ API_ENDPOINT = 'https://www.webnovel.com/apiajax/chapter'
 # TODO change the input from the proxy connector to the proxy class where required
 
 
+def find_volume_index_from_id(chapter_id, volumes: List[classes.Volume]) -> int:
+    for volume in volumes:
+        if volume.check_if_id_in_volume(chapter_id):
+            volume_index = volume.index
+            break
+    else:
+        volume_index = 0
+    return volume_index
+
+
 async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session: aiohttp.ClientSession = None,
                                         proxy_connector: aiohttp_socks.ProxyConnector = None):
     if session is None:
-        # TODO check if it is possible to retrieve a specific cookie from the session
+        # TODO check if it is possible to retrieve a specific cookie from the session and csrf to the params
 
         if not proxy_connector:
             proxy_connector = aiohttp.TCPConnector()
@@ -34,19 +44,21 @@ async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session
     return resp_dict
 
 
-async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.ClientSession = None,
+async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: aiohttp.ClientSession = None,
                                  proxy: Proxy = None, return_book: bool = False
                                  ) -> Union[List[classes.Volume], Tuple[List[classes.Volume], classes.SimpleBook]]:
     #  aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
-    """Add an item to the library
-        :arg book receives either a book or a comic object to be added to the library
+    """Retrieves a chapter list of a book
+        :arg book receives either a book or a book_id from which to retrieve the chapter list
         :arg session receives an aiohttp session object that includes the cookies of the account, if empty will use the
             account arg to generate a request
         :arg proxy accepts an aiohttp proxy connector object, will be ignored if session is given
         :arg return_book defines if it should return the book metadata found on the chapter list
-        :returns a list containing Volume objects
+        :returns a list containing Volume objects or a tuple in the following format (list[volume objects],simple book])
 
     """
+    if isinstance(book, int):
+        book = classes.SimpleBook(book, '', 0)
     params = {'bookId': str(book.id), '_': time()}
     api = '/'.join((API_ENDPOINT, 'GetChapterList'))
     while True:
@@ -102,7 +114,7 @@ async def chapter_list_retriever(book: classes.SimpleBook, session: aiohttp.Clie
                 chapter_vip = chapter['isVip']
                 chapter_name = chapter['name']
                 chapters.append(classes.SimpleChapter(chapter_level, chapter_id, book.id, chapter_index, chapter_vip,
-                                                      chapter_name))
+                                                      chapter_name, volume_index))
             volumes.append(classes.Volume(chapters, volume_index, book.id, volume_name))
         if return_book:
             return volumes, simple_book
@@ -158,7 +170,7 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
     raise exceptions.UnknownResponseCode(resp_code, resp_dict['msg'])
 
 
-def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict) -> classes.Chapter:
+def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, volume_index: int) -> classes.Chapter:
     chapter_name = chapter_info['chapterName']
     is_owned = bool(chapter_info['isAuth'])
     notes_dict = chapter_info['notes']
@@ -188,7 +200,7 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict) -> 
     if len(editor_list) > 0:
         editor = editor_list[0]['name']
     return classes.Chapter(priv_level, chapter_id, book_id, index, vip_status, chapter_name, is_owned, content_str,
-                           price, note_obj, editor, translator)
+                           price, volume_index, note_obj, editor, translator)
 
 
 async def full_book_retriever(book: Union[classes.SimpleBook, classes.Book], session: aiohttp.ClientSession = None,
@@ -218,7 +230,8 @@ async def full_book_retriever(book: Union[classes.SimpleBook, classes.Book], ses
         except json.JSONDecodeError:
             pass
     chapter_list_book_meta: classes.SimpleBook
-    last_chapter_obj = __full_chapter_parser(book.id, last_chapter.id, chapter_meta_dict)
+    last_chapter_volume_index = find_volume_index_from_id(last_chapter.id, volumes)
+    last_chapter_obj = __full_chapter_parser(book.id, last_chapter.id, chapter_meta_dict, last_chapter_volume_index)
     reading_type = last_chapter_obj.is_vip
     is_priv = last_chapter.is_privilege
     book_id = book_meta_dict['bookId']
@@ -236,7 +249,8 @@ async def full_book_retriever(book: Union[classes.SimpleBook, classes.Book], ses
     return full_book
 
 
-async def chapter_retriever(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
+async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index: int,
+                            session: aiohttp.ClientSession = None,
                             account: classes.QiAccount = None, proxy: Proxy = None) -> classes.Chapter:
     cookies = {}
     if hasattr(account, 'cookies'):
@@ -256,7 +270,7 @@ async def chapter_retriever(book_id: int, chapter_id: int, session: aiohttp.Clie
         except json.JSONDecodeError:
             pass
 
-    return __full_chapter_parser(book_id, chapter_id, chapter_info)
+    return __full_chapter_parser(book_id, chapter_id, chapter_info, chapter_volume_index)
 
 
 async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aiohttp.ClientSession = None,
@@ -274,8 +288,11 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
         form_data_dict['_csrfToken'] = cookies['_csrfToken']
     else:
         # TODO: Why does this exists? it does nothing
-        if session:
-            pass
+
+        # RESPONSE: I forgot to continue writing it XD, should retrieve the csrf cookie from the seesion and do the
+        # same as above
+        # TODO do as above
+        pass
 
     form_data = aiohttp.FormData(form_data_dict)
     form_data.add_field('chapters', [{'chapterPrice': chapter_price, 'chapterId': chapter_id,
@@ -323,9 +340,12 @@ async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSe
     cookies = None
     if hasattr(account, 'cookies'):
         cookies = account.cookies
+    volumes = await chapter_list_retriever(book_id, session=session, proxy=proxy)
+    chapter_volume_index = find_volume_index_from_id(chapter_id, volumes)
 
     # TODO check what possible excepts can happen here
-    chapter = await chapter_retriever(book_id, chapter_id, session, account, proxy)
+    chapter = await chapter_retriever(book_id, chapter_id, chapter_volume_index,
+                                      session=session, account=account, proxy=proxy)
     if chapter.is_preview:
         chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, cookies=cookies,
                                                       proxy=proxy)
