@@ -197,8 +197,15 @@ class BackgroundProcess:
                 if time.time() - data_dict['_'] > 300:
                     book_ids_to_delete.append(book_id)
 
-        # data should be saved to db around here using the ids that will be deleted
-        # TODO
+        # saving data to db
+        for book_id in book_ids_to_delete:
+            await self.database.update_book(self.queue_history[book_id]['obj'])
+            chapters: typing.List[typing.Union[classes.Chapter, classes.SimpleChapter]] = []
+            for chapter_id, chapter_data in self.queue_history[book_id]['chs'].items():
+                chapter_id: int
+                chapter_data: dict
+                chapters.append(chapter_data['obj'])
+            await self.database.batch_add_chapters(*chapters)
 
         # cleaning up
         for book_id in book_ids_to_delete:
