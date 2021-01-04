@@ -8,7 +8,7 @@ import asyncpg
 from dependencies.proxy_manager import Proxy
 from dependencies.database.database_exceptions import *
 
-from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount, Book, Chapter, SimpleChapter
+from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount, Book, Chapter, SimpleChapter, Volume
 
 
 class Database:
@@ -144,6 +144,9 @@ class Database:
         pass
 
     async def __update_complete_book(self, book: Book):
+        pass
+
+    async def check_if_volume_entry_exists(self, book_id: int, volume_index: int):
         pass
 
     async def update_book(self, book: typing.Union[SimpleBook, Book], *, update_full: bool = True):
