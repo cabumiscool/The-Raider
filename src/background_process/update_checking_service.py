@@ -5,7 +5,7 @@ from background_process.background_objects import LibraryRetrievalError
 from dependencies.database.database import Database
 from dependencies.webnovel.web import library
 from dependencies.webnovel.classes import QiAccount, SimpleBook, SimpleComic
-from dependencies.proxy_manager import Proxy
+from dependencies.proxy_classes import Proxy
 
 
 async def retrieve_library_accounts(database: Database) -> typing.List[QiAccount]:

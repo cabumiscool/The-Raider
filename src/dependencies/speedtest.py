@@ -9,7 +9,7 @@ import os
 import platform
 import asyncio
 
-from dependencies.proxy_manager import Proxy
+from dependencies.proxy_classes import Proxy
 
 from urllib.parse import urlparse
 from io import BytesIO, StringIO

@@ -5,7 +5,7 @@ import typing
 
 import asyncpg
 
-from dependencies.proxy_manager import Proxy
+from dependencies.proxy_classes import Proxy
 from dependencies.database.database_exceptions import *
 
 from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount, Book, Chapter, SimpleChapter, Volume

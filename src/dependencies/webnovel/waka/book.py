@@ -1,7 +1,7 @@
 import aiohttp
 # import aiohttp_socks
 # import asyncio
-from dependencies.proxy_manager import Proxy
+from dependencies.proxy_classes import Proxy
 from dependencies.webnovel import classes
 from dependencies.webnovel.utils import decode_qi_content
 from dependencies.webnovel.exceptions import UnknownResponseCode

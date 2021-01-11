@@ -4,7 +4,7 @@ import typing
 from background_process.base_service import BaseService
 from dependencies.database.database import Database
 from dependencies.webnovel import classes
-from dependencies.proxy_manager import Proxy
+from dependencies.proxy_classes import Proxy
 from dependencies.webnovel.web import book
 from dependencies.webnovel.waka import book as wbook
 

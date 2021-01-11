@@ -5,7 +5,7 @@ from time import time
 import aiohttp
 import aiohttp_socks
 
-from dependencies.proxy_manager import Proxy
+from dependencies.proxy_classes import Proxy
 from dependencies.webnovel import classes, exceptions
 from dependencies.webnovel.utils import decode_qi_content
 

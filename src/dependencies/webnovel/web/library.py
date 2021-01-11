@@ -9,7 +9,7 @@ import aiohttp_socks
 from urllib.parse import quote
 
 from dependencies.webnovel import classes
-from dependencies.proxy_manager import Proxy
+from dependencies.proxy_classes import Proxy
 
 main_api_url = "https://www.webnovel.com/apiajax/Library"
 
