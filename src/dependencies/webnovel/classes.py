@@ -34,8 +34,8 @@ class DataDescriptorChecker:
 class ChapterNote:
     def __init__(self, uut: int, avatar_pic_url: str, author: str, content: str, author_pen_name: str,
                  author_type: str):
-        self.uut = uut
-        self.avatar_url = avatar_pic_url
+        self.uut = int(uut)
+        self.avatar_url = int(avatar_pic_url)
         self.author = author
         self.pen_name = author_pen_name
         self.author_type = author_type
@@ -45,13 +45,13 @@ class ChapterNote:
 class SimpleChapter:
     def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, is_vip: int, name: str,
                  volume_index: int):
-        self.id = chapter_id
+        self.id = int(chapter_id)
         self.is_privilege = bool(chapter_level)
-        self.index = index
-        self.is_vip = is_vip
+        self.index = int(index)
+        self.is_vip = int(is_vip)
         self.name = name
-        self.parent_id = parent_id
-        self.volume_index = volume_index
+        self.parent_id = int(parent_id)
+        self.volume_index = int(volume_index)
 
 
 class Chapter(SimpleChapter):
@@ -70,7 +70,7 @@ class Chapter(SimpleChapter):
         self.note = chapter_note
         self.editor = editor
         self.translator = translator
-        self.price = price
+        self.price = int(price)
 
 
 class Volume:
@@ -97,9 +97,9 @@ class Volume:
                  volume_name: str = "No-Name"):
         self._chapters_with_index = {chapter.index: chapter for chapter in chapters_list}
         self._chapters = {chapter.id: chapter for chapter in chapters_list}
-        self.index = volume_index
+        self.index = int(volume_index)
         self.name = volume_name
-        self.book_id = book_id
+        self.book_id = int(book_id)
         starting_index, last_index, missing = self.__find_first_last_and_missing_indexes(*[chapter.index for chapter
                                                                                            in chapters_list])
         self._start_index = starting_index
@@ -149,8 +149,11 @@ class Volume:
             raise ValueError('Missing enough arguments in the request')
         return return_value[0]
 
-    def return_all_chapters_ids(self):
+    def return_all_chapters_ids(self) -> typing.List[int]:
         return [chapter_id for chapter_id, chapter in self._chapters.items()]
+
+    def return_all_chapter_objs(self) -> typing.List[SimpleChapter]:
+        return [chapter for chapter_id, chapter in self._chapters.items()]
 
 
 class SimpleBook:
@@ -159,18 +162,24 @@ class SimpleBook:
 
     def __init__(self, book_id: int, book_name: str, total_chapters: int, cover_id: int = None,
                  book_abbreviation: str = None, library_number: int = None):
-        self.id = book_id
+        self.id = int(book_id)
         self.name = book_name
         if book_abbreviation is None:
             self.qi_abbreviation = False
             words = book_name.split(' ')
-            pseudo_abbreviation = ''.join([word[0] for word in words])
-            self.abbreviation = pseudo_abbreviation
+            if words == ['']:
+                self.abbreviation = ''
+            else:
+                pseudo_abbreviation = ''.join([word[0] for word in words])
+                self.abbreviation = pseudo_abbreviation
         else:
             self.qi_abbreviation = True
             self.abbreviation = book_abbreviation
-        self.total_chapters = total_chapters
-        self.cover_id = cover_id
+        self.total_chapters = int(total_chapters)
+        if cover_id is None:
+            self.cover_id = None
+        else:
+            self.cover_id = int(cover_id)
         self.library_number = library_number  # this value can only be found in the internal db
 
     def __ne__(self, other):
@@ -191,18 +200,25 @@ class SimpleBook:
 
 class Book(SimpleBook):
     """To be used when almost the complete metadata is needed. To assemble it requires the chapter api book section"""
-    types = {1: 'Translated', 2: 'Original'}
-    payment_method = ["Free", "Adwall", "Premium"]
+    _types = {1: 'Translated', 2: 'Original'}
+    _payment_method = ["Free", "Adwall", "Premium"]
+    # translating related fields in status could also be in progress and not started... maybe. ui concern
+    _status = {-1: 'UNTRANSLATED', 30: 'TRANSLATING', 40: 'SUSPEND', 50: 'COMPLETED'}
 
     def __init__(self, book_id: int, book_name: str, total_chapter_count: int, is_privileged: bool,
-                 type_is_tl: int, cover_id: int,
-                 reading_type: int = None, book_abbreviation: str = None):
-        super().__init__(book_id, book_name, total_chapter_count, cover_id, book_abbreviation=book_abbreviation)
+                 type_is_tl: int, cover_id: int, action_status: int,
+                 reading_type: int = None, book_abbreviation: str = None, library_number: int = None):
+        super().__init__(book_id, book_name, total_chapter_count, cover_id, book_abbreviation=book_abbreviation,
+                         library_number=library_number)
         self.privilege = is_privileged
-        self.book_type = self.types[type_is_tl]
+        type_is_tl = int(type_is_tl)
+        self.book_type = self._types[type_is_tl]
         self.book_type_num = type_is_tl
+        self.book_status = int(action_status)
+        self.book_status_text = self._status.get(self.book_status, 'UNKNOWN')
         if reading_type is not None:
-            self.read_type = self.payment_method[reading_type]
+            reading_type = int(reading_type)
+            self.read_type = self._payment_method[reading_type]
             self.read_type_num = reading_type
         else:
             self.read_type = None
@@ -215,9 +231,9 @@ class Book(SimpleBook):
             if len(self._volumes_list) > 0 and len(self._volumes_list) > 0:
                 return_list = []
 
-                self_chapters_id = [volume.return_all_chapters_ids() for volume in self.__return_volume_list()]
+                self_chapters_id = [volume.return_all_chapters_ids() for volume in self.return_volume_list()]
 
-                other_chapters_id = [volume.return_all_chapters_ids() for volume in other.__return_volume_list()]
+                other_chapters_id = [volume.return_all_chapters_ids() for volume in other.return_volume_list()]
 
                 for chapter_id in self_chapters_id:
                     if chapter_id in other_chapters_id:
@@ -236,7 +252,7 @@ class Book(SimpleBook):
         self._volumes_list = sorted(volume_list, key=attrgetter('index'))
         self._volume_dict = {volume.index: volume for volume in self._volumes_list}
 
-    def __return_volume_list(self) -> typing.List[Volume]:
+    def return_volume_list(self) -> typing.List[Volume]:
         if len(self._volumes_list) == 0:
             raise ValueError('No the book object contains no volume objects')
         return self._volumes_list
