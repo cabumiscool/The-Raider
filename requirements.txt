@@ -7,3 +7,4 @@ fuzzywuzzy~=0.18.0
 python-Levenshtein~=0.12.0
 PrivateBinAPI~=1.0.0
 pylint~=2.6.0
+beautifulsoup4~=4.9.3
