@@ -12,11 +12,12 @@ class InvalidIpAddress(Exception):
 
 
 class Proxy:
-    connection_types = {'http': aiohttp_socks.ProxyType.HTTP, 'socks4': aiohttp_socks.ProxyType.SOCKS4,
-                        'socks5': aiohttp_socks.ProxyType.SOCKS5}
+    _connection_types = {'http': aiohttp_socks.ProxyType.HTTP, 'socks4': aiohttp_socks.ProxyType.SOCKS4,
+                         'socks5': aiohttp_socks.ProxyType.SOCKS5}
+    _regions = ['Unknown', 'Waka', 'U.S.']
 
-    def __init__(self, ip: str, port: str, connection_type: str, uptime: Union[int, str], latency: Union[int, str],
-                 speed: Union[int, str]):
+    def __init__(self, id_: int, ip: str, port: Union[str, int], connection_type: str, uptime: Union[int, str],
+                 latency: Union[int, str], speed: Union[int, str], region: int):
         if isinstance(ip, str):
             ip_parts = ip.split('.')
             if len(ip_parts) == 4:
@@ -29,17 +30,19 @@ class Proxy:
                 raise InvalidIpAddress(f'The Ip address of {ip} is invalid')
         else:
             raise ValueError(f"Was expecting an object of type 'str' instead received a type '{type(ip).__name__}'")
+        self.id = id_
         self._ip = ip
         self._port = port
 
         self.test_url = 'https://www.webnovel.com/'
         try:
-            self._type = self.connection_types[connection_type.lower()]
+            self._type = self._connection_types[connection_type.lower()]
         except KeyError:
             raise ValueError('Invalid proxy type was input') from KeyError
         self.uptime = int(uptime)
         self.latency = int(latency)
         self.speed = int(speed)
+        self.region = int(region)
 
     def generate_connector(self, **kwargs) -> aiohttp_socks.ProxyConnector:
         """Generates a connector
