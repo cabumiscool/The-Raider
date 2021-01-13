@@ -18,9 +18,10 @@ async def full_book_retriever():
     pass
 
 
-async def chapter_retriever(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None, proxy: Proxy = None):
+async def chapter_retriever(book_id: int, chapter_id: int, volume_index: int, session: aiohttp.ClientSession = None,
+                            proxy: Proxy = None):
     api = '/'.join((API_ENDPOINT, 'chapter'))
-    params = {'bookId': book_id, 'chapterId': chapter_id}
+    params = {'bookId': str(book_id), 'chapterId': str(chapter_id)}
 
     if session:
         async with session.get(api, params=params) as request:
@@ -55,5 +56,5 @@ async def chapter_retriever(book_id: int, chapter_id: int, session: aiohttp.Clie
 
     chapter_note = classes.ChapterNote(0, '', '', extra_note, '', '')
 
-    return classes.Chapter(1, chapter_id, book_id, index, vip_status, name, True, content, price, chapter_note,
-                           editors, translators)
+    return classes.Chapter(1, chapter_id, book_id, index, vip_status, name, True, content, price, volume_index,
+                           chapter_note, editors, translators)
