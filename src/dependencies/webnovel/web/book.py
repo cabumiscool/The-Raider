@@ -12,6 +12,8 @@ from dependencies.webnovel.utils import decode_qi_content
 API_ENDPOINT = 'https://www.webnovel.com/apiajax/chapter'
 
 
+default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
+
 # possible_second_api = 'https://www.webnovel.com/go/pcm/chapter/getContent'
 
 # TODO change the input from the proxy connector to the proxy class where required
@@ -59,7 +61,7 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
     """
     if isinstance(book, int):
         book = classes.SimpleBook(book, '', 0)
-    params = {'bookId': str(book.id), '_': time()}
+    params = {'bookId': str(book.id), '_': str(time())}
     api = '/'.join((API_ENDPOINT, 'GetChapterList'))
     while True:
         try:
@@ -95,11 +97,12 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
     code = resp_dict['code']
     if code == 0:
         # successful request
-        book_metadata = resp_dict['bookInfo']
+        data_message = resp_dict['data']
+        book_metadata = data_message['bookInfo']
         book_name = book_metadata['bookName']
         book_sub_name = book_metadata['bookSubName']
         total_chapters = book_metadata['totalChapterNum']
-        volumes_dict = resp_dict['volumeItems']
+        volumes_dict = data_message['volumeItems']
         simple_book = classes.SimpleBook(book.id, book_name, total_chapters, book_abbreviation=book_sub_name)
         volumes = []
         for volume in volumes_dict:
@@ -140,7 +143,7 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
     # aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
 
     api = '/'.join((API_ENDPOINT, 'GetContent'))
-    params = {'bookId': book_id, 'chapterId': chapter_id, '_': time()}
+    params = {'bookId': book_id, 'chapterId': chapter_id, '_': str(time())}
     if not proxy:
         proxy = aiohttp.TCPConnector()
 
@@ -174,21 +177,24 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
     chapter_name = chapter_info['chapterName']
     is_owned = bool(chapter_info['isAuth'])
     notes_dict = chapter_info['notes']
-    uut = notes_dict['UUT']
-    if uut == 0:
+    if notes_dict is None:
         note_obj = None
     else:
-        note_avatar_pic_url = notes_dict['avatar']
-        note_author = notes_dict['name']
-        note_content = notes_dict['note']
-        note_author_pen_name = notes_dict['penName']
-        note_author_type = notes_dict['role']
-        note_obj = classes.ChapterNote(uut, note_avatar_pic_url, note_author, note_content, note_author_pen_name,
-                                       note_author_type)
+        uut = notes_dict['UUT']
+        if uut == 0:
+            note_obj = None
+        else:
+            note_avatar_pic_url = notes_dict['avatar']
+            note_author = notes_dict['name']
+            note_content = notes_dict['note']
+            note_author_pen_name = notes_dict['penName']
+            note_author_type = notes_dict['role']
+            note_obj = classes.ChapterNote(uut, note_avatar_pic_url, note_author, note_content, note_author_pen_name,
+                                           note_author_type)
     content_list = chapter_info['contents']
     content_str = '\n'.join([paragraph['content'] for paragraph in content_list])
-    price = chapter_info['price']
-    vip_status = chapter_info['vipStatus']
+    price = chapter_info['SSPrice']
+    vip_status = chapter_info['isVip']
     priv_level = chapter_info['chapterLevel']
     index = chapter_info['chapterIndex']
     translator_list: list = chapter_info['translatorItems']
@@ -203,11 +209,13 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
                            price, volume_index, note_obj, editor, translator)
 
 
-async def full_book_retriever(book: Union[classes.SimpleBook, classes.Book], session: aiohttp.ClientSession = None,
+async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes.Book, int], session: aiohttp.ClientSession = None,
                               proxy: Proxy = None):
+    if isinstance(book_or_book_id, int):
+        book_or_book_id = classes.SimpleBook(book_or_book_id, '', 0)
     while True:
         try:
-            volumes, chapter_list_book_meta = await chapter_list_retriever(book, session, proxy, return_book=True)
+            volumes, chapter_list_book_meta = await chapter_list_retriever(book_or_book_id, session, proxy, return_book=True)
             break
         except json.JSONDecodeError:
             pass
@@ -223,16 +231,17 @@ async def full_book_retriever(book: Union[classes.SimpleBook, classes.Book], ses
                 proxy_connector = proxy.generate_connector()
             else:
                 proxy_connector = aiohttp.TCPConnector()
-            chapter_meta_dict, book_meta_dict = await __chapter_metadata_retriever(book.id, last_chapter.id,
+            chapter_meta_dict, book_meta_dict = await __chapter_metadata_retriever(book_or_book_id.id, last_chapter.id,
                                                                                    proxy=proxy_connector,
-                                                                                   return_chapter_meta=False)
+                                                                                   return_both=True)
             break
         except json.JSONDecodeError:
             pass
     chapter_list_book_meta: classes.SimpleBook
     last_chapter_volume_index = find_volume_index_from_id(last_chapter.id, volumes)
-    last_chapter_obj = __full_chapter_parser(book.id, last_chapter.id, chapter_meta_dict, last_chapter_volume_index)
+    last_chapter_obj = __full_chapter_parser(book_or_book_id.id, last_chapter.id, chapter_meta_dict, last_chapter_volume_index)
     reading_type = last_chapter_obj.is_vip
+    book_status = book_meta_dict['actionStatus']
     is_priv = last_chapter.is_privilege
     book_id = book_meta_dict['bookId']
     book_name = book_meta_dict['bookName']
@@ -243,8 +252,8 @@ async def full_book_retriever(book: Union[classes.SimpleBook, classes.Book], ses
         abbreviation = chapter_list_book_meta.abbreviation
     else:
         abbreviation = None
-    full_book = classes.Book(book_id, book_name, total_chapters, is_priv, type_, cover_id, reading_type=reading_type,
-                             book_abbreviation=abbreviation)
+    full_book = classes.Book(book_id, book_name, total_chapters, is_priv, type_, cover_id, book_status,
+                             reading_type=reading_type, book_abbreviation=abbreviation)
     full_book.add_volume_list(volumes)
     return full_book
 
@@ -325,7 +334,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
     # code 0 is success | code 2 is already bought | code 1 is fail or possibly insufficient fp/ss
     if request_code == 0:
         data = content_dict['data']
-        paragraphs_dict = content_dict['contents']
+        paragraphs_dict = data['contents']
         return '\n'.join([paragraph['content'] for paragraph in paragraphs_dict])
     if request_code == 1:
         raise exceptions.FailedChapterBuy()

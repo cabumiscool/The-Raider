@@ -100,7 +100,8 @@ class WakaBuyManager:
     def __init__(self, chapter: classes.SimpleChapter, session: aiohttp.ClientSession):
         self.chapter = chapter
         self._session = session
-        self._task = asyncio.create_task(wbook.chapter_retriever(chapter.parent_id, chapter.id, session=self._session))
+        self._task = asyncio.create_task(wbook.chapter_retriever(chapter.parent_id, chapter.id, chapter.volume_index,
+                                                                 session=self._session))
 
     def is_done(self):
         return self._task.done()
