@@ -8,3 +8,7 @@ class DatabaseMissingArguments(Exception):
 
 class DatabaseDuplicateEntry(Exception):
     """raised when a method of the database fails because an similar entry already exists"""
+
+
+class NoEntryFoundInDatabaseError(Exception):
+    """raised when a database query can't find any matching data"""
