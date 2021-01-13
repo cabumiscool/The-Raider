@@ -11,6 +11,12 @@ class ErrorReport(Exception):
         super().__init__()
 
 
+class ProxyErrorReport(ErrorReport):
+    def __init__(self, error: typing.Type[BaseException], error_comment: str, traceback: str, proxy_id: int,
+                 error_object=None):
+        super().__init__(error, error_comment, traceback, error_object)
+
+
 class ErrorList(Exception):
     def __init__(self, *errors):
         self.errors = errors
@@ -72,8 +78,8 @@ class ProcessReturnData:
 
 
 class ServiceCommand(Command):
-    def __init__(self, command_id: int, service_name: str):
-        self.name = service_name
+    def __init__(self, command_id: int, service_id: int):
+        self.id = service_id
         super().__init__(command_id)
 
 

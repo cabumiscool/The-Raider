@@ -13,9 +13,11 @@ from background_process.update_checking_service import BooksLibraryChecker
 from background_process.new_chapter_finder import NewChapterFinder
 from background_process.buyer_service import BuyerService
 from background_process.paste_service import PasteCreator, PasteRequest, MultiPasteRequest, Paste
-from background_process.background_objects import Ping, Command, ProcessCommand, ServiceCommand, ErrorReport, ErrorList
+from background_process.proxy_manager_service import ProxyManager
+from background_process.background_objects import Ping, Command, ProcessCommand, ServiceCommand, ErrorReport,\
+    ErrorList, ProxyErrorReport
 
-from dependencies.database import Database
+from dependencies.database.database import Database
 from dependencies.webnovel import classes
 
 from ..config import Settings
@@ -33,7 +35,9 @@ class BackgroundProcess:
         self.services: typing.Dict[int, BaseService] = {1: BooksLibraryChecker(self.database),
                                                         2: NewChapterFinder(self.database),
                                                         3: BuyerService(self.database),
-                                                        4: PasteCreator()}
+                                                        4: PasteCreator(),
+                                                        5: ProxyManager(self.database)
+                                                        }
 
         if loop is None:
             self.loop = asyncio.get_event_loop()
@@ -211,12 +215,18 @@ class BackgroundProcess:
         for book_id in book_ids_to_delete:
             del self.queue_history[book_id]
 
+        try:
+            self.services[5].retrieve_completed_cache()
+        except (ErrorReport, ErrorList, ProxyErrorReport) as e:
+            self.__return_data(e)
+
     async def run(self):
         while self.running:
             await self.main_loop()
             await asyncio.sleep(5)
 
     async def command_handler(self):
+        # TODO: finsih this
         pending_commands: typing.List[typing.Tuple[asyncio.tasks.Task, int]] = []
         while self.running:
             # extracts objects from the queue
