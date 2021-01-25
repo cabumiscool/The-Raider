@@ -300,13 +300,13 @@ class QiAccount:
         self.password = qi_pass
         self.cookies = cookies
         self.ticket = ticket
-        self.expired = expired
+        self.expired = bool(expired)
         self.update_time = update_time
-        self.fast_pass_count = fp
+        self.fast_pass_count = int(fp)
         self.library_type = library_type
         self.library_pages = library_pages
         self.host_email_id = main_email_id
-        self.guid = guid
+        self.guid = int(guid)
 
     def _read_valid(self, user_dict: dict) -> bool:
         if user_dict['userName'] != '':
@@ -333,7 +333,7 @@ class QiAccount:
 
 
 class EmailAccount:
-    def __init__(self, id_: int, email: str, password: str):
+    def __init__(self, email: str, password: str, id_: int):
         self.id = id_
         self.email = email
         self.password = password
