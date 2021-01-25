@@ -22,6 +22,8 @@ etree_iter = ET.Element.iter
 
 module_version = '2.1.2'
 
+default_connector_configs = {'force_close': True, 'enable_cleanup_closed': True}
+
 
 # def printer(string, quiet=False, debug=False, error=False, **kwargs):
 #     """Helper function print a string with various features"""
@@ -229,12 +231,16 @@ def distance(origin, destination):
     return d
 
 
-def build_request(url, data=None, headers=None, bump='0', secure=False, timeout: int = 30):
+def build_request(url, data=None, headers=None, bump='0', secure=False, timeout: int = 30, proxy: Proxy = None):
     """Build a urllib2 request object
 
     This function automatically adds a User-Agent header to all requests
 
     """
+    if isinstance(proxy, Proxy):
+        connector = proxy.generate_connector(**default_connector_configs)
+    else:
+        connector = aiohttp.TCPConnector(**default_connector_configs)
 
     if not headers:
         headers = {}
@@ -263,7 +269,7 @@ def build_request(url, data=None, headers=None, bump='0', secure=False, timeout:
     #         debug=True)
 
     request_object = aiohttp.request(('GET', 'POST')[bool(data)], final_url, data=data, headers=headers,
-                                     timeout=aiohttp.ClientTimeout(timeout))
+                                     timeout=aiohttp.ClientTimeout(timeout), connector=connector)
     # return Request(final_url, data=data, headers=headers)
     return request_object
 
@@ -370,7 +376,7 @@ class SpeedtestResults(object):
         }
 
 
-class Speedtest(object):
+class SpeedTest(object):
     """Class for performing standard speedtest.net testing operations"""
 
     def __init__(self, config=None, source_address=None, timeout=10,
@@ -708,11 +714,11 @@ class Speedtest(object):
     #                     extension = [ext]
     #                     break
     #     if not urlparts or not extension:
-    #         raise InvalidSpeedtestMiniServer('Invalid Speedtest Mini Server: '
+    #         raise InvalidSpeedtestMiniServer('Invalid SpeedTest Mini Server: '
     #                                          '%s' % server)
     #
     #     self.servers = [{
-    #         'sponsor': 'Speedtest Mini',
+    #         'sponsor': 'SpeedTest Mini',
     #         'name': urlparts[1],
     #         'd': 0,
     #         'url': '%s/speedtest/upload.%s' % (url.rstrip('/'), extension[0]),
@@ -786,10 +792,17 @@ class Speedtest(object):
                     start = timeit.default_timer()
 
                     #  Tends to fail when used with asyncio.run() outside of an async def
-                    async with aiohttp.request('GET', latency_url, connector=self.proxy_connector,
+                    if self.proxy:
+                        connector = self.proxy.generate_connector(**default_connector_configs)
+                    else:
+                        connector = aiohttp.TCPConnector(**default_connector_configs)
+
+                    async with aiohttp.request('GET', latency_url, connector=connector,
                                                headers=headers) as resp:
                         response_bin_content = await resp.read()
                         response_code = resp.status
+
+
                     # h.request("GET", path, headers=headers)
                     # r = h.getresponse()
                     total = (timeit.default_timer() - start)
@@ -1028,7 +1041,7 @@ async def shell():
 
     # printer('Retrieving speedtest.net configuration...', quiet)
     try:
-        speedtest = Speedtest()
+        speedtest = SpeedTest()
         await speedtest.async_init()
     except Exception:
         raise Exception('Unknown')
