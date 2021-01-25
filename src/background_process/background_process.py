@@ -14,25 +14,27 @@ from background_process.new_chapter_finder import NewChapterFinder
 from background_process.buyer_service import BuyerService
 from background_process.paste_service import PasteCreator, PasteRequest, MultiPasteRequest, Paste
 from background_process.proxy_manager_service import ProxyManager
-from background_process.background_objects import Ping, Command, ProcessCommand, ServiceCommand, ErrorReport,\
-    ErrorList, ProxyErrorReport
+from background_process.background_objects import *
 
 from dependencies.database.database import Database
 from dependencies.webnovel import classes
 
-from ..config import Settings
+from config import Settings
 
 
 class BackgroundProcess:
-    def __init__(self, input_queue: Queue, output_queue: Queue, settings: Settings, database: Database,
+    def __init__(self, input_queue: Queue, output_queue: Queue, config: Settings,
                  loop: asyncio.AbstractEventLoop = None):
         self.input_queue = input_queue
         self.output_queue = output_queue
-        self.settings = settings
+        self.settings = config
         self.running = True
-        self.commands_to_execute = []
-        self.database = database
-        self.services: typing.Dict[int, BaseService] = {1: BooksLibraryChecker(self.database),
+        self.services_commands: typing.List[typing.Tuple[asyncio.Task, ServiceCommand]] = []
+        self.database = Database(database_host=config.db_host, database_name=config.db_name,
+                                 database_user=config.db_user,
+                                 database_password=config.db_password, database_port=config.db_port,
+                                 min_conns=config.min_db_conns, max_conns=config.max_db_conns)
+        self.services: typing.Dict[int: BaseService] = {1: BooksLibraryChecker(self.database),
                                                         2: NewChapterFinder(self.database),
                                                         3: BuyerService(self.database),
                                                         4: PasteCreator(),
@@ -225,9 +227,17 @@ class BackgroundProcess:
             await self.main_loop()
             await asyncio.sleep(5)
 
+    async def restart_service(self, service_id: int):
+        pass
+
+    def unknown_received_object(self, object_, *, where: str = None):
+        # traceback.format_exc()
+        self.__return_data(ErrorReport(ValueError, f"Invalid data type received at background process, type:  "
+                                                   f"{type(object_)}",
+                                       f"at command handler on background process, exactly where:   {where}",
+                                       error_object=object_))
+
     async def command_handler(self):
-        # TODO: finsih this
-        pending_commands: typing.List[typing.Tuple[asyncio.tasks.Task, int]] = []
         while self.running:
             # extracts objects from the queue
             objects = []
@@ -241,25 +251,51 @@ class BackgroundProcess:
             # will analyze the received objects
             for received_object in objects:
                 if isinstance(received_object, Ping):
-                    self.__return_data(received_object.generate_return_time())
-                if issubclass(received_object, Command):
+                    received_object.generate_return_time()
+                    self.__return_data(received_object)
+                if issubclass(type(received_object), Command):
                     if isinstance(received_object, ProcessCommand):
                         pass
-                    elif isinstance(received_object, ServiceCommand):
-                        service = self.services[received_object.name]
+                    elif issubclass(type(received_object), ServiceCommand):
+                        service = self.services[received_object.service_id]
+                        if isinstance(received_object, StartService):
+                            self.services_commands.append((self.loop.create_task(service.start()), received_object))
+                        elif isinstance(received_object, StopService):
+                            self.services_commands.append((self.loop.create_task(service.stop()), received_object))
+                        elif isinstance(received_object, RestartService):
+                            self.services_commands.append((self.loop.create_task(self.restart_service(
+                                received_object.service_id)), received_object))
+                        else:
+                            self.unknown_received_object(received_object, where='deciding what type of service command '
+                                                                                'it is')
+                    elif issubclass(type(received_object), StatusRequest):
+                        pass
                     else:
-                        self.__return_data(ErrorReport(ValueError, "Invalid data type received at background process",
-                                                       traceback.format_exc(), error_object=received_object))
+                        self.unknown_received_object(received_object, where='deciding what type of command it is')
+                        # self.__return_data(ErrorReport(ValueError, "Invalid data type received at background process",
+                        #                                traceback.format_exc(), error_object=received_object))
 
-            # will check if a command is done
+            # will check if a service command is done
             commands_to_be_cleared = []
-            for command_tuple in pending_commands:
-                command = command_tuple[0]
-                started_at = command_tuple[1]
-                if command.done():
-                    pass
+            # for command_task, command_request in self.services_commands:
+            for command_tuple in self.services_commands:
+                command_task = command_tuple[0]
+                command_request = command_tuple[1]
+                if command_task.done():
+                    try:
+                        result = command_task.result()
+                        if result:
+                            command_request.completed_status()
+                            commands_to_be_cleared.append(command_tuple)
+                            self.__return_data(command_request)
+                        else:
+                            command_request.unknown_status(comment=str(result))
+                            commands_to_be_cleared.append(command_tuple)
+                            self.__return_data(command_request)
+                    except (TimeoutError, ServiceIsNotRunningError, AlreadyRunningServiceError) as e:
+                        command_request.failed_status(comment=f"The command failed with error {e}")
+                        self.__return_data(command_request)
                 else:
-                    if time.time() - started_at > 20:
-                        pass
-                    else:
-                        pass
+                    pass
+
+            await asyncio.sleep(3)
