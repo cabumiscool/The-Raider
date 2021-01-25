@@ -3,7 +3,7 @@ import time
 import asyncio
 import traceback
 
-import background_objects
+from background_process import background_objects
 
 
 class BaseService:
@@ -19,6 +19,8 @@ class BaseService:
         self._running = False
         self._loop_interval = loop_time
         self.last_loop = 0
+        self._main_loop_task = None
+        self._main_loop_task: asyncio.Task
 
     def add_to_queue(self, *input_data):
         self._input_queue.extend(input_data)
@@ -68,9 +70,28 @@ class BaseService:
                 self.last_loop = time.time()
             await asyncio.sleep(self._loop_interval)
 
-    async def stop(self):
+    def start(self):
+        if self._running:
+            raise background_objects.AlreadyRunningServiceError(f"service '{self.name}' was attempted to be made to"
+                                                                f" start when it is already running")
+        else:
+            self._main_loop_task = asyncio.create_task(self.run())
+            self._running = True
+
+    async def stop(self, *, timeout=30):
+        timeout += 1
         if self._running:
             self._running = False
+            starting_time = time.time()
+            if self._main_loop_task.done():
+                return True
+            else:
+                while True:
+                    await asyncio.sleep(timeout/3)
+                    if self._main_loop_task.done():
+                        return True
+                    if (time.time() - starting_time) > timeout or time.time() - starting_time < timeout/3:
+                        raise TimeoutError
         else:
             raise background_objects.ServiceIsNotRunningError(f"service '{self.name}' was attempted to be made to stop "
                                                               f"when it isn't running")
