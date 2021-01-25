@@ -166,9 +166,22 @@ class Raider(commands.AutoShardedBot):
     #         await ctx.release()
 
     async def on_message(self, message):
-        if message.author.bot:  # can be edited to allow message from feather
-            return
+        if message.author.bot:  # can be edited to allow message from feather could probably be moved to process command
+            if message.author.id == 626487260031746050:
+                pass
+            else:
+                return
         await self.process_commands(message)
+
+    async def process_commands(self, message):
+        if message.author.bot:
+            if message.author.id == 626487260031746050:
+                pass
+            else:
+                return
+
+        ctx = await self.get_context(message)
+        await self.invoke(ctx)
 
     async def close(self):
         await super().close()
