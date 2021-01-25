@@ -3,8 +3,6 @@ import typing
 import asyncio
 
 import aiohttp
-import aiohttp_socks
-# TODO: do we need ^ that?
 
 from urllib.parse import quote
 
