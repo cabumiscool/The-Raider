@@ -1,16 +1,19 @@
 import asyncio
-from typing import Union, List
+from typing import Union, List, Tuple, AnyStr
 
 import discord
 from discord.ext.commands import Context
 
 
-def generate_embed(title: str, author: discord.Member, *, description: str, color: int) -> discord.Embed:
-    return discord.Embed(
-        title=title,
-        color=color,
-        description=description
-    ).set_footer(text=author.display_name, icon_url=author.avatar_url)
+def generate_embed(title: str, author: discord.Member, *fields: Tuple[AnyStr, AnyStr], description: str = None,
+                   color: int = 0) -> discord.Embed:
+    for field in fields:
+        assert len(field) == 2
+    embed = discord.Embed(title=title, color=color, description=description)
+    embed.set_footer(text=author.display_name, icon_url=author.avatar_url)
+    for field in fields:
+        embed.add_field(name=field[0], value=field[1])
+    return embed
 
 
 async def emoji_selection_detector(ctx: Context, emoji_list: List[Union[discord.Emoji, discord.PartialEmoji, str]],
