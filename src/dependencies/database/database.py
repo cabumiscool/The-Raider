@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 import typing
 import time
+import json
 
 import asyncpg
 
 from dependencies.proxy_classes import Proxy
 from dependencies.database.database_exceptions import *
 
-from dependencies.webnovel.classes import SimpleBook, SimpleComic, QiAccount, Book, Chapter, SimpleChapter, Volume
+from dependencies.webnovel.classes import *
 
 
 class Database:
@@ -233,7 +234,7 @@ class Database:
                         (select "LAST_NUMBER" from "LIBRARY_RANGES" where "LIBRARY_TYPE" = 1)::int4)) as ti
                             ON "LIBRARY_NUMBER" = "LIBRARY_NUM"
                             GROUP BY "LIBRARY_NUM"
-                            ORDER BY COUNT("LIBRARY_NUM"), "LIBRARY_NUM"
+                            ORDER BY COUNT("LIBRARY_NUM")
                 LIMIT 1), {time.time()}, {time.time()})'''  # not sure if leaving this declaration here or add as arg
 
         insert_book_query_args = (book.id, book.name, book.abbreviation, book.total_chapters, book.cover_id)
@@ -301,7 +302,6 @@ class Database:
             assert isinstance(chapter, (Chapter, SimpleChapter)) or issubclass(type(chapter), (Chapter, SimpleChapter))
             formatted_db_chapters.append((chapter.parent_id, chapter.id, chapter.name, chapter.is_privilege,
                                           chapter.index, chapter.is_vip, chapter.volume_index))
-        print('wait point')
         if connection:
             await connection.executemany(query, formatted_db_chapters)
         else:
@@ -352,6 +352,16 @@ class Database:
     async def retrieve_all_library_type_accounts(self, library_type: int) -> typing.List[QiAccount]:
         pass
 
+    async def retrieve_account_stats(self) -> typing.Tuple[typing.Tuple[int, int], int]:
+        account_stats_query = 'SELECT COUNT(*), SUM("FP") From "QIACCOUNT" WHERE "EXPIRED" = false '
+        all_accounts_count_query = 'select count(*) from "QIACCOUNT"'
+        all_accounts_record = await self._db_pool.fetchrow(all_accounts_count_query)
+        account_stats_record = await self._db_pool.fetchrow(account_stats_query)
+        non_expired_accounts, fp_sum = account_stats_record[0], account_stats_record[1]
+        if fp_sum is None:
+            fp_sum = 0
+        return (non_expired_accounts, all_accounts_record[0]), fp_sum
+
     async def expired_account(self, account: QiAccount):
         pass
 
@@ -359,3 +369,51 @@ class Database:
         """Will set an in use account as available again"""
         pass
 
+    # TODO Delete once complete migration from seeker to raider
+    async def retrieve_email_accounts(self) -> typing.Dict[int: EmailAccount]:
+        query = 'SELECT "ID", "EMAIL_ADDRESS", "EMAIL_PASSWORD" FROM "EMAIL_ACCOUNTS"'
+        records_list = await self._db_pool.fetch(query)
+        email_objs = []
+        for record in records_list:
+            email_objs.append(EmailAccount(record[1], record[2], record[0]))
+        return email_objs
+
+    # delete too
+    async def retrieve_all_qi_accounts_guid(self):
+        query = 'SELECT "GUID" FROM "QIACCOUNT"'
+        records = await self._db_pool.fetch(query)
+        return [record[0] for record in records]
+
+    # delete too
+    async def insert_qi_account(self, qi_email: str, qi_password: str, qi_cookies: dict, qi_ticket: str, qi_guid: int,
+                                expired: bool, fast_pass_count: int, main_email_id):
+        query = '''INSERT INTO "QIACCOUNT" ("EMAIL", "PASSWORD", "COOKIES", "TICKET", "GUID", "EXPIRED", "FP",
+        "MAIN_EMAIL") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)'''
+        query_args = (qi_email, qi_password, qi_cookies, qi_ticket, qi_guid, expired, fast_pass_count, main_email_id)
+        await self._db_pool.execute(query, *query_args)
+
+    async def batch_insert_qi_account(self, *args: typing.Tuple[str, str, dict, str, int, bool, int, int]):
+        query = '''INSERT INTO "QIACCOUNT" ("EMAIL", "PASSWORD", "COOKIES", "TICKET", "GUID", "EXPIRED", "FP",
+                "MAIN_EMAIL") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)'''
+        query_args_list = []
+        for account in args:
+            query_args_list.append((account[0], account[1], json.dumps(account[2]).replace("'", '"'),
+                                    account[3], account[4], account[5], account[6], account[7]))
+        await self._db_pool.executemany(query, query_args_list)
+
+    # delete too
+    async def update_qi_account(self, qi_guid: int, *, ticket: str = None, expired_status: bool = True,
+                                fp_count: int = 0, cookies: dict = None):
+        assert isinstance(expired_status, bool)
+        query = '''UPDATE "QIACCOUNT" set "TICKET"=$1, "EXPIRED"=$2, "FP"=$3, "COOKIES"=$4 WHERE "GUID" = $5'''
+        query_args = (ticket, expired_status, fp_count, json.dumps(cookies).replace("'", '"'), qi_guid)
+        await self._db_pool.execute(query, *query_args)
+
+    # delete too
+    async def batch_update_qi_account(self, *args: typing.Tuple[int, str, bool, int]):
+        query = '''UPDATE "QIACCOUNT" set "TICKET"=$1, "EXPIRED"=$2, "FP"=$3, "COOKIES"=$4 WHERE "GUID" = $5'''
+        query_args_list = []
+        for account_arg in args:
+            query_args_list.append((account_arg[1], account_arg[2], account_arg[3],
+                                    json.dumps(account_arg[4]).replace("'", '"'), account_arg[0]))
+        await self._db_pool.executemany(query, query_args_list)
