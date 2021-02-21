@@ -7,9 +7,12 @@ import aiohttp
 from urllib.parse import quote
 
 from dependencies.webnovel import classes
+from dependencies.webnovel.exceptions import ErrorList
 from dependencies.proxy_classes import Proxy
 
 main_api_url = "https://www.webnovel.com/apiajax/Library"
+
+default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
 
 # TODO compact most of the request making code
@@ -55,7 +58,7 @@ def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[ty
 
 async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSession = None,
                                 account: classes.QiAccount = None, proxy: Proxy = None) -> (
-        typing.Tuple[typing.List[typing.Union[classes.SimpleBook, classes.SimpleComic]]], bool):
+        typing.List[typing.Union[classes.SimpleBook, classes.SimpleComic]], int):
     """Retrieves a page from the library
         :arg page_index is the page number that will be requested from the library
         :arg session receives a session object from aiohttp that already contains the cookies for the respective
@@ -98,10 +101,15 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
             break
     result = response['code']
     req_data = response['data']
+
+    if req_data is None:
+        # means that this is an empty library page and the library page number is over the last one
+        return [], -1
+
     req_books = response['books']
     assert isinstance(req_books, list)
     if result == 0:
-        is_last_page = bool(req_data['isLast'])
+        is_last_page = req_data['isLast']
         parsed_items = __parse_library_page(req_books)
         return parsed_items, is_last_page
     if result == 1006:
@@ -112,58 +120,77 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
 async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                                      proxy: Proxy = None) -> \
         typing.Tuple[typing.List[typing.Union[classes.SimpleBook, classes.SimpleComic]], int]:
-    """Will retrieve all library items associated with the account"""
-    page = 1
-    items = []
-    if session:
-        if account:
-            tasks = []
-            page = account.library_pages
-            for page in range(1, account.library_pages + 1):
-                tasks.append(asyncio.create_task(retrieve_library_page(page, session)))
-            results = await asyncio.gather(*tasks)
-            for item_list, last_page in results:
-                item_list: list
-                last_page: bool
-                items.extend(item_list)
+    """Will retrieve all library library_items associated with the account"""
+    if account and session is None:
+        raise ValueError("No valid data was given")
+
+    if account:
+        if account.library_pages == 0:
+            library_pages = 1
         else:
-            while True:
-                items_list, is_last_page = await retrieve_library_page(page, session)
-                items.extend(items_list)
-                if is_last_page:
-                    break
-                page += 1
+            library_pages = account.library_pages
     else:
-        if account:
-            page = account.library_pages
-            if proxy:
-                tasks = []
-                proxy_connector = proxy.generate_connector()
-                async with aiohttp.ClientSession(connector=proxy_connector, cookies=account.cookies) as session:
-                    for page in range(1, account.library_pages+1):
-                        tasks.append(asyncio.create_task(retrieve_library_page(page, session)))
-                    results = await asyncio.gather(*tasks)
-                    for item_list, last_page in results:
-                        item_list: list
-                        last_page: bool
-                        items.extend(item_list)
-            else:
-                tasks = []
-                async with aiohttp.ClientSession(cookies=account.cookies) as session:
-                    for page in range(1, account.library_pages + 1):
-                        tasks.append(asyncio.create_task(retrieve_library_page(page, session)))
-                    results = await asyncio.gather(*tasks)
-                    for item_list, last_page in results:
-                        item_list: list
-                        last_page: bool
-                        items.extend(item_list)
+        library_pages = 1
+
+    if session is None:
+        assert account is not None
+        if proxy:
+            proxy_connector = proxy.generate_connector(**default_connector_settings)
+            session = aiohttp.ClientSession(connector=proxy_connector, cookies=account.cookies)
         else:
-            raise ValueError("No valid data was given")
+            session = aiohttp.ClientSession(cookies=account.cookies)
 
-        return items, page
+    tasks = []
+    for page in range(1, library_pages + 1):
+        tasks.append(retrieve_library_page(page, session=session))
+
+    all_pages = False
+    library_pages_items = []
+    errors = []
+    raise_error = False
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    for result in results:
+        if issubclass(type(result), Exception):
+            errors.append(result)
+            raise_error = True
+            continue
+        else:
+            item_list, is_last_page = result
+            item_list: list
+            is_last_page: int
+            if is_last_page == 1:
+                all_pages = True
+            else:
+                library_pages += is_last_page
+            library_pages_items.extend(item_list)
+
+    if raise_error:
+        await session.close()
+        raise ErrorList(*errors)
+
+    if all_pages is False:
+        try:
+            while True:
+                library_pages += 1
+                library_items, is_last_page = await retrieve_library_page(library_pages, session=session)
+                library_pages_items.extend(library_items)
+                if is_last_page == 1:
+                    break
+                elif is_last_page == -1:
+                    library_pages -= 1
+                else:
+                    raise ValueError(f'Unknown last page value of {is_last_page}')
+        except Exception as e:
+            raise e
+        finally:
+            await session.close()
+
+    await session.close()
+
+    return library_pages_items, library_pages
 
 
-async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook], typing.Type[classes.SimpleComic]],
+async def add_item_to_library(item: typing.Union[classes.SimpleBook, classes.SimpleComic],
                               session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                               proxy: Proxy = None) -> bool:
     """Add an item to the library
@@ -178,7 +205,7 @@ async def add_item_to_library(item: typing.Union[typing.Type[classes.SimpleBook]
     """
 
     assert issubclass(type(item), (classes.SimpleBook, classes.SimpleComic)) or isinstance(item, (classes.SimpleBook,
-                                                                                            classes.SimpleComic))
+                                                                                                  classes.SimpleComic))
 
     use_session, payload_data = __request_data_generator(session, account)
     payload_data['bookIds'] = item.id
@@ -240,7 +267,8 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
         try:
             if use_session:
                 async with session.post(api_url, data=encoded_string,
-                                        headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                                        headers={
+                                            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
                     response_bin = await req.read()
                     response_str = response_bin.decode()
                     response = json.loads(response_str)
@@ -251,7 +279,8 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
                     proxy_connector = aiohttp.TCPConnector()
                 async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
                                            connector=proxy_connector,
-                                           headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                                           headers={
+                                               'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
                     response_bin = await req.read()
                     response_str = response_bin.decode()
                     response = json.loads(response_str)
@@ -271,7 +300,6 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
                                                                classes.SimpleComic],
                                           session: aiohttp.ClientSession = None, account: classes.QiAccount = None,
                                           proxy: Proxy = None) -> bool:
-
     supported_types = (classes.SimpleBook, classes.SimpleComic)
     use_session, payload_data = __request_data_generator(session, account)
     items_dict_string = []
@@ -294,7 +322,8 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
         try:
             if use_session:
                 async with session.post(api_url, data=encoded_string,
-                                        headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                                        headers={
+                                            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
                     response_bin = await req.read()
                     response_str = response_bin.decode()
                     response = json.loads(response_str)
@@ -305,7 +334,8 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
                     proxy_connector = aiohttp.TCPConnector()
                 async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
                                            connector=proxy_connector,
-                                           headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
+                                           headers={
+                                               'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'}) as req:
                     response_bin = await req.read()
                     response_str = response_bin.decode()
                     response = json.loads(response_str)
@@ -319,7 +349,6 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
     elif result == 1006:
         raise Exception("Unknown error")
     raise ValueError(f"Unknown value of {result} as a response")
-
 
 # account = classes.QiAccount(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
 #                               {'_csrfToken': '0ILeykdQRIyAoNGv8r5tUlcA2J4UmpDJhDuqwoFN',
