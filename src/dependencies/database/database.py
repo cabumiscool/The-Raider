@@ -7,7 +7,7 @@ import json
 
 import asyncpg
 
-from dependencies.proxy_classes import Proxy
+from dependencies.proxy_classes import Proxy, DummyProxy
 from dependencies.database.database_exceptions import *
 
 from dependencies.webnovel.classes import *
@@ -159,7 +159,6 @@ class Database:
         query = '''SELECT "BOOK_ID", "BOOK_NAME", "TOTAL_CHAPTERS", "COVER_ID", "BOOK_ABBREVIATION", "LIBRARY_NUMBER" 
         FROM "BOOKS_DATA"'''
         books_record_list = await self._db_pool.fetch(query)
-        print(books_record_list)
         books = []
         for book_record in books_record_list:
             books.append(SimpleBook(book_record[0], book_record[1], book_record[2], book_record[3], book_record[4],
@@ -194,21 +193,20 @@ class Database:
         return book
 
     async def get_all_books_ids_names_sub_names_dict(self):
-        pass
+        raise NotImplementedError
 
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
-        pass
-
+        raise NotImplementedError
 
     async def retrieve_buyer_account(self) -> QiAccount:
         """Will retrieve an account for buying and should mark in the db either here or in sql that the account is being
          used to prevent a double count and attempting a buy when there aren't anymore fp"""
 
     async def __update_simple_book(self, chapter: SimpleBook):
-        pass
+        raise NotImplementedError
 
     async def check_if_volume_entry_exists(self, book_id: int, volume_index: int):
-        pass
+        raise NotImplementedError
 
     async def __insert_complete_book_data(self, book: Book, connection: asyncpg.Connection = None):
         await self.__init_check__()
@@ -276,6 +274,7 @@ class Database:
 
     async def update_book(self, book: typing.Union[SimpleBook, Book], *, update_full: bool = True):
         """Will update the database entries to update"""
+        await self.__init_check__()
         assert issubclass(type(book), (SimpleBook, Book)) or isinstance(book, (SimpleBook, Book))
         if isinstance(book, SimpleBook) or update_full is False:
             await self.__update_simple_book(book)
@@ -286,7 +285,7 @@ class Database:
         assert isinstance(chapter, (Chapter, SimpleChapter)) or issubclass(type(chapter), (Chapter, SimpleChapter))
         await self.__init_check__()
         query = '''INSERT INTO "CHAPTERS" ("BOOK_ID", "CHAPTER_ID", "CHAPTER_NAME", "PRIVILEGE", "INDEX", "VIP_LEVEL", 
-                "VOLUME") VALUES ($1, $2, $3, $4, $5, $6, $7)"'''
+                "VOLUME") VALUES ($1, $2, $3, $4, $5, $6, $7)'''
         chapter_tuple_formatted = (chapter.parent_id, chapter.id, chapter.name, chapter.is_privilege, chapter.index,
                                    chapter.is_vip, chapter.volume_index)
         await self._db_pool.execute(query, chapter_tuple_formatted)
@@ -307,18 +306,50 @@ class Database:
         else:
             await self._db_pool.executemany(query, formatted_db_chapters)
 
+    async def retrieve_proxies_ip(self):
+        await self.__init_check__()
+        query = 'SELECT "IP" FROM "PROXIES"'
+        records_list = await self._db_pool.fetch(query)
+        ips = []
+        for record in records_list:
+            ips.append(record[0])
+        return ips
+
+    async def add_proxy(self, ip: str, port: int, type_: str, uptime: int, latency: int, speed: str,
+                        region: int):
+        await self.__init_check__()
+        query = '''INSERT INTO "PROXIES" ("IP", "PORT", "TYPE", "UPTIME", "TIME_ADDED", "LATENCY", "SPEED",
+        "REGION") VALUES ($1, $2, $3, $4, (select extract(epoch from now())), $5, $6, $7)'''
+        query_args = (ip, port, type_, uptime, latency, speed, region)
+        await self._db_pool.execute(query, *query_args)
+
+    async def batch_add_proxies(self, *args: typing.Tuple[str, int, str, int, str, str, int]):
+        await self.__init_check__()
+        query = '''INSERT INTO "PROXIES" ("IP", "PORT", "TYPE", "UPTIME", "TIME_ADDED", "LATENCY", "SPEED",
+                "REGION") VALUES ($1, $2, $3, $4, (select extract(epoch from now())), $5, $6, $7)'''
+        query_args = []
+        for proxy_args in args:
+            query_args.append((proxy_args[0], proxy_args[1], proxy_args[2], proxy_args[3], proxy_args[4], proxy_args[5],
+                               proxy_args[6]))
+        await self._db_pool.executemany(query, query_args)
+
     async def retrieve_proxy(self, proxy_area_id: int = 2) -> Proxy:
         """Will retrieve a proxy from db
             :arg proxy_area_id if given will retrieve the proxy with that area id"""
         # proxy with id of 1 should be the waka proxy, #2 should be U.S. area
-        pass
+        if proxy_area_id == 2:
+            return DummyProxy()
+        else:
+            query = '''SELECT "ID", "IP", "PORT", "TYPE", "UPTIME", "LATENCY", "SPEED", "REGION" 
+            FROM "PROXIES" WHERE "EXPIRED" = False AND "REGION" = $1'''
+            record = await self._db_pool.fetchrow(query, proxy_area_id)
+            return Proxy(record[0], record[1], record[2], record[3], record[4], record[5], record[6], record[7])
 
     async def retrieve_all_expired_proxies(self) -> typing.List[Proxy]:
         """Will retrieve all the proxies marked as expired from the db"""
         await self.__init_check__()
         query = '''SELECT "ID", "IP", "PORT", "TYPE", "UPTIME", "LATENCY", "SPEED", "REGION" FROM "PROXIES" WHERE 
         "EXPIRED" = True'''
-
         list_of_records = await self._db_pool.fetch(query)
         proxies = []
         for record in list_of_records:
@@ -326,33 +357,56 @@ class Database:
                                  record[7]))
         return proxies
 
-    async def expired_proxy(self, proxy: Proxy):
+    async def expired_proxy(self, proxy_id: int):
         """Will set a proxy as expired"""
+        await self.__init_check__()
         query = '''UPDATE "PROXIES" SET "EXPIRED" = TRUE WHERE "ID" = $1'''
-        await self._db_pool.execute(query, proxy.id)
+        await self._db_pool.execute(query, proxy_id)
 
-    async def mark_as_working_proxy(self, proxy: Proxy):
+    async def mark_as_working_proxy(self, proxy_id: int, new_download_speed: int, latency: int):
         """Will set a proxy as working"""
-        query = '''UPDATE "PROXIES" SET "EXPIRED" = FALSE WHERE "ID" = $1'''
-        await self._db_pool.execute(query, proxy.id)
+        await self.__init_check__()
+        query = '''UPDATE "PROXIES" SET "EXPIRED" = false, "SPEED"=$1, "LATENCY"=$2 WHERE "ID" = $3'''
+        query_args = (new_download_speed, latency, proxy_id)
+        await self._db_pool.execute(query, *query_args)
 
     async def set_library_pages_number(self, account: QiAccount, pages_number: int):
-        pass
+        """will update the total number of library pages in the given account"""
+        await self.__init_check__()
+        query = '''UPDATE "QIACCOUNT" SET "LIBRARY_PAGES"=$1 WHERE "GUID"=$2'''
+        query_args = (pages_number, account.guid)
+        await self._db_pool.execute(query, *query_args)
 
-    async def retrieve_library_account(self, library_type: int) -> QiAccount:
+    async def retrieve_specific_library_type_number_account(self, library_type: int) -> QiAccount:
         """Will retrieve an account that has an specific library number assign"""
+        await self.__init_check__()
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
-        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" WHERE "LIBRARY_TYPE" = $1 AND "EXPIRED" = 0'''  # TODO to sort by fp
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "LIBRARY_TYPE" = $1 AND "EXPIRED" = False'''
         account_record = await self._db_pool.fetchrow(query, library_type)
         account = QiAccount(account_record[0], account_record[1], account_record[2], account_record[3],
                             account_record[4], account_record[5], account_record[6], account_record[7],
                             account_record[8], account_record[9], account_record[10], account_record[11])
         return account
 
-    async def retrieve_all_library_type_accounts(self, library_type: int) -> typing.List[QiAccount]:
-        pass
+    async def retrieve_all_library_type_number_accounts(self, library_type: int) -> typing.List[QiAccount]:
+        await self.__init_check__()
+        found_account_number = []
+        accounts = []
+        query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" 
+        FROM "QIACCOUNT" WHERE "EXPIRED" = false AND "LIBRARY_TYPE" BETWEEN 
+        (SELECT "STARTING_NUMBER" FROM "LIBRARY_RANGES" WHERE "LIBRARY_TYPE" = $1) AND
+        (SELECT "LAST_NUMBER" FROM "LIBRARY_RANGES" WHERE "LIBRARY_TYPE" = $1)'''
+        records = await self._db_pool.fetch(query, library_type)
+        for record in records:
+            if record[8] not in found_account_number:
+                found_account_number.append(record[8])
+                accounts.append(QiAccount(record[0], record[1], record[2], record[3], record[4], record[5], record[6],
+                                          record[7], record[8], record[9], record[10], record[11]))
+        return accounts
 
     async def retrieve_account_stats(self) -> typing.Tuple[typing.Tuple[int, int], int]:
+        await self.__init_check__()
         account_stats_query = 'SELECT COUNT(*), SUM("FP") From "QIACCOUNT" WHERE "EXPIRED" = false '
         all_accounts_count_query = 'select count(*) from "QIACCOUNT"'
         all_accounts_record = await self._db_pool.fetchrow(all_accounts_count_query)
@@ -363,11 +417,16 @@ class Database:
         return (non_expired_accounts, all_accounts_record[0]), fp_sum
 
     async def expired_account(self, account: QiAccount):
-        pass
+        """will set an account cookies as expired"""
+        query = 'UPDATE "QIACCOUNT" SET "EXPIRED"=TRUE WHERE "GUID"=$1'
+        query_args = (account.guid,)
+        await self._db_pool.execute(query, *query_args)
 
     async def release_account(self, account: QiAccount):
         """Will set an in use account as available again"""
-        pass
+        query = 'UPDATE "QIACCOUNT" SET "IN_USE"=FALSE WHERE "GUID"=$1'
+        query_args = (account.guid,)
+        await self._db_pool.execute(query, *query_args)
 
     # TODO Delete once complete migration from seeker to raider
     async def retrieve_email_accounts(self) -> typing.Dict[int: EmailAccount]:
@@ -385,6 +444,7 @@ class Database:
         return [record[0] for record in records]
 
     # delete too
+    # TODO make it also set time either in sql or python
     async def insert_qi_account(self, qi_email: str, qi_password: str, qi_cookies: dict, qi_ticket: str, qi_guid: int,
                                 expired: bool, fast_pass_count: int, main_email_id):
         query = '''INSERT INTO "QIACCOUNT" ("EMAIL", "PASSWORD", "COOKIES", "TICKET", "GUID", "EXPIRED", "FP",
