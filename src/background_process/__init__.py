@@ -37,6 +37,7 @@ class BackgroundProcessInterface:
         self.process: Process = Process()
         self._data_counter = 0
         self._data_returns = {}
+        self._errors = []
         self.loop = asyncio.get_event_loop()
         self._data_receiver_task = self.loop.create_task(self.__data_receiver())
         self.start_process()
@@ -72,9 +73,15 @@ class BackgroundProcessInterface:
         while self.process.is_alive():
             try:
                 data: background_objects.Command = self.from_background.get(block=False)
-                self._data_returns[data.id] = data
+                if isinstance(data, (ErrorReport, ErrorList)):
+                    if isinstance(data, ErrorList):
+                        self._errors.extend(data.errors)
+                    else:
+                        self._errors.append(data)
+                else:
+                    self._data_returns[data.id] = data
             except Empty:
-                await asyncio.sleep(3)
+                await asyncio.sleep(1.5)
 
     async def wait_data_return(self, data_id: int, *, timeout: int = 30):
         start_time = time.time()
@@ -94,3 +101,14 @@ class BackgroundProcessInterface:
         ping = Ping(data_id)
         self.toward_background.put(ping)
         return await self.wait_data_return(data_id)
+
+    async def request_all_services_status(self) -> AllServicesStatus:
+        data_id = self.__generate_data_id()
+        request_object = AllServicesStatus(data_id)
+        self.toward_background.put(request_object)
+        return await self.wait_data_return(data_id)
+
+    def return_all_exceptions(self) -> typing.List[ErrorReport]:
+        errors = self._errors.copy()
+        self._errors.clear()
+        return errors
