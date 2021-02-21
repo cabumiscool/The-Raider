@@ -80,9 +80,9 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
         try:
 
             if proxy:
-                proxy_connector = proxy.generate_connector()
+                proxy_connector = proxy.generate_connector(**default_connector_settings)
             else:
-                proxy_connector = aiohttp.TCPConnector()
+                proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
             if use_session:
                 async with session.post(api_url, data=payload_data) as req:
@@ -218,9 +218,9 @@ async def add_item_to_library(item: typing.Union[classes.SimpleBook, classes.Sim
     while True:
         try:
             if proxy:
-                proxy_connector = proxy.generate_connector()
+                proxy_connector = proxy.generate_connector(**default_connector_settings)
             else:
-                proxy_connector = aiohttp.TCPConnector()
+                proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
             if use_session:
                 async with session.post(api_url, data=payload_data) as req:
                     response_bin = await req.read()
@@ -277,9 +277,9 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
                     response = json.loads(response_str)
             else:
                 if proxy:
-                    proxy_connector = proxy.generate_connector()
+                    proxy_connector = proxy.generate_connector(**default_connector_settings)
                 else:
-                    proxy_connector = aiohttp.TCPConnector()
+                    proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
                 async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
                                            connector=proxy_connector,
                                            headers={
@@ -332,9 +332,9 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
                     response = json.loads(response_str)
             else:
                 if proxy:
-                    proxy_connector = proxy.generate_connector()
+                    proxy_connector = proxy.generate_connector(**default_connector_settings)
                 else:
-                    proxy_connector = aiohttp.TCPConnector()
+                    proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
                 async with aiohttp.request('Post', api_url, data=encoded_string, cookies=account.cookies,
                                            connector=proxy_connector,
                                            headers={
