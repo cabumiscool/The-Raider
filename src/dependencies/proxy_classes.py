@@ -32,11 +32,12 @@ class Proxy:
             raise ValueError(f"Was expecting an object of type 'str' instead received a type '{type(ip).__name__}'")
         self.id = id_
         self._ip = ip
-        self._port = port
+        self._port = int(port)
 
         self.test_url = 'https://www.webnovel.com/'
         try:
             self._type = self._connection_types[connection_type.lower()]
+            self.type_str = connection_type.lower()
         except KeyError:
             raise ValueError('Invalid proxy type was input') from KeyError
         self.uptime = int(uptime)
@@ -58,6 +59,22 @@ class Proxy:
                 return False
             else:
                 return req.status == 200
+
+    def return_ip(self):
+        return self._ip
+
+    def return_port(self):
+        return self._port
+
+
+class DummyProxy:
+    @staticmethod
+    def generate_connector(**kwargs) -> aiohttp_socks.ProxyConnector:
+        return aiohttp.TCPConnector(**kwargs)
+
+    @staticmethod
+    async def test():
+        return True
 
 
 class ProxyManager:
