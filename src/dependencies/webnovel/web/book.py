@@ -9,12 +9,14 @@ from dependencies.proxy_classes import Proxy
 from dependencies.webnovel import classes, exceptions
 from dependencies.webnovel.utils import decode_qi_content
 
-API_ENDPOINT = 'https://www.webnovel.com/apiajax/chapter'
+# API_ENDPOINT = 'https://www.webnovel.com/apiajax/chapter'
 
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
-# possible_second_api = 'https://www.webnovel.com/go/pcm/chapter/getContent'
+API_ENDPOINT = 'https://www.webnovel.com/go/pcm/chapter/getContent'
+
+# TODO change the api and related metadata from first api to second as first is gone
 
 # TODO change the input from the proxy connector to the proxy class where required
 
