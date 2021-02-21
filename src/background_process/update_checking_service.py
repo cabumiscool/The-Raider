@@ -33,7 +33,6 @@ class BooksLibraryChecker(BaseService):
         self.database = database
 
     async def main(self):
-        print('starting the update checking service')
         # accounts = await retrieve_library_accounts(self.database)
         accounts = await self.database.retrieve_all_library_type_number_accounts(1)
         expected_accounts_count = len(accounts)
@@ -98,7 +97,7 @@ class BooksLibraryChecker(BaseService):
         missing_book_from_library = {}
         changed_books = []
         for library_type_number, account_library_content_list in library_books:
-            db_library_books = books_dict[library_type_number]
+            db_library_books = books_dict.get(library_type_number, dict())
             for book in account_library_content_list:
                 if book.id in db_library_books:
                     db_book = db_library_books[book.id]
