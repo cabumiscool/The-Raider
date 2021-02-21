@@ -8,19 +8,18 @@ class ErrorReport(Exception):
         self.comment = error_comment
         self.traceback = traceback
         self.error_object = error_object
-        super().__init__()
 
 
 class ProxyErrorReport(ErrorReport):
     def __init__(self, error: typing.Type[BaseException], error_comment: str, traceback: str, proxy_id: int,
                  error_object=None):
         super().__init__(error, error_comment, traceback, error_object)
+        self.proxy_id = proxy_id
 
 
 class ErrorList(Exception):
     def __init__(self, *errors):
         self.errors = errors
-        super().__init__()
 
 
 class AlreadyRunningProcessError(Exception):
@@ -133,7 +132,14 @@ class StatusRequest(Command):
 class AllServicesStatus(StatusRequest):
     def __init__(self, command_id: int):
         super().__init__(command_id)
-        services = []
+        self.services: typing.List[ServiceStatus] = []
+
+
+class ServiceStatus:
+    def __init__(self, service_id: int, service_name: str, last_execution: int):
+        self.service_id = service_id
+        self.service_name = service_name
+        self.service_last_execution = last_execution
 
 
 class ProcessStatus(StatusRequest):
