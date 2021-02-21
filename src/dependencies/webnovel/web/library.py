@@ -106,7 +106,7 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
         # means that this is an empty library page and the library page number is over the last one
         return [], -1
 
-    req_books = response['books']
+    req_books = req_data['books']
     assert isinstance(req_books, list)
     if result == 0:
         is_last_page = req_data['isLast']
@@ -121,7 +121,7 @@ async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, acco
                                      proxy: Proxy = None) -> \
         typing.Tuple[typing.List[typing.Union[classes.SimpleBook, classes.SimpleComic]], int]:
     """Will retrieve all library library_items associated with the account"""
-    if account and session is None:
+    if account is None and session is None:
         raise ValueError("No valid data was given")
 
     if account:
@@ -178,6 +178,9 @@ async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, acco
                     break
                 elif is_last_page == -1:
                     library_pages -= 1
+                    if library_pages == 0:
+                        # this will break the cycle if the account lib is empty
+                        break
                 else:
                     raise ValueError(f'Unknown last page value of {is_last_page}')
         except Exception as e:
