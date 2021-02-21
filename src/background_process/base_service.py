@@ -21,6 +21,7 @@ class BaseService:
         self.last_loop = 0
         self._main_loop_task = None
         self._main_loop_task: asyncio.Task
+        self._loop = asyncio.get_event_loop_policy().get_event_loop()
 
     def add_to_queue(self, *input_data):
         self._input_queue.extend(input_data)
@@ -29,6 +30,9 @@ class BaseService:
         queue_content = self._input_queue.copy()
         self._input_queue.clear()
         return queue_content
+
+    def add_to_error_queue(self, error: BaseException):
+        self._encountered_errors.append(error)
 
     def retrieve_completed_cache(self) -> typing.Iterable:
         if len(self._encountered_errors) == 0:
@@ -48,11 +52,7 @@ class BaseService:
         """This func will be the main logic of the service. it should be redeclared in every service and must not
         be the actual loop only the logic. The loop will be taken care of by the run func"""
 
-    async def run(self):
-        if self._running:
-            raise background_objects.AlreadyRunningServiceError()
-        else:
-            self._running = True
+    async def __run(self):
         while self._running:
             try:
                 await self.main()
@@ -63,7 +63,7 @@ class BaseService:
                 self._encountered_errors.append(error)
                 raise asyncio.CancelledError
             except Exception as e:
-                error = background_objects.ErrorReport(Exception, 'error caught at top level execution of service',
+                error = background_objects.ErrorReport(e, 'error caught at top level execution of service',
                                                        traceback.format_exc(), e)
                 self._encountered_errors.append(error)
             finally:
@@ -75,8 +75,10 @@ class BaseService:
             raise background_objects.AlreadyRunningServiceError(f"service '{self.name}' was attempted to be made to"
                                                                 f" start when it is already running")
         else:
-            self._main_loop_task = asyncio.create_task(self.run())
+            self._main_loop_task = self._loop.create_task(self.__run())
             self._running = True
+            if self.last_loop == 0:
+                self.last_loop = 1
 
     async def stop(self, *, timeout=30):
         timeout += 1
