@@ -1,4 +1,5 @@
 import typing
+import json
 from operator import attrgetter
 
 import aiohttp
@@ -298,7 +299,11 @@ class QiAccount:
         self.id = id_
         self.email = qi_email
         self.password = qi_pass
-        self.cookies = cookies
+        try:
+            self.cookies = dict(cookies)
+        except ValueError:
+            cookies: str
+            self.cookies = json.loads(cookies)
         self.ticket = ticket
         self.expired = bool(expired)
         self.update_time = update_time
@@ -328,7 +333,8 @@ class QiAccount:
         async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
                                    cookies=self.cookies) as req:
             response_dict = decode_qi_content(await req.read())
-        user_dict = response_dict['user']
+        response_data = response_dict['data']
+        user_dict = response_data['user']
         return self._read_valid(user_dict)
 
 
