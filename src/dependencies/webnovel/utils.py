@@ -18,7 +18,16 @@ def decode_qi_content(binary_content: bytes) -> dict:
     return json.loads(content_str)
 
 
-# This is causing a cyclic import when it tries to import the db, try to make it work without involving the db
+async def book_string_matcher(all_books_ids_names_sub_names_dict: dict, book_string, limit: int = 5, *,
+                              base_score: int = SELECTION_SCORE, selection_diff: int = SELECTION_SCORE_DIFF
+                              ) -> Union[None, List[Tuple['Book', int]]]:
+    matches = process.extractBests(book_string, all_books_ids_names_sub_names_dict, limit=limit)
+
+    if len(matches) == 0:
+        return None
+    if len(matches) == 1 or (matches[0][1] > matches[1][1] + selection_diff and matches[0][1] > base_score):
+        return matches[:1]
+    return matches
 
 # async def book_string_matcher(database: Database, book_string, limit: int = 5, *, base_score: int = SELECTION_SCORE,
 #                               selection_diff: int = SELECTION_SCORE_DIFF) -> Union[None, List[Tuple['Book', int]]]:
