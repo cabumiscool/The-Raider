@@ -9,12 +9,12 @@ from dependencies.proxy_classes import Proxy
 from dependencies.webnovel import classes, exceptions
 from dependencies.webnovel.utils import decode_qi_content
 
-# API_ENDPOINT = 'https://www.webnovel.com/apiajax/chapter'
+API_ENDPOINT_1 = 'https://www.webnovel.com/apiajax/chapter'
 
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
-API_ENDPOINT = 'https://www.webnovel.com/go/pcm/chapter/getContent'
+API_ENDPOINT_2 = 'https://www.webnovel.com/go/pcm/chapter'
 
 # TODO change the api and related metadata from first api to second as first is gone
 
@@ -37,13 +37,16 @@ async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session
         # TODO check if it is possible to retrieve a specific cookie from the session and csrf to the params
 
         if not proxy_connector:
-            proxy_connector = aiohttp.TCPConnector()
+            proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
         async with aiohttp.request('GET', api_endpoint, params=params, connector=proxy_connector) as req:
-            resp_dict = decode_qi_content(await req.read())
+            resp_bin = await req.read()
+            resp_dict = decode_qi_content(resp_bin)
     else:
+        print(True)
         async with session.get(api_endpoint, params=params) as req:
-            resp_dict = decode_qi_content(await req.read())
+            resp_bin = await req.read()
+            resp_dict = decode_qi_content(resp_bin)
 
     return resp_dict
 
@@ -64,7 +67,7 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
     if isinstance(book, int):
         book = classes.SimpleBook(book, '', 0)
     params = {'bookId': str(book.id), '_': str(time())}
-    api = '/'.join((API_ENDPOINT, 'GetChapterList'))
+    api = '/'.join((API_ENDPOINT_1, 'GetChapterList'))
     while True:
         try:
             proxy_connector = None
@@ -144,10 +147,10 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
             """
     # aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
 
-    api = '/'.join((API_ENDPOINT, 'GetContent'))
+    api = '/'.join((API_ENDPOINT_2, 'getContent'))
     params = {'bookId': book_id, 'chapterId': chapter_id, '_': str(time())}
     if not proxy:
-        proxy = aiohttp.TCPConnector()
+        proxy = aiohttp.TCPConnector(**default_connector_settings)
 
     # retry for the exceptions will happen outside
     if session:
@@ -162,8 +165,9 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
             async with aiohttp.request('GET', api, params=params, connector=proxy, cookies=cookies) as resp:
                 resp_bin = await resp.read()
 
-    resp_str = resp_bin.decode()
-    resp_dict = json.loads(resp_str)
+    # resp_str = resp_bin.decode()
+    # resp_dict = json.loads(resp_str)
+    resp_dict = decode_qi_content(resp_bin)
     resp_code = resp_dict['code']
     if resp_code == 0:
         if return_both:
@@ -195,8 +199,8 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
                                            note_author_type)
     content_list = chapter_info['contents']
     content_str = '\n'.join([paragraph['content'] for paragraph in content_list])
-    price = chapter_info['SSPrice']
-    vip_status = chapter_info['isVip']
+    price = chapter_info['price']
+    vip_status = chapter_info['vipStatus']
     priv_level = chapter_info['chapterLevel']
     index = chapter_info['chapterIndex']
     translator_list: list = chapter_info['translatorItems']
@@ -230,9 +234,9 @@ async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes
     while True:
         try:
             if proxy:
-                proxy_connector = proxy.generate_connector()
+                proxy_connector = proxy.generate_connector(**default_connector_settings)
             else:
-                proxy_connector = aiohttp.TCPConnector()
+                proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
             chapter_meta_dict, book_meta_dict = await __chapter_metadata_retriever(book_or_book_id.id, last_chapter.id,
                                                                                    proxy=proxy_connector,
                                                                                    return_both=True)
@@ -270,9 +274,9 @@ async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index:
     while True:
         try:
             if proxy is None:
-                proxy_connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
+                proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
             else:
-                proxy_connector = proxy.generate_connector(force_close=True, enable_cleanup_closed=True)
+                proxy_connector = proxy.generate_connector(**default_connector_settings)
 
             # TODO check after usage what excepts can happen here
             chapter_info = await __chapter_metadata_retriever(book_id, chapter_id, session, proxy_connector,
@@ -321,9 +325,9 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
         while True:
             try:
                 if proxy:
-                    proxy_connector = proxy.generate_connector(force_close=True, enable_cleanup_closed=True)
+                    proxy_connector = proxy.generate_connector(**default_connector_settings)
                 else:
-                    proxy_connector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
+                    proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
                 async with aiohttp.request('POST', api_url, data=form_data, cookies=cookies,
                                            connector=proxy_connector) as req:
