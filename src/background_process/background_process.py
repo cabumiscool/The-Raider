@@ -125,6 +125,7 @@ class BackgroundProcess:
                 self.queue_history[parent_id]['chs'][id_]['done'] = True
                 self.queue_history[parent_id]['chs'][id_]['in_paste'] = True
                 self.queue_history[parent_id]['chs'][id_]['obj'] = possible_bought_chapter
+                self.queue_history[parent_id]['chs'][id_] = time.time()
                 new_bought_chapters.append(possible_bought_chapter)
 
         # organizing the groups that are for pastes
@@ -180,6 +181,7 @@ class BackgroundProcess:
             for chapter_id in possible_paste.chapters_ids:
                 if self.queue_history[book_id]['chs'][chapter_id]['paste'] is False:
                     self.queue_history[book_id]['chs'][chapter_id]['paste'] = True
+                    self.queue_history[book_id]['chs'][chapter_id]['_'] = time.time()
                     new_paste = True
             if new_paste:
                 self.__return_data(possible_paste)
