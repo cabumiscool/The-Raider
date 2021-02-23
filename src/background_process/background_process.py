@@ -203,7 +203,9 @@ class BackgroundProcess:
         book_ids_to_delete = []
         for book_id, data_dict in self.queue_history.items():
             done = False
-            for chapter_id, chapter_dict in data_dict['chs']:
+            if len(data_dict['chs']) == 0:
+                continue   # TODO deal with this case better in case it fails to catch any new chapter
+            for chapter_id, chapter_dict in data_dict['chs'].items():
                 if chapter_dict['done'] is False:
                     break
                 if chapter_dict['in_paste'] is False:
