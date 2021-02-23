@@ -9,29 +9,30 @@ from dependencies.webnovel.web import book
 
 class NewChapterFinder(BaseService):
     def __init__(self, database: Database):
-        super().__init__(name='Updated Chapter Finder Module')
+        super().__init__(name='Updated Chapter Finder Service')
         self.database = database
 
     async def main(self):
         cache_content = self._retrieve_input_queue()
         cache_content: typing.List[classes.SimpleBook]
 
-        working_proxy = await self.database.retrieve_proxy()
-        while True:
-            proxy_status = await working_proxy.test()
-            if proxy_status:
-                break
-            else:
-                working_proxy = await self.database.retrieve_proxy()
+        # Commented as proxies aren't working  # TODO fix proxies
+        # working_proxy = await self.database.retrieve_proxy()
+        # while True:
+        #     proxy_status = await working_proxy.test()
+        #     if proxy_status:
+        #         break
+        #     else:
+        #         working_proxy = await self.database.retrieve_proxy()
 
         for updated_book in cache_content:
             chapter_objs = []
 
-            full_book = await book.full_book_retriever(updated_book, proxy=working_proxy)
+            full_book = await book.full_book_retriever(updated_book)
 
             database_book = await self.database.retrieve_complete_book(updated_book.id)
 
-            new_ids = full_book != database_book
+            new_ids = (full_book != database_book)[0]
 
             for chapter_id in new_ids:
                 chapter_objs.append(full_book.retrieve_chapter_by_id(chapter_id))
