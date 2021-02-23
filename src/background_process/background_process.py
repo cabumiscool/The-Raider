@@ -67,8 +67,11 @@ class BackgroundProcess:
         possible_new_books = []
         try:
             possible_new_books.extend(self.services[1].retrieve_completed_cache())
-        except (ErrorReport, ErrorList) as e:
+        except ErrorReport as e:
             self.__return_data(e)
+        except ErrorList as e:
+            for error in e.errors:
+                self.__return_data(error)
 
         # checking if they aren't already in process
         for book in possible_new_books:
@@ -91,14 +94,18 @@ class BackgroundProcess:
 
         try:
             possible_new_chapters.extend(self.services[2].retrieve_completed_cache())
-        except (ErrorReport, ErrorList) as e:
+        except ErrorReport as e:
             self.__return_data(e)
+        except ErrorList as e:
+            for error in e.errors:
+                self.__return_data(error)
 
         for possible_chapter in possible_new_chapters:
             possible_chapter: classes.SimpleChapter
             if possible_chapter.id not in self.queue_history[possible_chapter.parent_id]['chs']:
                 self.queue_history[possible_chapter.parent_id]['chs'][possible_chapter.id] = {'obj': possible_chapter,
                                                                                               '_': time.time(),
+                                                                                              'in buy': True,
                                                                                               'done': False,
                                                                                               'in_paste': False,
                                                                                               'paste': False}
@@ -114,8 +121,11 @@ class BackgroundProcess:
         new_bought_chapters = []
         try:
             possible_new_bought_chapters.extend(self.services[3].retrieve_completed_cache())
-        except (ErrorReport, ErrorList) as e:
+        except ErrorReport as e:
             self.__return_data(e)
+        except ErrorList as e:
+            for error in e.errors:
+                self.__return_data(error)
 
         for possible_bought_chapter in possible_new_bought_chapters:
             possible_bought_chapter: classes.Chapter
@@ -171,8 +181,11 @@ class BackgroundProcess:
         possible_new_pastes = []
         try:
             possible_new_pastes.extend(self.services[4].retrieve_completed_cache())
-        except (ErrorReport, ErrorList) as e:
+        except ErrorReport as e:
             self.__return_data(e)
+        except ErrorList as e:
+            for error in e.errors:
+                self.__return_data(error)
 
         for possible_paste in possible_new_pastes:
             possible_paste: Paste
