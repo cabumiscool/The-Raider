@@ -241,8 +241,12 @@ class BackgroundProcess:
 
     async def run(self):
         while self.running:
-            await self.main_loop()
-            await asyncio.sleep(5)
+            try:
+                await self.main_loop()
+                await asyncio.sleep(5)
+            except Exception as e:
+                self.__return_data(ErrorReport(e, f'found exception at the top in the background process',
+                                               traceback.format_exc()))
 
     async def restart_service(self, service_id: int):
         pass
