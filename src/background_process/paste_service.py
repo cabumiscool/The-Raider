@@ -14,20 +14,18 @@ paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%
 data_from = ['qi', 'waka-waka']
 
 
-# TODO add book_id, book_name, chapter range
 class Paste:
-    def __init__(self, paste_id: int, paste_full_url: str, paste_delete_token: str, paste_passcode: str, status: int,
-                 book_name: str, book_id: int, chapters_id: typing.List[int], ranges: typing.Tuple[int, int]):
-        if type(paste_id) != int:
-            self.id = int(paste_id)
+    def __init__(self, paste_id: str, paste_full_url: str, paste_delete_token: str, paste_passcode: str, status: int,
+                 simple_book: classes.SimpleBook, chapters_id: typing.List[int], ranges: typing.Tuple[int, int]):
+        if type(paste_id) != str:
+            self.id = str(paste_id)
         else:
             self.id = paste_id
         self.full_url = paste_full_url
         self.delete_token = paste_delete_token
         self.passcode = paste_passcode
         self.status_code = status
-        self.book_name = book_name
-        self.book_id = book_id
+        self.book_obj = simple_book
         self.chapters_ids = chapters_id
         self.ranges = ranges
 
@@ -66,13 +64,12 @@ async def paste_builder(paste_request: typing.Union[PasteRequest, MultiPasteRequ
                                                 formatting='markdown')
     if isinstance(paste_request, PasteRequest):
         return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
-                     paste_dict['status'], paste_request.book.name, paste_request.book.id, [paste_request.chapter.id],
+                     paste_dict['status'], paste_request.book, [paste_request.chapter.id],
                      (paste_request.chapter.index, paste_request.chapter.index))
     elif isinstance(paste_request, MultiPasteRequest):
         return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
-                     paste_dict['status'], paste_request.book.name, paste_request.book.id,
-                     [chapter.id for chapter in paste_request.chapters], (paste_request.chapters[0].index,
-                                                                          paste_request.chapters[-1].index))
+                     paste_dict['status'], paste_request.book, [chapter.id for chapter in paste_request.chapters],
+                     (paste_request.chapters[0].index, paste_request.chapters[-1].index))
     else:
         # should an error be raised here in case an unknown object is passed?
         pass
@@ -80,7 +77,7 @@ async def paste_builder(paste_request: typing.Union[PasteRequest, MultiPasteRequ
 
 class PasteCreator(BaseService):
     def __init__(self):
-        super().__init__('Paste Creator Module', loop_time=5)
+        super().__init__('Paste Creator Service', loop_time=5)
 
     async def main(self):
         pastes = []
