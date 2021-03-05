@@ -4,6 +4,7 @@ from config import Settings
 
 from background_process.background_objects import *
 from background_process.background_process import BackgroundProcess
+from background_process.paste_service import Paste
 
 from dependencies.database.database import Database
 
@@ -38,6 +39,7 @@ class BackgroundProcessInterface:
         self._data_counter = 0
         self._data_returns = {}
         self._errors = []
+        self._pastes = []
         self.loop = asyncio.get_event_loop()
         self._data_receiver_task = self.loop.create_task(self.__data_receiver())
         self.start_process()
@@ -78,6 +80,8 @@ class BackgroundProcessInterface:
                         self._errors.extend(data.errors)
                     else:
                         self._errors.append(data)
+                elif isinstance(data, Paste):
+                    self._pastes.append(data)
                 else:
                     self._data_returns[data.id] = data
             except Empty:
@@ -112,3 +116,8 @@ class BackgroundProcessInterface:
         errors = self._errors.copy()
         self._errors.clear()
         return errors
+
+    def return_all_pastes(self) -> typing.List[Paste]:
+        pastes_list = self._pastes.copy()
+        self._pastes.clear()
+        return pastes_list
