@@ -72,7 +72,7 @@ class Raider(commands.AutoShardedBot):
     async def on_socket_response(self, msg):
         self._prev_events.append(msg)
 
-    async def before_identify_hook(self, shard_id, *, initial):
+    async def before_identify_hook(self, shard_id, *, initial=False):
         self._clear_gateway_data()
         self.identifies[shard_id].append(datetime.datetime.utcnow())
         await super().before_identify_hook(shard_id, initial=initial)
