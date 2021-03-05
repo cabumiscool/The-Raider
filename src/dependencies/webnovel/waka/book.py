@@ -42,9 +42,9 @@ async def chapter_retriever(book_id: int, chapter_id: int, volume_index: int, se
         raise UnknownResponseCode(request_code, message)
 
     dict_content = data_dict['data']
-    index = dict_content['index']
 
     chapter_dict_content = dict_content['chapter']
+    index = chapter_dict_content['index']
     vip_status = chapter_dict_content['lockType']  # probably the equivalent of vip status in qi data
     name = chapter_dict_content['name']
     content = chapter_dict_content['content']
