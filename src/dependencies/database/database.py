@@ -4,6 +4,7 @@ import asyncio
 import typing
 import time
 import json
+from operator import itemgetter
 
 import asyncpg
 
@@ -177,8 +178,8 @@ class Database:
         return SimpleBook(record[0], record[1], record[2], record[3], record[4], record[5])
 
     async def retrieve_complete_book(self, book_id: int) -> Book:
-        complete_metadata_query = '''SELECT "BOOK_ID", "PRIVILEGE", "BOOK_TYPE", "BOOK_STATUS", "READ_TYPE" FROM 
-        "FULL_BOOKS_DATA" WHERE "BOOK_ID" = $1'''
+        # complete_metadata_query = '''SELECT "BOOK_ID", "PRIVILEGE", "BOOK_TYPE", "BOOK_STATUS", "READ_TYPE" FROM
+        # "FULL_BOOKS_DATA" WHERE "BOOK_ID" = $1'''
         # simple_book = await self.retrieve_simple_book(book_id)
         complete_metadata_query = '''SELECT "BOOK_ID", "BOOK_NAME", "TOTAL_CHAPTERS", "PRIVILEGE", "BOOK_TYPE",
         "COVER_ID", "BOOK_STATUS", "READ_TYPE", "BOOK_ABBREVIATION", "LIBRARY_NUMBER" FROM "BOOKS_DATA"
@@ -198,12 +199,44 @@ class Database:
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
         raise NotImplementedError
 
+    async def release_accounts_over_five_in_use_minutes(self):
+        await self.__init_check__()
+        release_query = '''UPDATE "QIACCOUNT" SET "IN_USE"=False 
+        WHERE "USE_TIME"-(select extract(epoch from now()))>=300'''
+        await self._db_pool.execute(release_query)
+
     async def retrieve_buyer_account(self) -> QiAccount:
         """Will retrieve an account for buying and should mark in the db either here or in sql that the account is being
          used to prevent a double count and attempting a buy when there aren't anymore fp"""
+        await self.__init_check__()
+        select_query = '''SELECT Get_Unused_QiAccount()'''
+        select_accounts_guid_with_fp_query = '''SELECT "GUID", "FP" FROM "QIACCOUNT" 
+        WHERE "IN_USE"=False and "EXPIRED"=False order by "FP" DESC'''
+        accounts_with_fp_records = await self._db_pool.fetch(select_accounts_guid_with_fp_query)
+        accounts_with_fp_tuples = ((guid, fp)for guid, fp in accounts_with_fp_records)
+        # accounts_with_fp_tuples_sorted = accounts_with_fp_tuples.sort(key=itemgetter(1), reverse=True)
+        update_query = '''UPDATE "QIACCOUNT" SET "IN_USE"=True, "USE_TIME" = (select extract(epoch from now())) 
+        WHERE "GUID"=$1 and "IN_USE"=False'''
+        selected_account_guid = 0
+        for account_tuple in accounts_with_fp_tuples:
+            guid, fp = account_tuple
+            operation_status = await self._db_pool.execute(update_query, guid)
+            if operation_status == 'UPDATE 1':
+                selected_account_guid = guid
+                break
 
-    async def __update_simple_book(self, chapter: SimpleBook):
-        raise NotImplementedError
+        return await self.retrieve_specific_account(selected_account_guid)
+
+    async def __update_simple_book(self, book: SimpleBook):
+        await self.__init_check__()
+        update_book_query = '''UPDATE "BOOKS_DATA" SET "BOOK_NAME"=$2, "BOOK_ABBREVIATION"=$3, "TOTAL_CHAPTERS"=$4,
+        "COVER_ID"=$5 WHERE "BOOK_ID"=$1'''
+        if book.qi_abbreviation:
+            abbreviation = book.abbreviation
+        else:
+            abbreviation = None
+        query_args = (book.id, book.name, abbreviation, book.total_chapters, book.cover_id)
+        await self._db_pool.execute(update_book_query, *query_args)
 
     async def check_if_volume_entry_exists(self, book_id: int, volume_index: int):
         raise NotImplementedError
@@ -219,7 +252,14 @@ class Database:
             await self._db_pool.execute(insert_query, *query_arguments)
 
     async def update_complete_book(self, book: Book, connection: asyncpg.Connection = None):
-        pass
+        await self.__init_check__()
+        update_book_query = '''UPDATE "FULL_BOOKS_DATA" SET "PRIVILEGE"=$2, "BOOK_TYPE"=$3, "READ_TYPE"=$4,
+        "BOOK_STATUS"=$5 WHERE "BOOK_ID" = $1'''
+        query_args = (book.id, book.privilege, book.book_type_num, book.read_type_num, book.book_status)
+        if connection:
+            await connection.execute(update_book_query, *query_args)
+        else:
+            await self._db_pool.execute(update_book_query, *query_args)
 
     async def insert_new_book(self, book: Book):
         await self.__init_check__()
@@ -337,6 +377,7 @@ class Database:
         """Will retrieve a proxy from db
             :arg proxy_area_id if given will retrieve the proxy with that area id"""
         # proxy with id of 1 should be the waka proxy, #2 should be U.S. area
+        await self.__init_check__()
         if proxy_area_id == 2:
             return DummyProxy()
         else:
@@ -375,6 +416,13 @@ class Database:
         await self.__init_check__()
         query = '''UPDATE "QIACCOUNT" SET "LIBRARY_PAGES"=$1 WHERE "GUID"=$2'''
         query_args = (pages_number, account.guid)
+        await self._db_pool.execute(query, *query_args)
+
+    async def update_account_fp_count(self, fp_count: int, account: QiAccount):
+        """Will update the fp count of the respective account"""
+        await self.__init_check__()
+        query = '''UPDATE "QIACCOUNT" SET "FP"=$1 WHERE "GUID"=$2'''
+        query_args = (fp_count, account.guid)
         await self._db_pool.execute(query, *query_args)
 
     async def retrieve_specific_library_type_number_account(self, library_type: int) -> QiAccount:
@@ -416,20 +464,35 @@ class Database:
             fp_sum = 0
         return (non_expired_accounts, all_accounts_record[0]), fp_sum
 
+    async def retrieve_specific_account(self, guid: int) -> QiAccount:
+        """will retrieve an specific account using the guid"""
+        await self.__init_check__()
+        query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "GUID" = $1'''
+        account_record_obj = await self._db_pool.fetchrow(query, guid)
+        account_obj = QiAccount(account_record_obj[0], account_record_obj[1], account_record_obj[2],
+                                account_record_obj[3], account_record_obj[4], account_record_obj[5],
+                                account_record_obj[6], account_record_obj[7], account_record_obj[8],
+                                account_record_obj[9], account_record_obj[10], account_record_obj[11])
+        return account_obj
+
     async def expired_account(self, account: QiAccount):
         """will set an account cookies as expired"""
-        query = 'UPDATE "QIACCOUNT" SET "EXPIRED"=TRUE WHERE "GUID"=$1'
+        await self.__init_check__()
+        query = 'UPDATE "QIACCOUNT" SET "EXPIRED"=TRUE, "IN_USE"=False WHERE "GUID"=$1'
         query_args = (account.guid,)
         await self._db_pool.execute(query, *query_args)
 
     async def release_account(self, account: QiAccount):
         """Will set an in use account as available again"""
+        await self.__init_check__()
         query = 'UPDATE "QIACCOUNT" SET "IN_USE"=FALSE WHERE "GUID"=$1'
         query_args = (account.guid,)
         await self._db_pool.execute(query, *query_args)
 
     # TODO Delete once complete migration from seeker to raider
     async def retrieve_email_accounts(self) -> typing.Dict[int: EmailAccount]:
+        await self.__init_check__()
         query = 'SELECT "ID", "EMAIL_ADDRESS", "EMAIL_PASSWORD" FROM "EMAIL_ACCOUNTS"'
         records_list = await self._db_pool.fetch(query)
         email_objs = []
