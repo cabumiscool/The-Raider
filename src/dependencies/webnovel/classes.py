@@ -36,7 +36,10 @@ class ChapterNote:
     def __init__(self, uut: int, avatar_pic_url: str, author: str, content: str, author_pen_name: str,
                  author_type: str):
         self.uut = int(uut)
-        self.avatar_url = int(avatar_pic_url)
+        if avatar_pic_url == '':
+            self.avatar_url = 0
+        else:
+            self.avatar_url = int(avatar_pic_url)
         self.author = author
         self.pen_name = author_pen_name
         self.author_type = author_type
@@ -171,7 +174,14 @@ class SimpleBook:
             if words == ['']:
                 self.abbreviation = ''
             else:
-                pseudo_abbreviation = ''.join([word[0] for word in words])
+                pseudo_abbreviation_list = []
+                for word in words:
+                    if word == '':
+                        continue
+                    pseudo_abbreviation_list.append(word[0])
+
+                # pseudo_abbreviation = ''.join([word[0] for word in words])
+                pseudo_abbreviation = ''.join(pseudo_abbreviation_list)
                 self.abbreviation = pseudo_abbreviation
         else:
             self.qi_abbreviation = True
@@ -248,6 +258,13 @@ class Book(SimpleBook):
                 raise exceptions.MissingVolumesError("One of the two objects being compared is missing a volume list")
         else:
             return NotImplemented
+
+    def return_simple_book(self):
+        if self.qi_abbreviation:
+            abbreviation = self.abbreviation
+        else:
+            abbreviation = None
+        return SimpleBook(self.id, self.name, self.total_chapters, self.cover_id, abbreviation, self.library_number)
 
     def add_volume_list(self, volume_list: typing.List[Volume]):
         self._volumes_list = sorted(volume_list, key=attrgetter('index'))
@@ -330,9 +347,18 @@ class QiAccount:
 
     async def async_check_valid(self) -> bool:
         params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
-        async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
-                                   cookies=self.cookies) as req:
-            response_dict = decode_qi_content(await req.read())
+        try_attempt = 0
+        while True:
+            try:
+                async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
+                                           cookies=self.cookies) as req:
+                    response_dict = decode_qi_content(await req.read())
+                    break
+            except json.JSONDecodeError:
+                pass
+            try_attempt += 1
+            if try_attempt > 5:
+                raise TimeoutError
         response_data = response_dict['data']
         user_dict = response_data['user']
         return self._read_valid(user_dict)
