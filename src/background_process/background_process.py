@@ -301,27 +301,32 @@ class BackgroundProcess:
                             # self.__return_data(ErrorReport(ValueError, "Invalid data type received at background process",
                             #                                traceback.format_exc(), error_object=received_object))
 
-            # will check if a service command is done
-            commands_to_be_cleared = []
-            # for command_task, command_request in self.services_commands:
-            for command_tuple in self.services_commands:
-                command_task = command_tuple[0]
-                command_request = command_tuple[1]
-                if command_task.done():
-                    try:
-                        result = command_task.result()
-                        if result:
-                            command_request.completed_status()
-                            commands_to_be_cleared.append(command_tuple)
+                # will check if a service command is done
+                commands_to_be_cleared = []
+                # for command_task, command_request in self.services_commands:
+                for command_tuple in self.services_commands:
+                    command_task = command_tuple[0]
+                    command_request = command_tuple[1]
+                    if command_task.done():
+                        try:
+                            result = command_task.result()
+                            if result:
+                                command_request.completed_status()
+                                commands_to_be_cleared.append(command_tuple)
+                                self.__return_data(command_request)
+                            else:
+                                command_request.unknown_status(comment=str(result))
+                                commands_to_be_cleared.append(command_tuple)
+                                self.__return_data(command_request)
+                        except (TimeoutError, ServiceIsNotRunningError, AlreadyRunningServiceError) as e:
+                            command_request.failed_status(comment=f"The command failed with error {e}")
                             self.__return_data(command_request)
-                        else:
-                            command_request.unknown_status(comment=str(result))
-                            commands_to_be_cleared.append(command_tuple)
-                            self.__return_data(command_request)
-                    except (TimeoutError, ServiceIsNotRunningError, AlreadyRunningServiceError) as e:
-                        command_request.failed_status(comment=f"The command failed with error {e}")
-                        self.__return_data(command_request)
-                else:
-                    pass
+                    else:
+                        pass
 
-            await asyncio.sleep(3)
+                await asyncio.sleep(1.5)
+            except asyncio.CancelledError as e:
+                raise e
+            except Exception as e:
+                self.__return_data(ErrorReport(e, 'error found at the command handler on the background',
+                                               traceback.format_exc(), e))
