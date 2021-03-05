@@ -69,7 +69,7 @@ class Chapter(SimpleChapter):
             :arg vip_status probably stands if it is premium, free or ad... needs confirmation
         """
         super().__init__(chapter_level, chapter_id, parent_id, index, vip_status, name, volume_index)
-        self.is_preview = full_content
+        self.is_full_content = full_content
         self.content = content
         self.note = chapter_note
         self.editor = editor
