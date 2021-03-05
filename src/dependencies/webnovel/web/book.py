@@ -319,24 +319,26 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
                                 chapter_price: int = 1) -> str:
     """Will buy a chapter with fastpass unless the rest of the data are modified    """
     api_url = 'https://www.webnovel.com/apiajax/SpiritStone/useSSAjax'
+    api_url = 'https://www.webnovel.com/go/pcm/book/unlockChapter'
 
     # _connector: aiohttp_socks.ProxyConnector =
     # aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
 
     # check to see if the csrftken can be extracted from a session
-    form_data_dict = {'bookId': book_id, 'unlockType': unlock_type}
+
     if cookies:
-        form_data_dict['_csrfToken'] = cookies['_csrfToken']
+        csrf_token = cookies['_csrfToken']
     else:
         csrf_token = ''
         for cookie in session.cookie_jar:
             if cookie.key == '_csrfToken':
                 csrf_token = cookie.value
-        form_data_dict['_csrfToken'] = csrf_token
+    form_data_dict = {'_csrfToken': csrf_token, 'bookId': book_id, 'chapterId': chapter_id, 'price': 1,
+                      'unlockType': unlock_type}
 
     form_data = aiohttp.FormData(form_data_dict)
-    form_data.add_field('chapters', [{'chapterPrice': chapter_price, 'chapterId': chapter_id,
-                                      'chapterType': chapter_type}])
+    # form_data.add_field('chapters', [{'chapterPrice': chapter_price, 'chapterId': chapter_id,
+    #                                   'chapterType': chapter_type}])
 
     try_attempts = 0
     if session:
@@ -373,8 +375,8 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
     # code 0 is success | code 2 is already bought | code 1 is fail or possibly insufficient fp/ss
     if request_code == 0:
         data = content_dict['data']
-        paragraphs_dict = data['contents']
-        return '\n'.join([paragraph['content'] for paragraph in paragraphs_dict])
+        paragraphs_list = data['content']
+        return '\n'.join([paragraph_dict['content'] for paragraph_dict in paragraphs_list])
     if request_code == 1:
         raise exceptions.FailedChapterBuy()
     elif request_code == 2:
@@ -394,8 +396,8 @@ async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSe
     # TODO check what possible excepts can happen here
     chapter = await chapter_retriever(book_id, chapter_id, chapter_volume_index,
                                       session=session, account=account, proxy=proxy)
-    if chapter.is_preview:
+    if chapter.is_full_content is False:
         chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, cookies=cookies,
                                                       proxy=proxy)
-        chapter.is_preview = False
+        chapter.is_full_content = True
     return chapter
