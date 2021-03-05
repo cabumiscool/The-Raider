@@ -260,41 +260,46 @@ class BackgroundProcess:
 
     async def command_handler(self):
         while self.running:
-            # extracts objects from the queue
-            objects = []
             try:
-                while True:
-                    received_object = self.input_queue.get(block=False)
-                    objects.append(received_object)
-            except Empty:
-                pass
+                # extracts objects from the queue
+                objects = []
+                try:
+                    while True:
+                        received_object = self.input_queue.get(block=False)
+                        objects.append(received_object)
+                except Empty:
+                    pass
 
-            # will analyze the received objects
-            for received_object in objects:
-                if isinstance(received_object, Ping):
-                    received_object.generate_return_time()
-                    self.__return_data(received_object)
-                if issubclass(type(received_object), Command):
-                    if isinstance(received_object, ProcessCommand):
-                        pass
-                    elif issubclass(type(received_object), ServiceCommand):
-                        service = self.services[received_object.service_id]
-                        if isinstance(received_object, StartService):
-                            self.services_commands.append((self.loop.create_task(service.start()), received_object))
-                        elif isinstance(received_object, StopService):
-                            self.services_commands.append((self.loop.create_task(service.stop()), received_object))
-                        elif isinstance(received_object, RestartService):
-                            self.services_commands.append((self.loop.create_task(self.restart_service(
-                                received_object.service_id)), received_object))
+                # will analyze the received objects
+                for received_object in objects:
+                    if isinstance(received_object, Ping):
+                        received_object.generate_return_time()
+                        self.__return_data(received_object)
+                    if issubclass(type(received_object), Command):
+                        if isinstance(received_object, ProcessCommand):
+                            pass
+                        elif issubclass(type(received_object), ServiceCommand):
+                            service = self.services[received_object.service_id]
+                            if isinstance(received_object, StartService):
+                                self.services_commands.append((self.loop.create_task(service.start()), received_object))
+                            elif isinstance(received_object, StopService):
+                                self.services_commands.append((self.loop.create_task(service.stop()), received_object))
+                            elif isinstance(received_object, RestartService):
+                                self.services_commands.append((self.loop.create_task(self.restart_service(
+                                    received_object.service_id)), received_object))
+                            else:
+                                self.unknown_received_object(received_object, where='deciding what type of service command '
+                                                                                    'it is')
+                        elif issubclass(type(received_object), StatusRequest):
+                            if isinstance(received_object, AllServicesStatus):
+                                for service_id, service in self.services.items():
+                                    received_object.services.append(ServiceStatus(service_id, service.name,
+                                                                                  service.last_loop))
+                                self.__return_data(received_object)
                         else:
-                            self.unknown_received_object(received_object, where='deciding what type of service command '
-                                                                                'it is')
-                    elif issubclass(type(received_object), StatusRequest):
-                        pass
-                    else:
-                        self.unknown_received_object(received_object, where='deciding what type of command it is')
-                        # self.__return_data(ErrorReport(ValueError, "Invalid data type received at background process",
-                        #                                traceback.format_exc(), error_object=received_object))
+                            self.unknown_received_object(received_object, where='deciding what type of command it is')
+                            # self.__return_data(ErrorReport(ValueError, "Invalid data type received at background process",
+                            #                                traceback.format_exc(), error_object=received_object))
 
             # will check if a service command is done
             commands_to_be_cleared = []
