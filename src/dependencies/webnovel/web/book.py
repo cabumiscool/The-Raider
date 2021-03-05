@@ -43,7 +43,6 @@ async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session
             resp_bin = await req.read()
             resp_dict = decode_qi_content(resp_bin)
     else:
-        print(True)
         async with session.get(api_endpoint, params=params) as req:
             resp_bin = await req.read()
             resp_dict = decode_qi_content(resp_bin)
@@ -67,7 +66,15 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
     if isinstance(book, int):
         book = classes.SimpleBook(book, '', 0)
     params = {'bookId': str(book.id), '_': str(time())}
+    if session:
+        assert isinstance(session, aiohttp.ClientSession)
+        csrf_token = ''
+        for cookie in session.cookie_jar:
+            if cookie.key == '_csrfToken':
+                csrf_token = cookie.value
+        params['_csrfToken'] = csrf_token
     api = '/'.join((API_ENDPOINT_1, 'GetChapterList'))
+    try_attempts = 0
     while True:
         try:
             proxy_connector = None
@@ -95,6 +102,9 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
             break
         except json.JSONDecodeError:
             pass
+        try_attempts += 1
+        if try_attempts > 5:
+            raise TimeoutError
         # except Exception:
         #     # TODO analyze what exceptions can here paying special attention to the exceptions that happen when proxy
         #     #  is used
@@ -154,7 +164,11 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
 
     # retry for the exceptions will happen outside
     if session:
-        # TODO check if a cookie can be retrieved from the session
+        csrf_token = ''
+        for cookie in session.cookie_jar:
+            if cookie.key == '_csrfToken':
+                csrf_token = cookie.value
+        params['_csrfToken'] = csrf_token
         async with session.get(api, params=params) as req:
             resp_bin = await req.read()
     else:
@@ -162,8 +176,8 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
             params['_csrfToken'] = cookies['_csrfToken']
         else:
             cookies = {}
-            async with aiohttp.request('GET', api, params=params, connector=proxy, cookies=cookies) as resp:
-                resp_bin = await resp.read()
+        async with aiohttp.request('GET', api, params=params, connector=proxy, cookies=cookies) as resp:
+            resp_bin = await resp.read()
 
     # resp_str = resp_bin.decode()
     # resp_dict = json.loads(resp_str)
@@ -219,18 +233,23 @@ async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes
                               proxy: Proxy = None):
     if isinstance(book_or_book_id, int):
         book_or_book_id = classes.SimpleBook(book_or_book_id, '', 0)
+    try_attempts = 0
     while True:
         try:
             volumes, chapter_list_book_meta = await chapter_list_retriever(book_or_book_id, session, proxy, return_book=True)
             break
         except json.JSONDecodeError:
             pass
+        try_attempts += 1
+        if try_attempts > 5:
+            raise TimeoutError
 
     volumes: List[classes.Volume]
     last_volume = volumes[-1]
     last_chapter_range = last_volume.retrieve_volume_ranges(return_first=False, return_missing=False)
     last_chapter = last_volume.retrieve_chapter_by_index(last_chapter_range)
 
+    try_attempts = 0
     while True:
         try:
             if proxy:
@@ -243,6 +262,9 @@ async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes
             break
         except json.JSONDecodeError:
             pass
+        try_attempts += 1
+        if try_attempts > 5:
+            raise TimeoutError
     chapter_list_book_meta: classes.SimpleBook
     last_chapter_volume_index = find_volume_index_from_id(last_chapter.id, volumes)
     last_chapter_obj = __full_chapter_parser(book_or_book_id.id, last_chapter.id, chapter_meta_dict, last_chapter_volume_index)
@@ -271,6 +293,7 @@ async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index:
     if hasattr(account, 'cookies'):
         cookies = account.cookies
 
+    try_attempts = 0
     while True:
         try:
             if proxy is None:
@@ -284,6 +307,9 @@ async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index:
             break
         except json.JSONDecodeError:
             pass
+        try_attempts += 1
+        if try_attempts > 5:
+            raise TimeoutError
 
     return __full_chapter_parser(book_id, chapter_id, chapter_info, chapter_volume_index)
 
@@ -302,25 +328,29 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
     if cookies:
         form_data_dict['_csrfToken'] = cookies['_csrfToken']
     else:
-        # TODO: Why does this exists? it does nothing
-
-        # RESPONSE: I forgot to continue writing it XD, should retrieve the csrf cookie from the seesion and do the
-        # same as above
-        # TODO do as above
-        pass
+        csrf_token = ''
+        for cookie in session.cookie_jar:
+            if cookie.key == '_csrfToken':
+                csrf_token = cookie.value
+        form_data_dict['_csrfToken'] = csrf_token
 
     form_data = aiohttp.FormData(form_data_dict)
     form_data.add_field('chapters', [{'chapterPrice': chapter_price, 'chapterId': chapter_id,
                                       'chapterType': chapter_type}])
 
+    try_attempts = 0
     if session:
         while True:
             try:
                 async with session.post(api_url, data=form_data) as req:
                     content_dict = decode_qi_content(await req.read())
+                    break
             except json.JSONDecodeError:
-                continue
-            break
+                pass
+            try_attempts += 1
+            if try_attempts > 5:
+                raise TimeoutError
+
     else:
         while True:
             try:
@@ -332,9 +362,12 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
                 async with aiohttp.request('POST', api_url, data=form_data, cookies=cookies,
                                            connector=proxy_connector) as req:
                     content_dict = decode_qi_content(await req.read())
+                    break
             except json.JSONDecodeError:
-                continue
-            break
+                pass
+            try_attempts += 1
+            if try_attempts > 5:
+                raise TimeoutError
     request_code = content_dict['code']
 
     # code 0 is success | code 2 is already bought | code 1 is fail or possibly insufficient fp/ss
