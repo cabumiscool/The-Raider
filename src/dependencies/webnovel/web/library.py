@@ -12,6 +12,8 @@ from dependencies.proxy_classes import Proxy
 
 main_api_url = "https://www.webnovel.com/apiajax/Library"
 
+new_api_url = "https://www.webnovel.com/go/pcm/library"
+
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
 
@@ -72,7 +74,8 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
 
     # aiohttp_socks.ProxyConnector =
     # aiohttp.TCPConnector(force_close=True)
-    api_url = '/'.join([main_api_url, 'LibraryAjax'])
+    # api_url = '/'.join([main_api_url, 'LibraryAjax'])
+    api_url = '/'.join([new_api_url, 'library'])
     use_session, payload_data = __request_data_generator(session, account)
     payload_data['pageIndex'] = page_index
     payload_data['orderBy'] = 2
@@ -99,6 +102,8 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
             pass
         else:
             break
+    if page_index == 27:
+        print('breakpoint')
     result = response['code']
     req_data = response['data']
 
@@ -106,7 +111,9 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
         # means that this is an empty library page and the library page number is over the last one
         return [], -1
 
-    req_books = req_data['books']
+    req_books = req_data['items']
+    if req_books is None:
+        req_books = []
     assert isinstance(req_books, list)
     if result == 0:
         is_last_page = req_data['isLast']
@@ -174,7 +181,9 @@ async def retrieve_all_library_pages(session: aiohttp.ClientSession = None, acco
                 library_pages += 1
                 library_items, is_last_page = await retrieve_library_page(library_pages, session=session)
                 library_pages_items.extend(library_items)
-                if is_last_page == 1:
+                if is_last_page == 0:
+                    pass
+                elif is_last_page == 1:
                     break
                 elif is_last_page == -1:
                     library_pages -= 1
@@ -351,7 +360,7 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
         return True
     elif result == 1006:
         raise Exception("Unknown error")
-    raise ValueError(f"Unknown value of {result} as a response")
+    raise ValueError(f"Unknown value of {result} as a response | complete response:  {response}")
 
 # account = classes.QiAccount(18, 'theseeker.1ljISnxoPW@cock.li', 'qwerty123456',
 #                               {'_csrfToken': '0ILeykdQRIyAoNGv8r5tUlcA2J4UmpDJhDuqwoFN',
