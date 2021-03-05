@@ -5,7 +5,8 @@ from discord.ext import commands
 from discord.ext.commands import Context
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
-from dependencies.database import Database, database_exceptions
+from dependencies.database.database import Database
+from dependencies.database import database_exceptions
 from dependencies.webnovel.classes import Book
 from dependencies.webnovel.web import book
 from dependencies.webnovel.utils import book_string_matcher
