@@ -13,7 +13,7 @@ from background_process.update_checking_service import BooksLibraryChecker
 from background_process.new_chapter_finder import NewChapterFinder
 from background_process.buyer_service import BuyerService
 from background_process.paste_service import PasteCreator, PasteRequest, MultiPasteRequest, Paste
-from background_process.proxy_manager_service import ProxyManager
+# from background_process.proxy_manager_service import ProxyManager
 from background_process.background_objects import *
 
 from dependencies.database.database import Database
@@ -38,7 +38,7 @@ class BackgroundProcess:
                                                         2: NewChapterFinder(self.database),
                                                         3: BuyerService(self.database),
                                                         4: PasteCreator(),
-                                                        5: ProxyManager(self.database)
+                                                        # 5: ProxyManager(self.database)
                                                         }
 
         if loop is None:
@@ -47,10 +47,12 @@ class BackgroundProcess:
             assert issubclass(type(loop), asyncio.AbstractEventLoop)
             self.loop = loop
 
-        self.services.tasks = {id_: self.loop.create_task(service.run()) for id_, service in self.services.items()}
+        for id_, service in self.services.items():
+            service.start()
+
+        self.queue_history = {}
         self.command_handler_task = self.loop.create_task(self.command_handler())
         self._main_loop_task = self.loop.create_task(self.run())
-        self.queue_history = {}
 
     def __return_data(self, data):
         self.output_queue.put(data, block=False)
@@ -135,7 +137,7 @@ class BackgroundProcess:
                 self.queue_history[parent_id]['chs'][id_]['done'] = True
                 self.queue_history[parent_id]['chs'][id_]['in_paste'] = True
                 self.queue_history[parent_id]['chs'][id_]['obj'] = possible_bought_chapter
-                self.queue_history[parent_id]['chs'][id_] = time.time()
+                self.queue_history[parent_id]['chs'][id_]['_'] = time.time()
                 new_bought_chapters.append(possible_bought_chapter)
 
         # organizing the groups that are for pastes
@@ -146,6 +148,7 @@ class BackgroundProcess:
             else:
                 organized_chapters[chapter.parent_id] = [chapter]
 
+        # creating the paste request objects
         pastes_requests = []
         for book_id, chapter_list in organized_chapters.items():
             book_obj = self.queue_history[book_id]['obj']
@@ -190,7 +193,7 @@ class BackgroundProcess:
         for possible_paste in possible_new_pastes:
             possible_paste: Paste
             new_paste = False
-            book_id = possible_paste.book_id
+            book_id = possible_paste.book_obj.id
             for chapter_id in possible_paste.chapters_ids:
                 if self.queue_history[book_id]['chs'][chapter_id]['paste'] is False:
                     self.queue_history[book_id]['chs'][chapter_id]['paste'] = True
@@ -234,10 +237,10 @@ class BackgroundProcess:
         for book_id in book_ids_to_delete:
             del self.queue_history[book_id]
 
-        try:
-            self.services[5].retrieve_completed_cache()
-        except (ErrorReport, ErrorList, ProxyErrorReport) as e:
-            self.__return_data(e)
+        # try:
+        #     self.services[5].retrieve_completed_cache()
+        # except (ErrorReport, ErrorList, ProxyErrorReport) as e:
+        #     self.__return_data(e)
 
     async def run(self):
         while self.running:
