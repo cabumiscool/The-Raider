@@ -210,6 +210,22 @@ class BackgroundManager(commands.Cog):
         await ctx.send('import complete')
         print(True)
 
+    @commands.command()
+    async def queue_status(self, ctx: Context):
+        queue_history_stats = await self.background_process_interface.request_queue_status()
+        await ctx.send("emmbed pending to be made by dev")
+        await ctx.send("printing queue content instead")
+        for book_status in queue_history_stats.books_status_list:
+            book_status: BookStatus
+            stages = []
+            for stage_name, quantity in book_status.chapters_status_dict.items():
+                if quantity > 0:
+                    stages.append(f"{stage_name}: {quantity}")
+            await ctx.send(f"{book_status.base_obj.name}\n"
+                           f"Chapters at queue: {len(book_status.chapters)}\n")
+            if len(stages) > 0:
+                await ctx.send(f"Chapters stage status:  \n%s" % '\n'.join(stages))
+
     # TODO to be deleted after alpha
     @commands.command()
     @bot_checks.check_permission_level(10)
