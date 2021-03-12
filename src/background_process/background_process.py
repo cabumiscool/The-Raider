@@ -108,7 +108,7 @@ class BackgroundProcess:
                 self.queue_history[possible_chapter.parent_id]['chs'][possible_chapter.id] = {'obj': possible_chapter,
                                                                                               '_': time.time(),
                                                                                               'in buy': True,
-                                                                                              'done': False,
+                                                                                              'buy_done': False,
                                                                                               'in_paste': False,
                                                                                               'paste': False}
                 new_chapters.append(possible_chapter)
@@ -133,8 +133,8 @@ class BackgroundProcess:
             possible_bought_chapter: classes.Chapter
             parent_id = possible_bought_chapter.parent_id
             id_ = possible_bought_chapter.id
-            if self.queue_history[parent_id]['chs'][id_]['done'] is False:
-                self.queue_history[parent_id]['chs'][id_]['done'] = True
+            if self.queue_history[parent_id]['chs'][id_]['buy_done'] is False:
+                self.queue_history[parent_id]['chs'][id_]['buy_done'] = True
                 self.queue_history[parent_id]['chs'][id_]['in_paste'] = True
                 self.queue_history[parent_id]['chs'][id_]['obj'] = possible_bought_chapter
                 self.queue_history[parent_id]['chs'][id_]['_'] = time.time()
@@ -209,7 +209,7 @@ class BackgroundProcess:
             if len(data_dict['chs']) == 0:
                 continue   # TODO deal with this case better in case it fails to catch any new chapter
             for chapter_id, chapter_dict in data_dict['chs'].items():
-                if chapter_dict['done'] is False:
+                if chapter_dict['buy_done'] is False:
                     break
                 if chapter_dict['in_paste'] is False:
                     break
@@ -248,8 +248,8 @@ class BackgroundProcess:
                 await self.main_loop()
                 await asyncio.sleep(5)
             except Exception as e:
-                self.__return_data(ErrorReport(e, f'found exception at the top in the background process',
-                                               traceback.format_exc()))
+                self.__return_data(ErrorReport(type(e), f'found exception at the top in the background process',
+                                               traceback.format_exc(), e))
 
     async def restart_service(self, service_id: int):
         pass
@@ -260,6 +260,36 @@ class BackgroundProcess:
                                                    f"{type(object_)}",
                                        f"at command handler on background process, exactly where:   {where}",
                                        error_object=object_))
+
+    def read_history_queue(self) -> typing.List[BookStatus]:
+        data_to_return = []
+        for book_id, data_dict in self.queue_history.items():
+            book_obj = data_dict['obj']
+            if isinstance(book_obj, classes.Book):
+                book_obj = book_obj.return_simple_book()
+            # new_book_dict = {'book': book_obj, '_': data_dict['_'], 'chs': []}
+            chapters_list = []
+            for chapter_id, chapter_data in data_dict['chs'].items():
+                chapter_id: int
+                chapter_data: dict
+                chapter_obj = chapter_data['obj']
+                if isinstance(chapter_obj, classes.Chapter):
+                    chapter_obj = chapter_obj.return_simple_chapter()
+                # key = 'Unknown'
+                # value = True
+                status_int = 0
+                for key, value in chapter_data.items():
+                    if not isinstance(value, bool):
+                        continue
+                    status_int += 1
+                    if value is False:
+                        break
+                # new_book_dict['chs'].append({'chapter': chapter_obj, '_': chapter_data['_'], 'status': (key, value)})
+                chapters_list.append(ChapterStatus(chapter_data['_'], chapter_obj, status_int))
+            data_to_return.append(BookStatus(data_dict['_'], book_obj, *chapters_list))
+            # data_to_return.append(new_book_dict)
+
+        return data_to_return
 
     async def command_handler(self):
         while self.running:
@@ -291,18 +321,22 @@ class BackgroundProcess:
                                 self.services_commands.append((self.loop.create_task(self.restart_service(
                                     received_object.service_id)), received_object))
                             else:
-                                self.unknown_received_object(received_object, where='deciding what type of service command '
-                                                                                    'it is')
+                                self.unknown_received_object(received_object, where='deciding what type of service '
+                                                                                    'command it is')
                         elif issubclass(type(received_object), StatusRequest):
                             if isinstance(received_object, AllServicesStatus):
                                 for service_id, service in self.services.items():
                                     received_object.services.append(ServiceStatus(service_id, service.name,
                                                                                   service.last_loop))
                                 self.__return_data(received_object)
+                            if isinstance(received_object, QueueHistoryStatusRequest):
+                                books_queue_status_list = self.read_history_queue()
+                                received_object.books_status_list.extend(books_queue_status_list)
+                                self.__return_data(received_object)
                         else:
                             self.unknown_received_object(received_object, where='deciding what type of command it is')
-                            # self.__return_data(ErrorReport(ValueError, "Invalid data type received at background process",
-                            #                                traceback.format_exc(), error_object=received_object))
+                            # self.__return_data(ErrorReport(ValueError, "Invalid data type received at background
+                            # process", traceback.format_exc(), error_object=received_object))
 
                 # will check if a service command is done
                 commands_to_be_cleared = []
@@ -331,5 +365,5 @@ class BackgroundProcess:
             except asyncio.CancelledError as e:
                 raise e
             except Exception as e:
-                self.__return_data(ErrorReport(e, 'error found at the command handler on the background',
+                self.__return_data(ErrorReport(type(e), 'error found at the command handler on the background',
                                                traceback.format_exc(), e))
