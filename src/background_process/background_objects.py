@@ -1,5 +1,6 @@
 import time
 import typing
+from dependencies.webnovel.classes import *
 
 
 class ErrorReport(Exception):
@@ -124,22 +125,51 @@ class RestartService(ServiceCommand):
 # class ServiceStatus(ServiceCommand):
 #   def __init__(self, command_id: int, service_name: str):
 #       super().__init__(command_id, service_name)
+class ServiceStatus:
+    def __init__(self, service_id: int, service_name: str, last_execution: int):
+        self.service_id = service_id
+        self.service_name = service_name
+        self.service_last_execution = last_execution
+
+
+class ChapterStatus:
+    status_dict = {0: 'Unknown', 1: 'in buy', 2: 'buy done', 3: 'in paste', 4: 'paste', 5: 'Extra loop at analyze'}
+
+    def __init__(self, last_modified_time: float, chapter_obj: SimpleChapter, last_status: int):
+        self.last_modified_time = last_modified_time
+        self.base_obj = chapter_obj
+        self.status = last_status
+        self.status_str = self.status_dict[last_status]
+
+
+class BookStatus:
+    def __init__(self, last_modified_time: float, book_obj: SimpleBook, *chapter_status_tuple: ChapterStatus):
+        self.last_modified_time = last_modified_time
+        self.base_obj = book_obj
+        self.chapters = chapter_status_tuple
+        self.chapters_status_dict = {}
+        for chapter in self.chapters:
+            if chapter.status_str in self.chapters_status_dict:
+                self.chapters_status_dict[chapter.status_str] += 1
+            else:
+                self.chapters_status_dict[chapter.status_str] = 1
+
 
 class StatusRequest(Command):
     """The base class for the status requests"""
+
+
+class QueueHistoryStatusRequest(StatusRequest):
+    """Will request a status report on the history queue"""
+    def __init__(self, command_id: int):
+        super().__init__(command_id)
+        self.books_status_list: typing.List[BookStatus] = []
 
 
 class AllServicesStatus(StatusRequest):
     def __init__(self, command_id: int):
         super().__init__(command_id)
         self.services: typing.List[ServiceStatus] = []
-
-
-class ServiceStatus:
-    def __init__(self, service_id: int, service_name: str, last_execution: int):
-        self.service_id = service_id
-        self.service_name = service_name
-        self.service_last_execution = last_execution
 
 
 class ProcessStatus(StatusRequest):
