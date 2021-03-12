@@ -76,6 +76,10 @@ class Chapter(SimpleChapter):
         self.translator = translator
         self.price = int(price)
 
+    def return_simple_chapter(self):
+        return SimpleChapter(int(self.is_privilege), self.id, self.parent_id, self.index, self.is_vip, self.name,
+                             self.volume_index)
+
 
 class Volume:
     @staticmethod
