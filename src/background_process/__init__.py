@@ -121,3 +121,9 @@ class BackgroundProcessInterface:
         pastes_list = self._pastes.copy()
         self._pastes.clear()
         return pastes_list
+
+    async def request_queue_status(self) -> QueueHistoryStatusRequest:
+        data_id = self.__generate_data_id()
+        request_object = QueueHistoryStatusRequest(data_id)
+        self.toward_background.put(request_object)
+        return await self.wait_data_return(data_id)
