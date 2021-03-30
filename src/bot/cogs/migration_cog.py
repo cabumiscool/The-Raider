@@ -132,15 +132,16 @@ class MigrationCog(commands.Cog):
             if book_id not in dict_with_book_ids_and_names:
                 books_to_retrieve.append(book_id)
 
-        await ctx.send(f"Retrieving metadata for {len(books_to_retrieve)} from a requested total of {len(list_of_book_ids)}")
+        await ctx.send(f"Retrieving metadata for {len(books_to_retrieve)} from a "
+                       f"requested total of {len(list_of_book_ids)}")
 
         async_tasks = []
         completed_books = []
         failed_books_id = []
-        for book_id in list_of_book_ids:
+        for book_id in books_to_retrieve:
             async_tasks.append((asyncio.create_task(full_book_retriever(book_id)), book_id))
         count_message = await ctx.send(f"Downloading metadata of books, 0 completed  "
-                                       f"of a total of {len(list_of_book_ids)}")
+                                       f"of a total of {len(books_to_retrieve)}")
         time_ = time.time()
         for task, book_id in async_tasks:
             try:
