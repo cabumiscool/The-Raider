@@ -172,12 +172,12 @@ class MigrationCog(commands.Cog):
         for message in missing_books_messages:
             await ctx.send(message)
 
-        await ctx.send(f"Preparing to add {len(books_to_add)}.  (Books that are already in the db are being ignored)")
+        await ctx.send(f"Preparing to add {len(completed_books)}.")
         count_message = await ctx.send("Starting.....")
         counter = 1
         error_books = []
-        for book in books_to_add:
-            await count_message.edit(content=f"Adding book {counter} of a total of {len(books_to_add)}")
+        for book in completed_books:
+            await count_message.edit(content=f"Adding book {counter} of a total of {len(completed_books)}")
             counter += 1
             try:
                 await self.db.insert_new_book(book)
