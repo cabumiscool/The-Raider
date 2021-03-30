@@ -132,7 +132,7 @@ class MigrationCog(commands.Cog):
             if book_id not in dict_with_book_ids_and_names:
                 books_to_retrieve.append(book_id)
 
-        await ctx.send(f"Retrieving metadata for {len(books_to_retrieve)} from a requested total of {list_of_book_ids}")
+        await ctx.send(f"Retrieving metadata for {len(books_to_retrieve)} from a requested total of {len(list_of_book_ids)}")
 
         async_tasks = []
         completed_books = []
@@ -160,6 +160,7 @@ class MigrationCog(commands.Cog):
         count = 0
         for book_id in failed_books_id:
             books_to_join.append(str(book_id))
+            count += 1
             if count >= 10:
                 missing_books_messages.append("\n".join(books_to_join))
                 books_to_join.clear()
