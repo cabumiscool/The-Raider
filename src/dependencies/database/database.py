@@ -193,8 +193,19 @@ class Database:
         book.add_volume_list(all_volumes_list)
         return book
 
-    async def get_all_books_ids_names_sub_names_dict(self):
-        raise NotImplementedError
+    async def get_all_books_ids_names_sub_names_dict(self, *, invert: bool = False) -> typing.Dict[str: int]:
+        await self.__init_check__()
+        request_query = '''SELECT "BOOK_NAME", "BOOK_ID" FROM "BOOKS_DATA"'''
+        records_list = await self._db_pool.fetch(request_query)
+        if len(records_list) == 0:
+            return {}
+        if invert:
+            data_dict = {int(book_id): book_name for book_name, book_id in [(record[0],
+                                                                             record[1]) for record in records_list]}
+        else:
+            data_dict = {book_name: int(book_id) for book_name, book_id in [(record[0],
+                                                                            record[1])for record in records_list]}
+        return data_dict
 
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
         raise NotImplementedError
