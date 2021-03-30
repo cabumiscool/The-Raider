@@ -124,13 +124,23 @@ class MigrationCog(commands.Cog):
         file_content_str = file_content.decode()
         list_of_book_ids_str = file_content_str.split('\n')
         list_of_book_ids = [int(book_id) for book_id in list_of_book_ids_str]
-        count = 0
+
+        books_to_retrieve = []
+        dict_with_book_ids_and_names = await self.db.get_all_books_ids_names_sub_names_dict(invert=True)
+        books_to_add = []
+        for book_id in list_of_book_ids:
+            if book_id not in dict_with_book_ids_and_names:
+                books_to_retrieve.append(book_id)
+
+        await ctx.send(f"Retrieving metadata for {len(books_to_retrieve)} from a requested total of {list_of_book_ids}")
+
         async_tasks = []
         completed_books = []
         failed_books_id = []
         for book_id in list_of_book_ids:
-            async_tasks.append((asyncio.create_task(full_book_retriever(book_id)),book_id))
-        count_message = await ctx.send(f"Downloading metadata of books, 0 completed  of a total of {len(list_of_book_ids)}")
+            async_tasks.append((asyncio.create_task(full_book_retriever(book_id)), book_id))
+        count_message = await ctx.send(f"Downloading metadata of books, 0 completed  "
+                                       f"of a total of {len(list_of_book_ids)}")
         time_ = time.time()
         for task, book_id in async_tasks:
             try:
@@ -145,13 +155,22 @@ class MigrationCog(commands.Cog):
                 time_ = time.time()
         await count_message.edit(content=f"Metadata downloaded for {len(completed_books)}, failed books:  "
                                          f"{len(failed_books_id)}")
-        await ctx.send("failed books ids: \n%s" % '\n'.join([str(failed_book_id)
-                                                           for failed_book_id in failed_books_id]))
-        dict_with_book_ids_and_names = await self.db.get_all_books_ids_names_sub_names_dict(invert=True)
-        books_to_add = []
-        for book in completed_books:
-            if book.id not in dict_with_book_ids_and_names:
-                books_to_add.append(book)
+        missing_books_messages = []
+        books_to_join = []
+        count = 0
+        for book_id in failed_books_id:
+            books_to_join.append(str(book_id))
+            if count >= 10:
+                missing_books_messages.append("\n".join(books_to_join))
+                books_to_join.clear()
+                count = 0
+        if len(books_to_join) > 0:
+            missing_books_messages.append("\n".join(books_to_join))
+
+        await ctx.send("failed books ids: ")
+        for message in missing_books_messages:
+            await ctx.send(message)
+
         await ctx.send(f"Preparing to add {len(books_to_add)}.  (Books that are already in the db are being ignored)")
         count_message = await ctx.send("Starting.....")
         counter = 1
@@ -166,6 +185,9 @@ class MigrationCog(commands.Cog):
             except Exception:
                 error_books.append(book)
 
+        await count_message.edit(content=f"Finished adding books, number of failed books:  {len(error_books)}")
+        for book in error_books:
+            await ctx.send(f"Failed book name:  {book.name}  | Id:  {book.id}")
 
 
 def setup(bot):
