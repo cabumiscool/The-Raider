@@ -1,3 +1,4 @@
+from asyncio import CancelledError
 import json
 from typing import List, Union, Tuple
 from time import time
@@ -75,6 +76,7 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
         params['_csrfToken'] = csrf_token
     api = '/'.join((API_ENDPOINT_1, 'GetChapterList'))
     try_attempts = 0
+    errors = []
     while True:
         try:
             proxy_connector = None
@@ -102,8 +104,12 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
             break
         except json.JSONDecodeError:
             pass
+        except CancelledError:
+            raise CancelledError
+        except Exception as e:
+            errors.append(e)
         try_attempts += 1
-        if try_attempts > 5:
+        if try_attempts > 8:
             raise TimeoutError
         # except Exception:
         #     # TODO analyze what exceptions can here paying special attention to the exceptions that happen when proxy
@@ -139,7 +145,7 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
         return volumes
     if code == 1:
         # TODO check if 1 is error and log the error to database for later review
-        raise exceptions.FailedRequest(f'returned dit:  {resp_dict}')
+        raise exceptions.FailedRequest(f'returned dit:  {resp_dict}, book id:  {book.id}')
     else:
         raise exceptions.UnknownResponseCode(code, resp_dict['msg'])
 
