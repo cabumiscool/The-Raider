@@ -140,6 +140,10 @@ class ChapterStatus:
         self.base_obj = chapter_obj
         self.status = last_status
         self.status_str = self.status_dict[last_status]
+        if self.status == 4:
+            self.done = True
+        else:
+            self.done = False
 
 
 class BookStatus:
@@ -148,11 +152,16 @@ class BookStatus:
         self.base_obj = book_obj
         self.chapters = chapter_status_tuple
         self.chapters_status_dict = {}
+        self.ready_to_clean = True
         for chapter in self.chapters:
+            if chapter.done is False:
+                self.ready_to_clean = False
             if chapter.status_str in self.chapters_status_dict:
                 self.chapters_status_dict[chapter.status_str] += 1
             else:
                 self.chapters_status_dict[chapter.status_str] = 1
+        if time.time() - self.last_modified_time < 300:
+            self.ready_to_clean = False
 
 
 class StatusRequest(Command):
