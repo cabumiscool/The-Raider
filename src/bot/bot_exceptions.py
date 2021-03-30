@@ -11,3 +11,7 @@ class NotEnoughPerms(CommandError):
 
 class NotOnWhiteList(CommandError):
     """Raised When a channel isn't on the whitelist"""
+
+
+class AttachmentNumberMismatch(CommandError):
+    """Raised when the expected amount of attachments is not found"""
