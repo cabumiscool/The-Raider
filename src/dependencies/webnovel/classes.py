@@ -39,7 +39,7 @@ class ChapterNote:
         if avatar_pic_url == '':
             self.avatar_url = 0
         else:
-            self.avatar_url = int(avatar_pic_url)
+            self.avatar_url = avatar_pic_url
         self.author = author
         self.pen_name = author_pen_name
         self.author_type = author_type
