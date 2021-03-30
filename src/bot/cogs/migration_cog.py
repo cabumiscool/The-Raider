@@ -127,7 +127,6 @@ class MigrationCog(commands.Cog):
 
         books_to_retrieve = []
         dict_with_book_ids_and_names = await self.db.get_all_books_ids_names_sub_names_dict(invert=True)
-        books_to_add = []
         for book_id in list_of_book_ids:
             if book_id not in dict_with_book_ids_and_names:
                 books_to_retrieve.append(book_id)
@@ -152,7 +151,7 @@ class MigrationCog(commands.Cog):
             completed_books.append(book)
             if time.time() - time_ > 3:
                 await count_message.edit(content=f"Downloading metadata of books, {len(completed_books)} "
-                                                 f"completed  of a total of {len(list_of_book_ids)}")
+                                                 f"completed  of a total of {len(books_to_retrieve)}")
                 time_ = time.time()
         await count_message.edit(content=f"Metadata downloaded for {len(completed_books)}, failed books:  "
                                          f"{len(failed_books_id)}")
