@@ -6,6 +6,22 @@ from bot import bot_exceptions
 from dependencies.database.database import Database
 
 
+def has_attachment(attachment_len: int = 1):
+    if attachment_len <= 0:
+        raise Exception("Invalid attachment requirement")
+
+    async def check(ctx: Context):
+        message = ctx.message
+        if len(message.attachments) == 0:
+            raise bot_exceptions.AttachmentNumberMismatch("This message is missing an attachment")
+        elif len(message.attachments) > attachment_len:
+            raise bot_exceptions.AttachmentNumberMismatch("This message has too many attachments")
+        else:
+            return True
+
+    return commands.check(check)
+
+
 def check_permission_level(required_level: int = 0):
     async def check(ctx: Context):
         bot = ctx.bot
