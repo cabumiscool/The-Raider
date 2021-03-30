@@ -11,7 +11,8 @@ from discord.ext import commands
 from config import Settings
 from dependencies.database.database import Database
 
-initial_extensions = ('bot.cogs.permission_management', 'bot.cogs.qi_commands', 'bot.cogs.background_manager')
+initial_extensions = ('bot.cogs.permission_management', 'bot.cogs.qi_commands', 'bot.cogs.background_manager',
+                      'bot.cogs.migration_cog')
 
 
 def _custom_prefix_adder(*args):
