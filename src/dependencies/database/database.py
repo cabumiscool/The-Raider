@@ -117,6 +117,35 @@ class Database:
         query = 'DELETE FROM "CHANNEL_AUTH" WHERE "SERVER_ID" = $1 AND "CHANNEL_ID" = $2'
         await self._db_pool.execute(query, server_id, channel_id)
 
+    async def channel_type_adder(self, channel_id: int, channel_type: int):
+        await self.__init_check__()
+        query = """INSERT INTO "CHANNELS" ("CHANNEL_ID", "CHANNEL_TYPE") VALUES ($1, $2)"""
+        query_args = (channel_id, channel_type)
+        await self._db_pool.execute(query, *query_args)
+
+    async def channel_type_remover(self, channel_type: int):
+        await self.__init_check__()
+        query = """DELETE FROM "CHANNELS" WHERE "CHANNEL_TYPE" =$1"""
+        await self._db_pool.execute(query, channel_type)
+
+    async def channel_type_updater(self, channel_id: int, channel_type: int):
+        await self.__init_check__()
+        query = """UPDATE "CHANNELS" SET "CHANNEL_ID"=$1 WHERE "CHANNEL_TYPE"=$2"""
+        query_args = (channel_id, channel_type)
+        await self._db_pool.execute(query, *query_args)
+
+    async def channel_type_retriever(self, channel_type: int) -> typing.Union[None, int]:
+        await self.__init_check__()
+        query = """SELECT "CHANNEL_ID" FROM "CHANNELS" WHERE "CHANNEL_TYPE"=$1"""
+        record = await self._db_pool.fetch(query, channel_type)
+        if record is None:
+            return None
+        return record[0]
+
+    async def all_channel_type_retriever(self):
+        await self.__init_check__()
+        query = """"""
+
     async def retrieve_all_book_chapters(self, book_id: int) -> typing.List[SimpleChapter]:
         await self.__init_check__()
         query = '''SELECT "PRIVILEGE", "CHAPTER_ID", "INDEX", "VIP_LEVEL", "CHAPTER_NAME", "VOLUME" 
@@ -330,6 +359,7 @@ class Database:
         if isinstance(book, SimpleBook) or update_full is False:
             await self.__update_simple_book(book)
         else:
+            await self.__update_simple_book(book.return_simple_book())
             await self.update_complete_book(book)
 
     async def insert_new_chapter(self, chapter: typing.Union[SimpleChapter, Chapter]):
