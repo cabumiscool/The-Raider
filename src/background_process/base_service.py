@@ -83,14 +83,18 @@ class BaseService:
     async def stop(self, *, timeout=30):
         timeout += 1
         if self._running:
-            self._running = False
+            self._main_loop_task.cancel()
             starting_time = time.time()
             if self._main_loop_task.done():
+                self._running = False
+                self.last_loop = -1
                 return True
             else:
                 while True:
                     await asyncio.sleep(timeout/3)
                     if self._main_loop_task.done():
+                        self._running = False
+                        self.last_loop = -1
                         return True
                     if (time.time() - starting_time) > timeout or time.time() - starting_time < timeout/3:
                         raise TimeoutError
