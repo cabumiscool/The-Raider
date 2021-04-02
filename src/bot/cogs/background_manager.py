@@ -1,6 +1,6 @@
 import datetime
 import asyncio
-from json import loads
+# from json import loads
 from io import StringIO
 
 import discord
@@ -15,8 +15,12 @@ from dependencies.database.database import Database
 from background_process import BackgroundProcessInterface
 from background_process.background_objects import *
 
-from dependencies.webnovel.classes import QiAccount
-from dependencies.proxy_classes import Proxy
+# from dependencies.webnovel.classes import QiAccount
+# from dependencies.proxy_classes import Proxy
+
+valid_service_commands = {'restart': BackgroundProcessInterface.restart_service,
+                          'stop': BackgroundProcessInterface.stop_service,
+                          'start': BackgroundProcessInterface.start_service}
 
 
 class BackgroundManager(commands.Cog):
@@ -30,6 +34,8 @@ class BackgroundManager(commands.Cog):
         self.ping_maker.start()
         self.error_retriever.start()
         self.pastes_retriever.start()
+        self.services_names = {}
+        self.services_ids = []
 
     @tasks.loop(seconds=5)
     async def ping_maker(self):
@@ -59,9 +65,20 @@ class BackgroundManager(commands.Cog):
 
     @tasks.loop(seconds=3)
     async def pastes_retriever(self):
-        # TODO: retrieve the paste channel dynamically
-        paste_channel: discord.TextChannel = await self.bot.fetch_channel(816682456714313780)
-        # TODO add a different channel for og pastes before production
+        default_paste_channel: discord.TextChannel = await self.bot.fetch_channel(827393945796870184)
+
+        translated_paste_channel_id = await self.db.channel_type_retriever(1)
+        if translated_paste_channel_id is None:
+            translated_paste_channel = default_paste_channel
+        else:
+            translated_paste_channel: discord.TextChannel = await self.bot.fetch_channel(translated_paste_channel_id)
+
+        original_paste_channel_id = await self.db.channel_type_retriever(2)
+        if original_paste_channel_id is None:
+            original_paste_channel = default_paste_channel
+        else:
+            original_paste_channel: discord.TextChannel = await self.bot.fetch_channel(original_paste_channel_id)
+
         pastes = self.background_process_interface.return_all_pastes()
         send_tasks = []
         for paste in pastes:
@@ -70,7 +87,11 @@ class BackgroundManager(commands.Cog):
             else:
                 range_str = f"{paste.ranges[0]}-{paste.ranges[1]}"
             paste_format = f"!paste {paste.book_obj.name} - {range_str} {paste.full_url}"
-            send_tasks.append(asyncio.create_task(paste_channel.send(paste_format)))
+            if paste.book_obj.book_type_num == 1:
+                send_tasks.append(asyncio.create_task(translated_paste_channel.send(paste_format)))
+            elif paste.book_obj.book_type_num == 2:
+                send_tasks.append(asyncio.create_task(original_paste_channel.send(paste_format)))
+
         await asyncio.gather(*send_tasks)
 
     @bot_checks.check_permission_level(5)
@@ -102,9 +123,15 @@ class BackgroundManager(commands.Cog):
                                          ('Fp Left', fp_count), ('Bot Uptime', bot_uptime))
         await ctx.send(embed=embed)
 
+    def inner_services_cache_updater(self, services_status_object: AllServicesStatus):
+        for service in services_status_object.services:
+            self.services_ids.append(service.service_id)
+            self.services_names[service.service_name] = service.service_id
+
     @commands.command()
     async def services_stats(self, ctx: Context):
         reports = await self.background_process_interface.request_all_services_status()
+        self.inner_services_cache_updater(reports)
         services_reports = reports.services
         # actual_time = time.time()
         fields = []
@@ -114,6 +141,8 @@ class BackgroundManager(commands.Cog):
                 last_execution_str = 'Never'
             elif last_execution == 1:
                 last_execution_str = 'Started but never finished'
+            elif last_execution == -1:
+                last_execution_str = 'Service was stopped'
             else:
                 time_difference = datetime.datetime.now() - datetime.datetime.fromtimestamp(last_execution)
                 last_execution_str = f'{time_difference.total_seconds():.3f} secs ago'
@@ -126,7 +155,7 @@ class BackgroundManager(commands.Cog):
     @commands.command()
     async def queue_status(self, ctx: Context):
         queue_history_stats = await self.background_process_interface.request_queue_status()
-        await ctx.send("emmbed pending to be made by dev")
+        await ctx.send("embed pending to be made by dev")
         await ctx.send("printing queue content instead")
         for book_status in queue_history_stats.books_status_list:
             book_status: BookStatus
@@ -138,6 +167,66 @@ class BackgroundManager(commands.Cog):
                            f"Chapters at queue: {len(book_status.chapters)}\n")
             if len(stages) > 0:
                 await ctx.send(f"Chapters stage status:  \n%s" % '\n'.join(stages))
+
+    @commands.command()
+    async def force_queue_update(self, ctx: Context):
+        await ctx.send("Are you sure you want to force the background queue to update its value? This will cause any "
+                       "ongoing buy to be cancelled and ignored afterwards. (Please confirm in 60 seconds....)")
+        await ctx.send("Check pending to be written..... Please ping cabum to stop lazing around.. moving on with the "
+                       "process")
+        try:
+            response_object = await self.background_process_interface.force_queue_update()
+        except TimeoutError:
+            await ctx.send("Timeout Error!! The response to the queue update was never received....")
+            return
+        if response_object.command_status == 0:
+            await ctx.send(f"Unknown failed execution of {ctx.command} ran by {ctx.author} with the comment"
+                           f" of {response_object.text_status}")
+        elif response_object.command_status == 1:
+            await ctx.send(f"The command {ctx.command} ran by {ctx.author} failed to be executed")
+        else:
+            await ctx.send(f"The command {ctx.command} ran by {ctx.author} was successfully executed, queue updated.")
+
+    @commands.command()
+    async def service(self, ctx: Context, operation: str, name_or_id: typing.Union[int, str]):
+        await ctx.send("attempting operation")
+        operation_lower_case = operation.lower()
+        # if operation_lower_case not in valid_service_commands:
+        #     await ctx.send(f"The requested operation is an invalid one")
+        if operation_lower_case not in ['restart', 'stop', 'start']:
+            await ctx.send(f"The requested operation is an invalid one")
+            return
+
+        if len(self.services_ids) == 0 or name_or_id not in self.services_names and name_or_id not in self.services_ids:
+            services_status = await self.background_process_interface.request_all_services_status()
+            self.inner_services_cache_updater(services_status)
+
+        if name_or_id not in self.services_names and name_or_id not in self.services_ids:
+            await ctx.send(f"The service that was attempted to be {operation} couldn't be found")
+            return
+
+        if name_or_id in self.services_names:
+            service_id = self.services_names[name_or_id]
+        else:
+            service_id = name_or_id
+
+        if operation_lower_case == 'stop':
+            response_obj = await self.background_process_interface.stop_service(service_id)
+        elif operation_lower_case == 'start':
+            response_obj = await self.background_process_interface.start_service(service_id)
+        else:
+            response_obj = await self.background_process_interface.restart_service(service_id)
+
+        if response_obj.command_status == 0:
+            # unknown
+            await ctx.send(f"The command service {operation} executed by {ctx.author} failed to execute | comment:  "
+                           f"{response_obj.text_status}")
+        elif response_obj.command_status == 1:
+            # failed
+            await ctx.send(f"The command service {operation} executed by {ctx.author} failed to be executed")
+        else:
+            # successful
+            await ctx.send(f"The command service {operation} executed by {ctx.author} was successfully executed")
 
     # TODO to be deleted after alpha
     @commands.command()
