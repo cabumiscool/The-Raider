@@ -1,5 +1,5 @@
 import time
-import typing
+# import typing
 from dependencies.webnovel.classes import *
 
 
@@ -55,8 +55,26 @@ class Ping:
 
 class Command:
     """"Base class for all the background process command objects"""
+    _command_status = ['Unknown', 'Failed', 'Completed']
+
     def __init__(self, command_id: int):
         self.id = command_id
+        self.command_status = 0
+        self.text_status = ''
+
+    def completed_status(self):
+        self.command_status = 2
+        self.text_status = self._command_status[self.command_status]
+
+    def unknown_status(self, *, comment: str):
+        self.text_status = f'{self._command_status[self.command_status]} status, return value:  {comment}'
+
+    def failed_status(self, *, comment: str = None):
+        self.command_status = 1
+        if comment:
+            self.text_status = comment
+        else:
+            self.text_status = self._command_status[self.command_status]
 
 
 class ProcessCommand(Command):
@@ -87,27 +105,9 @@ class ProcessReturnData:
 
 
 class ServiceCommand(Command):
-    _services_status = ['Unknown', 'Failed', 'Completed']
-
     def __init__(self, command_id: int, service_id: int):
         super().__init__(command_id)
         self.service_id = service_id
-        self.command_status = 0
-        self.text_status = ''
-
-    def completed_status(self):
-        self.command_status = 2
-        self.text_status = self._services_status[self.command_status]
-
-    def unknown_status(self, *, comment: str):
-        self.text_status = f'{self._services_status[self.command_status]} status, return value:  {comment}'
-
-    def failed_status(self, *, comment: str = None):
-        self.command_status = 1
-        if comment:
-            self.text_status = comment
-        else:
-            self.text_status = self._services_status[self.command_status]
 
 
 class StartService(ServiceCommand):
@@ -122,9 +122,14 @@ class RestartService(ServiceCommand):
     pass
 
 
+class ForceQueueUpdate(Command):
+    pass
+
 # class ServiceStatus(ServiceCommand):
 #   def __init__(self, command_id: int, service_name: str):
 #       super().__init__(command_id, service_name)
+
+
 class ServiceStatus:
     def __init__(self, service_id: int, service_name: str, last_execution: int):
         self.service_id = service_id
