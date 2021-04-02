@@ -1,12 +1,12 @@
-import time
-import typing
+# import time
+# import typing
 import asyncio
 import traceback
 
 from queue import Empty
 from multiprocessing.queues import Queue
 
-from operator import attrgetter
+# from operator import attrgetter
 
 from background_process.base_service import BaseService
 from background_process.update_checking_service import BooksLibraryChecker
@@ -29,7 +29,7 @@ class BackgroundProcess:
         self.output_queue = output_queue
         self.settings = config
         self.running = True
-        self.services_commands: typing.List[typing.Tuple[asyncio.Task, ServiceCommand]] = []
+        self.services_commands: typing.List[asyncio.Task] = []
         self.database = Database(database_host=config.db_host, database_name=config.db_name,
                                  database_user=config.db_user,
                                  database_password=config.db_password, database_port=config.db_port,
@@ -202,12 +202,25 @@ class BackgroundProcess:
             if new_paste:
                 self.__return_data(possible_paste)
 
+
+        # try:
+        #     self.services[5].retrieve_completed_cache()
+        # except (ErrorReport, ErrorList, ProxyErrorReport) as e:
+        #     self.__return_data(e)
+
+        await self.clean_queue()
+
+    async def clean_queue(self):
         # clean up of queue history
         book_ids_to_delete = []
         for book_id, data_dict in self.queue_history.items():
             done = False
             if len(data_dict['chs']) == 0:
-                continue   # TODO deal with this case better in case it fails to catch any new chapter
+                self.__return_data(ErrorReport(Exception, f'book "{data_dict["obj"].name}" was found at the background '
+                                                          f'queue with no chapters in queue', traceback="at the clean "
+                                                                                                        "queue func"))
+                continue   # TODO deal with this case better in case it fails to catch any new chapter as it
+                # shouldn't even happen in the first place
             for chapter_id, chapter_dict in data_dict['chs'].items():
                 if chapter_dict['buy_done'] is False:
                     break
@@ -237,10 +250,17 @@ class BackgroundProcess:
         for book_id in book_ids_to_delete:
             del self.queue_history[book_id]
 
-        # try:
-        #     self.services[5].retrieve_completed_cache()
-        # except (ErrorReport, ErrorList, ProxyErrorReport) as e:
-        #     self.__return_data(e)
+    async def force_queue_update(self, command: ForceQueueUpdate) -> ForceQueueUpdate:
+        for book_id, data_dict in self.queue_history.items():
+            self.queue_history[book_id]['_'] = data_dict['_'] + 300
+            for chapter_id, chapter_data in data_dict['chs'].items():
+                self.queue_history[book_id]['chs'][chapter_id]['buy_done'] = True
+                self.queue_history[book_id]['chs'][chapter_id]['in_paste'] = True
+                self.queue_history[book_id]['chs'][chapter_id]['paste'] = True
+
+        await self.clean_queue()
+
+        return command.completed_status()
 
     async def run(self):
         while self.running:
@@ -250,9 +270,6 @@ class BackgroundProcess:
             except Exception as e:
                 self.__return_data(ErrorReport(type(e), f'found exception at the top in the background process',
                                                traceback.format_exc(), e))
-
-    async def restart_service(self, service_id: int):
-        pass
 
     def unknown_received_object(self, object_, *, where: str = None):
         # traceback.format_exc()
@@ -288,8 +305,64 @@ class BackgroundProcess:
                 chapters_list.append(ChapterStatus(chapter_data['_'], chapter_obj, status_int))
             data_to_return.append(BookStatus(data_dict['_'], book_obj, *chapters_list))
             # data_to_return.append(new_book_dict)
-
         return data_to_return
+
+    async def service_stopper(self, service_command: ServiceCommand) -> ServiceCommand:
+        service_to_use = self.services[service_command.service_id]
+        try:
+            await service_to_use.stop()
+        except TimeoutError:
+            service_command.failed_status()
+        except ServiceIsNotRunningError:
+            service_command.failed_status(comment=f'Service "{service_to_use.name}" is not running')
+        except asyncio.CancelledError as e:
+            raise e
+        except Exception as e:
+            service_command.unknown_status(comment=f"The following error was found when attempting to stop the "
+                                                   f"{service_to_use.name}, error:  {e},  error type:   {type(e)}")
+        else:
+            service_command.completed_status()
+        return service_command
+
+    def service_starter(self, service_command: ServiceCommand) -> ServiceCommand:
+        service_to_use = self.services[service_command.service_id]
+        try:
+            service_to_use.start()
+        except AlreadyRunningServiceError:
+            service_command.failed_status(comment=f"service {service_to_use.name} is already running")
+        except asyncio.CancelledError as e:
+            raise e
+        except Exception as e:
+            service_command.unknown_status(comment=f'The following error was found when attempting to '
+                                                   f'stop service "{service_to_use.name}", '
+                                                   f'error:  {e},  error type:  {type(e)}')
+        return service_command
+
+    async def service_restarter(self, service_command: ServiceCommand) -> ServiceCommand:
+        service_to_use = self.services[service_command.service_id]
+
+        successful_stop = False
+
+        try:
+            await service_to_use.stop()
+        except ServiceIsNotRunningError:
+            successful_stop = True
+        except asyncio.CancelledError as e:
+            raise e
+        except TimeoutError:
+            pass
+        else:
+            successful_stop = True
+
+        if successful_stop is False:
+            return service_command.failed_status(comment=f"service {service_to_use.name} failed to stop successfully")
+
+        try:
+            service_to_use.start()
+        except AlreadyRunningServiceError:
+            return service_command.failed_status(comment=f"service {service_to_use.name} failed to start")
+        else:
+            return service_command.completed_status()
 
     async def command_handler(self):
         while self.running:
@@ -309,17 +382,22 @@ class BackgroundProcess:
                         received_object.generate_return_time()
                         self.__return_data(received_object)
                     if issubclass(type(received_object), Command):
+                        if isinstance(received_object, ForceQueueUpdate):
+                            self.services_commands.append(asyncio.create_task(self.force_queue_update(received_object)))
                         if isinstance(received_object, ProcessCommand):
-                            pass
+                            pass  # TODO do this
                         elif issubclass(type(received_object), ServiceCommand):
-                            service = self.services[received_object.service_id]
                             if isinstance(received_object, StartService):
-                                self.services_commands.append((self.loop.create_task(service.start()), received_object))
+                                service_command = self.service_starter(received_object)
+                                self.__return_data(service_command)
                             elif isinstance(received_object, StopService):
-                                self.services_commands.append((self.loop.create_task(service.stop()), received_object))
+                                self.services_commands.append(asyncio.create_task(self.service_stopper(
+                                    received_object)))
+
                             elif isinstance(received_object, RestartService):
-                                self.services_commands.append((self.loop.create_task(self.restart_service(
-                                    received_object.service_id)), received_object))
+                                self.services_commands.append(asyncio.create_task(self.service_restarter(
+                                    received_object)))
+
                             else:
                                 self.unknown_received_object(received_object, where='deciding what type of service '
                                                                                     'command it is')
@@ -339,27 +417,17 @@ class BackgroundProcess:
                             # process", traceback.format_exc(), error_object=received_object))
 
                 # will check if a service command is done
-                commands_to_be_cleared = []
+                task_to_be_cleared = []
                 # for command_task, command_request in self.services_commands:
-                for command_tuple in self.services_commands:
-                    command_task = command_tuple[0]
-                    command_request = command_tuple[1]
+                for command_task in self.services_commands:
                     if command_task.done():
-                        try:
-                            result = command_task.result()
-                            if result:
-                                command_request.completed_status()
-                                commands_to_be_cleared.append(command_tuple)
-                                self.__return_data(command_request)
-                            else:
-                                command_request.unknown_status(comment=str(result))
-                                commands_to_be_cleared.append(command_tuple)
-                                self.__return_data(command_request)
-                        except (TimeoutError, ServiceIsNotRunningError, AlreadyRunningServiceError) as e:
-                            command_request.failed_status(comment=f"The command failed with error {e}")
-                            self.__return_data(command_request)
+                        service_command = command_task.result()
+                        task_to_be_cleared.append(command_task)
+                        self.__return_data(service_command)
                     else:
                         pass
+                for command_to_be_cleared in task_to_be_cleared:
+                    self.services_commands.remove(command_to_be_cleared)
 
                 await asyncio.sleep(1.5)
             except asyncio.CancelledError as e:
