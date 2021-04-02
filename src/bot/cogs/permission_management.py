@@ -4,6 +4,8 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 
+from asyncpg.exceptions import ForeignKeyViolationError, UniqueViolationError
+
 from bot import bot_exceptions
 from dependencies.database.database import Database
 from dependencies.database.database_exceptions import DatabaseDuplicateEntry
@@ -111,6 +113,38 @@ class PermissionManagement(commands.Cog):
         except Exception as e:
             raise e
         await ctx.send(f"Successfully added channel `{channel.name}` to the whitelist! :smiley:")
+
+    @commands.command()
+    @bot_checks.check_permission_level(8)
+    async def set_channel_type(self, ctx: Context, channel: discord.TextChannel, channel_type: int):
+        channel_id = channel.id
+        try:
+            await self.db.channel_type_adder(channel_id, channel_type)
+            await ctx.send("Channel assingned correctly")
+            return
+        except ForeignKeyViolationError:
+            # doesn't exist the type
+            await ctx.send("The type you are attempting to assign the channel to doesn't exist.... aborting...")
+            return
+        except UniqueViolationError:
+            # There is already a channel assign to type
+            await ctx.send("There is already a channel assigned to this type... do you wish to update it?")
+            await ctx.send("(Here a confirmation should happen..... Cabum should stop lazing around....)\nupdating...")
+            await self.db.channel_type_updater(channel_id, channel_type)
+            await ctx.send("Channel type successfully updated")
+
+    @commands.command()
+    @bot_checks.check_permission_level(8)
+    async def channel_type_remover(self, ctx: Context, channel_type: int):
+        await ctx.send("(Here a confirmation should happen..... Cabum should stop lazing around....)\ndeleting...")
+        await self.db.channel_type_remover(channel_type)
+        await ctx.send("Channel type assignment cleared successfully!")
+
+    @commands.command()
+    @bot_checks.check_permission_level(6)
+    async def all_channels_types(self, ctx: Context):
+        raise NotImplementedError
+
 
     @commands.command()
     @bot_checks.is_whitelist()
