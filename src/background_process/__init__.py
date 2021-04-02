@@ -127,3 +127,27 @@ class BackgroundProcessInterface:
         request_object = QueueHistoryStatusRequest(data_id)
         self.toward_background.put(request_object)
         return await self.wait_data_return(data_id)
+
+    async def force_queue_update(self) -> ForceQueueUpdate:
+        data_id = self.__generate_data_id()
+        request_object = ForceQueueUpdate(data_id)
+        self.toward_background.put(request_object)
+        return await self.wait_data_return(data_id)
+
+    async def start_service(self, service_id: int) -> StartService:
+        data_id = self.__generate_data_id()
+        request_object = StartService(data_id, service_id)
+        self.toward_background.put(request_object)
+        return await self.wait_data_return(data_id)
+
+    async def stop_service(self, service_id: int) -> StopService:
+        data_id = self.__generate_data_id()
+        request_object = StopService(data_id, service_id)
+        self.toward_background.put(request_object)
+        return await self.wait_data_return(data_id)
+
+    async def restart_service(self, service_id: int) -> RestartService:
+        data_id = self.__generate_data_id()
+        request_object = RestartService(data_id, service_id)
+        self.toward_background.put(request_object)
+        return await self.wait_data_return(data_id)
