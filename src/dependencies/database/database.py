@@ -137,7 +137,7 @@ class Database:
     async def channel_type_retriever(self, channel_type: int) -> typing.Union[None, int]:
         await self.__init_check__()
         query = """SELECT "CHANNEL_ID" FROM "CHANNELS" WHERE "CHANNEL_TYPE"=$1"""
-        record = await self._db_pool.fetch(query, channel_type)
+        record = await self._db_pool.fetchrow(query, channel_type)
         if record is None:
             return None
         return record[0]
