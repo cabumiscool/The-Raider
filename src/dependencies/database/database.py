@@ -238,6 +238,24 @@ class Database:
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
         raise NotImplementedError
 
+    async def retrieve_all_book_string_matches(self) -> dict:
+        await self.__init_check__()
+        query = 'SELECT "BOOK_ID", "BOOK_NAME", "BOOK_ABBREVIATION" FROM "BOOKS_DATA"'
+        books_data = await self._db_pool.fetch(query)
+        all_matches = {}
+        for book_id, book_name, book_abbreviation in books_data:
+            all_matches[book_id] = book_id
+            all_matches[book_name] = book_id
+            if book_abbreviation:
+                all_matches[book_abbreviation] = book_id
+        return all_matches
+
+    async def get_chapter_ids_from_index(self, book_id: int, range_start: int, range_end: int):
+        await self.__init_check__()
+        query = f'SELECT "INDEX", "CHAPTER_ID" FROM "CHAPTERS" WHERE "BOOK_ID" = {book_id} AND "INDEX" BETWEEN {range_start} AND {range_end} '
+        chapter_ids_with_index = await self._db_pool.fetch(query)
+        return chapter_ids_with_index
+
     async def release_accounts_over_five_in_use_minutes(self):
         await self.__init_check__()
         release_query = '''UPDATE "QIACCOUNT" SET "IN_USE"=False 
