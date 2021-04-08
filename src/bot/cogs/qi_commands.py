@@ -3,6 +3,7 @@ from typing import Union, List, Tuple, Dict
 
 from discord.ext import commands
 from discord.ext.commands import Context
+import privatebinapi
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
 from dependencies.database.database import Database
@@ -78,9 +79,24 @@ class QiCommands(commands.Cog):
         for book_string in parsed_chapter_requests:
             book_obj = await self.__interactive_book_chapter_string_to_book(ctx, book_string)
             if book_obj:
-                book_chapter_requests[book_obj.id] = book_obj, parsed_chapter_requests[book_string]
+                if book_chapter_requests.get(book_obj.id) is None:
+                    book_chapter_requests[book_obj.id] = []
 
-        # TODO: Link up buyer logic with the buyer service in a common location under dependencies or create a new class
+                for range_start, range_end in parsed_chapter_requests[book_string]:
+                    chapter_ids = await self.db.get_chapter_ids_from_index(book_obj.id, range_start, range_end)
+                    chapter_ids_list = [chapter_ids[i:i + 20] for i in range(0, len(chapter_ids), 20)]
+                    book_chapter_requests[book_obj.id].extend(chapter_ids_list)
+
+        for book_id in book_chapter_requests:
+            for chapter_ids in book_chapter_requests[book_id]:
+                paste_data = ''
+                for chapter_id in chapter_ids:
+                    # TODO: retrieve_buyer_account in database.py needs work
+                    account = await self.db.retrieve_buyer_account()
+                    chapter = await book.chapter_buyer(book_id, chapter_id, account=account)
+                    paste_data += chapter.content
+                link = privatebinapi.send(paste_data)
+                await ctx.send(link)
 
     @commands.command(aliases=['qi', 'q'])
     @bot_checks.check_permission_level(6)
