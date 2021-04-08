@@ -31,13 +31,10 @@ async def book_string_to_book_id(all_books_ids_names_sub_names_dict: dict, book_
     return matched_book_ids_and_score
 
 
-# async def book_string_matcher(database: Database, book_string, limit: int = 5, *, base_score: int = SELECTION_SCORE,
-#                               selection_diff: int = SELECTION_SCORE_DIFF) -> Union[None, List[Tuple['Book', int]]]:
-#     all_valid_book_strings = await database.get_all_books_ids_names_sub_names_dict()
-#     matches = process.extractBests(book_string, all_valid_book_strings, limit=limit)
-#
-#     if len(matches) == 0:
-#         return None
-#     if len(matches) == 1 or (matches[0][1] > matches[1][1] + selection_diff and matches[0][1] > base_score):
-#         return matches[:1]
-#     return matches
+# TODO: To be implemented later and modify buy in qi_commands Cog
+async def book_range_to_chapter_ids(book_id: int, chapter_range: tuple):
+    raise NotImplementedError
+
+
+async def book_chapter_ids_to_paste(book_id: int, chapter_range: list):
+    raise NotImplementedError
