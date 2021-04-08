@@ -90,10 +90,9 @@ class QiCommands(commands.Cog):
         for book_id in book_chapter_requests:
             for chapter_ids in book_chapter_requests[book_id]:
                 paste_data = ''
-                for chapter_id in chapter_ids:
+                for chapter_id_record in chapter_ids:
                     # TODO: retrieve_buyer_account in database.py needs work
-                    account = await self.db.retrieve_buyer_account()
-                    chapter = await book.chapter_buyer(book_id, chapter_id, account=account)
+                    chapter = await book.chapter_buyer(book_id, chapter_id_record[1])
                     paste_data += chapter.content
                 link = privatebinapi.send(paste_data)
                 await ctx.send(link)

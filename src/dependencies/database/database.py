@@ -252,8 +252,8 @@ class Database:
 
     async def get_chapter_ids_from_index(self, book_id: int, range_start: int, range_end: int):
         await self.__init_check__()
-        query = f'SELECT "INDEX", "CHAPTER_ID" FROM "CHAPTERS" WHERE "BOOK_ID" = {book_id} AND "INDEX" BETWEEN {range_start} AND {range_end} '
-        chapter_ids_with_index = await self._db_pool.fetch(query)
+        query = f'SELECT "INDEX", "CHAPTER_ID" FROM "CHAPTERS" WHERE "BOOK_ID" = $1 AND "INDEX" BETWEEN $2 AND $3'
+        chapter_ids_with_index = await self._db_pool.fetch(query, book_id, range_start, range_end)
         return chapter_ids_with_index
 
     async def release_accounts_over_five_in_use_minutes(self):
