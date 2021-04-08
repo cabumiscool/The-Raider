@@ -3,7 +3,6 @@ from typing import List, Union, Tuple, TYPE_CHECKING
 
 from fuzzywuzzy import process
 
-# from dependencies.database.database import Database
 
 if TYPE_CHECKING:
     from dependencies.webnovel.classes import Book

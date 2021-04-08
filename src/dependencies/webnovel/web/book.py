@@ -236,7 +236,7 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
 
 
 async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes.Book, int], session: aiohttp.ClientSession = None,
-                              proxy: Proxy = None):
+                              proxy: Proxy = None) -> classes.Book:
     if isinstance(book_or_book_id, int):
         book_or_book_id = classes.SimpleBook(book_or_book_id, '', 0)
     try_attempts = 0

@@ -8,9 +8,8 @@ from operator import itemgetter
 
 import asyncpg
 
-from dependencies.proxy_classes import Proxy, DummyProxy
 from dependencies.database.database_exceptions import *
-
+from dependencies.proxy_classes import Proxy, DummyProxy
 from dependencies.webnovel.classes import *
 
 
@@ -222,7 +221,7 @@ class Database:
         book.add_volume_list(all_volumes_list)
         return book
 
-    async def get_all_books_ids_names_sub_names_dict(self, *, invert: bool = False) -> typing.Dict[str: int]:
+    async def get_all_books_ids_and_names_dict(self, *, invert: bool = False) -> typing.Dict[str: int]:
         await self.__init_check__()
         request_query = '''SELECT "BOOK_NAME", "BOOK_ID" FROM "BOOKS_DATA"'''
         records_list = await self._db_pool.fetch(request_query)

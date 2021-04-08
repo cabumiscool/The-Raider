@@ -126,7 +126,7 @@ class MigrationCog(commands.Cog):
         list_of_book_ids = [int(book_id) for book_id in list_of_book_ids_str]
 
         books_to_retrieve = []
-        dict_with_book_ids_and_names = await self.db.get_all_books_ids_names_sub_names_dict(invert=True)
+        dict_with_book_ids_and_names = await self.db.get_all_books_ids_and_names_dict(invert=True)
         for book_id in list_of_book_ids:
             if book_id not in dict_with_book_ids_and_names:
                 books_to_retrieve.append(book_id)
