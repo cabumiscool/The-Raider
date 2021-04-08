@@ -23,16 +23,17 @@ def book_string_and_range_matcher(user_string: str) -> Dict[str, List[Tuple[int,
     clean_input = bloat_content_match.sub('', user_string)
     title_ranges_pairs = title_range_match.findall(clean_input)
     book_string_and_ranges = {}
-    for title, ranges in title_ranges_pairs:
+    for book_string, ranges in title_ranges_pairs:
         chapter_indices = []
         ranges_list = range_match.findall(ranges)
         for chapter_range in ranges_list:
             range_start = int(chapter_range[0])
-            range_end = int(chapter_range[1])
-            if not range_end:
+            if chapter_range[1] == '':
                 range_end = range_start
+            else:
+                range_end = int(chapter_range[1])
             chapter_indices.append((range_start, range_end))
-        book_string_and_ranges[title] = chapter_indices
+        book_string_and_ranges[book_string] = chapter_indices
     return book_string_and_ranges
 
 
