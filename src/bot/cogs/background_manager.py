@@ -152,23 +152,53 @@ class BackgroundManager(commands.Cog):
         embed = bot_utils.generate_embed('Services Status', ctx.author, *fields)
         await ctx.send(embed=embed)
 
-    @commands.command()
+    @bot_checks.check_permission_level(8)
+    @commands.command(brief='Will retrieve the contents of the background queue WIP')
     async def queue_status(self, ctx: Context):
         queue_history_stats = await self.background_process_interface.request_queue_status()
         await ctx.send("embed pending to be made by dev")
         await ctx.send("printing queue content instead")
+        await ctx.send(f"{len(queue_history_stats.books_status_list)} books on the background queue.... contents: ")
+
+        books_messages = []
         for book_status in queue_history_stats.books_status_list:
+            book_message = []
             book_status: BookStatus
             stages = []
             for stage_name, quantity in book_status.chapters_status_dict.items():
                 if quantity > 0:
                     stages.append(f"{stage_name}: {quantity}")
-            await ctx.send(f"{book_status.base_obj.name}\n"
-                           f"Chapters at queue: {len(book_status.chapters)}\n")
+            book_message.append(f"{book_status.base_obj.name}\nChapters at queue: {len(book_status.chapters)}")
             if len(stages) > 0:
-                await ctx.send(f"Chapters stage status:  \n%s" % '\n'.join(stages))
+                book_message.append(f"Chapters stage status:  \n%s\n" % '\n'.join(stages))
 
-    @commands.command()
+            books_messages.append('\n'.join(book_message))
+
+        completed_messages = []
+        to_join = []
+        chars_count = 0
+        for book_message in books_messages:
+            if len(book_message) + chars_count + 1 < 2000:
+                to_join.append(book_message)
+                chars_count += len(book_message) + 1
+            else:
+                completed_messages.append('\n'.join(to_join))
+                to_join.clear()
+                chars_count = 0
+
+        if len(to_join) != 0:
+            completed_messages.append('\n'.join(to_join))
+
+        async_tasks = []
+        for completed_message in completed_messages:
+            async_tasks.append(asyncio.create_task(ctx.send(completed_message)))
+
+        await asyncio.gather(*async_tasks)
+        await ctx.send('finished printing queue')
+
+    @bot_checks.check_permission_level(6)
+    @commands.command(brief='Will force the background process to update the db with the data available in the '
+                            'background without waiting')
     async def force_queue_update(self, ctx: Context):
         await ctx.send("Are you sure you want to force the background queue to update its value? This will cause any "
                        "ongoing buy to be cancelled and ignored afterwards. (Please confirm in 60 seconds....)")
