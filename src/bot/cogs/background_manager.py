@@ -95,7 +95,8 @@ class BackgroundManager(commands.Cog):
         await asyncio.gather(*send_tasks)
 
     @bot_checks.check_permission_level(5)
-    @commands.command(aliases=['stat', 'status'])
+    @commands.command(aliases=['stat', 'status'],
+                      brief='Retrieves the status of the bot')
     async def stats(self, ctx: Context):
         if self.last_ping == 0:
             last_ping_str = 'never'
@@ -128,7 +129,8 @@ class BackgroundManager(commands.Cog):
             self.services_ids.append(service.service_id)
             self.services_names[service.service_name] = service.service_id
 
-    @commands.command()
+    @bot_checks.check_permission_level(5)
+    @commands.command(brief='Retrieves the operating status of the background services')
     async def services_stats(self, ctx: Context):
         reports = await self.background_process_interface.request_all_services_status()
         self.inner_services_cache_updater(reports)
@@ -143,6 +145,8 @@ class BackgroundManager(commands.Cog):
                 last_execution_str = 'Started but never finished'
             elif last_execution == -1:
                 last_execution_str = 'Service was stopped'
+            elif last_execution == -10:
+                last_execution_str = 'Captcha cooldown was hit.... resting'
             else:
                 time_difference = datetime.datetime.now() - datetime.datetime.fromtimestamp(last_execution)
                 last_execution_str = f'{time_difference.total_seconds():.3f} secs ago'
@@ -217,7 +221,9 @@ class BackgroundManager(commands.Cog):
         else:
             await ctx.send(f"The command {ctx.command} ran by {ctx.author} was successfully executed, queue updated.")
 
-    @commands.command()
+    @bot_checks.check_permission_level(6)
+    @commands.command(brief='Manages multiple service management operations',
+                      help='Manages the manual start, stop, and restart of any background service')
     async def service(self, ctx: Context, operation: str, name_or_id: typing.Union[int, str]):
         await ctx.send("attempting operation")
         operation_lower_case = operation.lower()
@@ -259,7 +265,7 @@ class BackgroundManager(commands.Cog):
             await ctx.send(f"The command service {operation} executed by {ctx.author} was successfully executed")
 
     # TODO to be deleted after alpha
-    @commands.command()
+    @commands.command(hidden=True)
     @bot_checks.check_permission_level(10)
     async def test_m(self, ctx: Context):
         print('trying to retrieve buyer account')
@@ -268,7 +274,7 @@ class BackgroundManager(commands.Cog):
         await self.db.release_accounts_over_five_in_use_minutes()
         print('released extra accounts')
 
-    @commands.command()
+    @commands.command(hidden=True)
     async def ping(self, ctx: Context):
         await ctx.send('Ping!')
 
