@@ -9,6 +9,9 @@ from dependencies.webnovel.exceptions import UnknownResponseCode
 API_ENDPOINT = 'https://m.ficool.com/app/api/book'
 
 
+default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
+
+
 # TODO study if the following methods exist on waka api
 async def chapter_list_retriever():
     pass
@@ -29,7 +32,7 @@ async def chapter_retriever(book_id: int, chapter_id: int, volume_index: int, se
 
     else:
         if proxy:
-            proxy_connector = proxy.generate_connector()
+            proxy_connector = proxy.generate_connector(**default_connector_settings)
             async with aiohttp.request('GET', api, params=params, connector=proxy_connector) as request:
                 data_dict = decode_qi_content(await request.read())
         else:
