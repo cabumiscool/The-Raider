@@ -35,8 +35,6 @@ def find_volume_index_from_id(chapter_id, volumes: List[classes.Volume]) -> int:
 async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session: aiohttp.ClientSession = None,
                                         proxy_connector: aiohttp_socks.ProxyConnector = None):
     if session is None:
-        # TODO check if it is possible to retrieve a specific cookie from the session and csrf to the params
-
         if not proxy_connector:
             proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
@@ -393,9 +391,8 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
 
 async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
                         account: classes.QiAccount = None, proxy: Proxy = None, *, use_ss=False) -> classes.Chapter:
-    cookies = None
-    if hasattr(account, 'cookies'):
-        cookies = account.cookies
+    if account and session is None:
+        raise ValueError("Missing either account or session as a parameter")
     volumes = await chapter_list_retriever(book_id, session=session, proxy=proxy)
     chapter_volume_index = find_volume_index_from_id(chapter_id, volumes)
 
@@ -403,7 +400,10 @@ async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSe
     chapter = await chapter_retriever(book_id, chapter_id, chapter_volume_index,
                                       session=session, account=account, proxy=proxy)
     if chapter.is_full_content is False:
-        chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, cookies=cookies,
-                                                      proxy=proxy)
+        if session:
+            chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, proxy=proxy)
+        else:
+            chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, cookies=account.cookies,
+                                                          proxy=proxy)
         chapter.is_full_content = True
     return chapter
