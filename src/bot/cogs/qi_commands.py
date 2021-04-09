@@ -1,4 +1,6 @@
 import re
+import asyncio
+import time
 from typing import Union, List, Tuple, Dict
 
 from discord.ext import commands
@@ -8,8 +10,9 @@ import privatebinapi
 from bot.bot_utils import generate_embed, emoji_selection_detector
 from dependencies.database.database import Database
 from dependencies.database import database_exceptions
-from dependencies.webnovel.classes import SimpleBook
+from dependencies.webnovel.classes import SimpleBook, SimpleChapter
 from dependencies.webnovel.web import book
+from dependencies.webnovel.waka import book as waka_book
 from dependencies.webnovel.utils import book_string_to_book_id
 from . import bot_checks
 
@@ -18,6 +21,11 @@ NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣'
 range_match = re.compile(r'\[?\**`?(\d+)[ \-]*(\d*)`?\**]?,? ?')
 bloat_content_match = re.compile(r'((:sparkles: )?\**\d+\** chapter[s]? missing from )')
 title_range_match = re.compile(r'[`"\']?([\w\d,!.:()’?\-\' ]+?)[\'"`]? ?[\s\- ]+((?:\[?\**`?\d+[ \-]*\d*`?\**]?,? ?)+)')
+
+paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%s" ' \
+                 'data-SS-Price="%s" data-index="%s" data-is-Vip="%s" data-source="qi_latest" data-from="%s" ' \
+                 '>Chapter %s:  %s</h3>'
+data_from = ['qi', 'waka-waka']
 
 
 def book_string_and_range_matcher(user_string: str) -> Dict[str, List[Tuple[int, int]]]:
@@ -69,6 +77,53 @@ class QiCommands(commands.Cog):
             return None
         return await self.db.retrieve_simple_book(possible_matches[NUMERIC_EMOTES.index(chosen_emote)][0])
 
+    async def buy_wrapper(self, book_: SimpleBook, *chapters: SimpleChapter):
+        waka_proxy = await self.db.retrieve_proxy(1)
+
+        # TODO move somewhere else
+        async def individual_buyer(chapter: SimpleChapter):
+            buyer_account = await self.db.retrieve_buyer_account()
+            while True:
+                working_account = await buyer_account.async_check_valid()
+                if working_account:
+                    break
+                else:
+                    buyer_account = await self.db.retrieve_buyer_account()
+
+            if chapter.is_privilege:
+                chapter_obj = await waka_book.chapter_retriever(book_id=chapter.parent_id, chapter_id=chapter.id,
+                                                                volume_index=chapter.volume_index, proxy=waka_proxy)
+            else:
+                chapter_obj = await book.chapter_buyer(book_id=chapter.parent_id, chapter_id=chapter.id,
+                                                       account=buyer_account)
+
+            await self.db.release_account(buyer_account)
+
+            return chapter_obj
+
+        async_tasks = [asyncio.create_task(individual_buyer(chapter)) for chapter in chapters]
+        ranges = [chapter.index for chapter in chapters]
+        ranges.sort()
+        chapters = await asyncio.gather(*async_tasks)
+
+        chapters_strings = []
+        for chapter in chapters:
+            metadata = paste_metadata % (
+                chapter.parent_id, chapter.id, time.time(), chapter.price, chapter.index,
+                chapter.is_vip, data_from[chapter.is_privilege], chapter.index, chapter.name)
+            chapters_strings.append('\n'.join((metadata, chapter.content)))
+
+        complete_string = '\n'.join(chapters_strings)
+
+        paste_response = privatebinapi.send(server='https://vim.cx/', text=complete_string)
+        if ranges[0] == ranges[-1]:
+            range_str = f'{ranges[0]}'
+        else:
+            range_str = f'{ranges[0]}-{ranges[1]}'
+        paste_url = f"!paste {book_.name} - {range_str} {paste_response['full_url']}"
+
+        return paste_url
+
     @commands.command(aliases=['b'])
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
@@ -76,26 +131,30 @@ class QiCommands(commands.Cog):
         user_input = " ".join(args)
         parsed_chapter_requests = book_string_and_range_matcher(user_input)
         book_chapter_requests = {}
+        books_objs = {}
         for book_string in parsed_chapter_requests:
             book_obj = await self.__interactive_book_chapter_string_to_book(ctx, book_string)
             if book_obj:
                 if book_chapter_requests.get(book_obj.id) is None:
                     book_chapter_requests[book_obj.id] = []
 
-                for range_start, range_end in parsed_chapter_requests[book_string]:
-                    chapter_ids = await self.db.get_chapter_ids_from_index(book_obj.id, range_start, range_end)
-                    chapter_ids_list = [chapter_ids[i:i + 20] for i in range(0, len(chapter_ids), 20)]
-                    book_chapter_requests[book_obj.id].extend(chapter_ids_list)
+                if books_objs.get(book_obj.id) is None:
+                    books_objs[book_obj.id] = book_obj
 
-        for book_id in book_chapter_requests:
-            for chapter_ids in book_chapter_requests[book_id]:
-                paste_data = ''
-                for chapter_id_record in chapter_ids:
-                    # TODO: retrieve_buyer_account in database.py needs work
-                    chapter = await book.chapter_buyer(book_id, chapter_id_record[1])
-                    paste_data += chapter.content
-                link = privatebinapi.send(paste_data)
-                await ctx.send(link)
+                for range_start, range_end in parsed_chapter_requests[book_string]:
+                    chapter_objs = await self.db.get_chapter_objs_from_index(book_obj.id, range_start, range_end)
+                    # chapter_ids_list = [chapter_ids[i:i + 20] for i in range(0, len(chapter_ids), 20)]  # Not sure
+                    # if understood this logic correctly and copied it for the change
+                    book_chapter_requests[book_obj.id].extend(chapter_objs)
+
+        async_tasks = []
+        for book_id, chapters_list in book_chapter_requests.items():
+            async_tasks.append(asyncio.create_task(self.buy_wrapper(books_objs[book_id], *chapters_list)))
+
+        pastes = await asyncio.gather(*async_tasks)
+        paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
+        await asyncio.gather(*paste_tasks)
+
 
     @commands.command(aliases=['qi', 'q'])
     @bot_checks.check_permission_level(6)
@@ -121,6 +180,11 @@ class QiCommands(commands.Cog):
     @commands.command(aliases=['batch_add, many_add'])
     async def batch_add_books(self, ctx: Context, *book_ids):
         pass
+
+    @commands.command(enabled=False)
+    async def test_q(self, ctx: Context):
+        books_list = await self.db.retrieve_all_simple_books()
+        print(True)
 
 
 def setup(bot):

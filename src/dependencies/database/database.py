@@ -250,11 +250,18 @@ class Database:
                 all_matches[book_abbreviation] = book_id
         return all_matches
 
-    async def get_chapter_ids_from_index(self, book_id: int, range_start: int, range_end: int):
+    async def get_chapter_objs_from_index(self, book_id: int, range_start: int, range_end: int) -> \
+            typing.List[SimpleChapter]:
         await self.__init_check__()
-        query = f'SELECT "INDEX", "CHAPTER_ID" FROM "CHAPTERS" WHERE "BOOK_ID" = $1 AND "INDEX" BETWEEN $2 AND $3'
-        chapter_ids_with_index = await self._db_pool.fetch(query, book_id, range_start, range_end)
-        return chapter_ids_with_index
+        query = f'''SELECT "PRIVILEGE", "CHAPTER_ID", "INDEX", "VIP_LEVEL", "CHAPTER_NAME", "VOLUME" 
+        FROM "CHAPTERS" WHERE "BOOK_ID" = $1 AND "INDEX" BETWEEN $2 AND $3'''
+        chapters_records = await self._db_pool.fetch(query, book_id, range_start, range_end)
+        chapters = []
+        for chapter_record in chapters_records:
+            chapters.append(SimpleChapter(chapter_record[0], chapter_record[1], book_id, chapter_record[2],
+                                          chapter_record[3], chapter_record[4], chapter_record[5]))
+
+        return chapters
 
     async def release_accounts_over_five_in_use_minutes(self):
         await self.__init_check__()
