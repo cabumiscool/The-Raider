@@ -31,7 +31,8 @@ class Raider(commands.AutoShardedBot):
         self.config = Settings()
         super().__init__(command_prefix=_custom_prefix_adder(self.config.bot_prefix),
                          description=self.config.bot_description, pm_help=None, help_attrs=dict(hidden=True),
-                         fetch_offline_members=False, heartbeat_timeout=150.0)
+                         fetch_offline_members=False, heartbeat_timeout=150.0,
+                         help_command=commands.DefaultHelpCommand(dm_help=True))
         self.bot_token = self.config.bot_token
         self.db = Database(self.config.db_host, self.config.db_name, self.config.db_user, self.config.db_password,
                            self.config.db_port, self.config.min_db_conns, self.config.max_db_conns, loop=self.loop)
