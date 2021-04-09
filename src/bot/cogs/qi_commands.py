@@ -115,7 +115,7 @@ class QiCommands(commands.Cog):
 
         complete_string = '\n'.join(chapters_strings)
 
-        paste_response = privatebinapi.send(server='https://vim.cx/', text=complete_string)
+        paste_response = await privatebinapi.send_async(server='https://vim.cx/', text=complete_string)
         if ranges[0] == ranges[-1]:
             range_str = f'{ranges[0]}'
         else:
