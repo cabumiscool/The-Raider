@@ -53,22 +53,25 @@ class BaseService:
         """This func will be the main logic of the service. it should be redeclared in every service and must not
         be the actual loop only the logic. The loop will be taken care of by the run func"""
 
+    async def inner_error_handler(self):
+        try:
+            await self.main()
+        except asyncio.CancelledError:
+            error = background_objects.ErrorReport(asyncio.CancelledError, f'Service {self.name} received a cancel '
+                                                                           f'command and was executed',
+                                                   traceback.format_exc())
+            self._encountered_errors.append(error)
+            raise asyncio.CancelledError
+        except Exception as e:
+            error = background_objects.ErrorReport(e, 'error caught at top level execution of service',
+                                                   traceback.format_exc(), e)
+            self._encountered_errors.append(error)
+        finally:
+            self.last_loop = time.time()
+
     async def __run(self):
         while self._running:
-            try:
-                await self.main()
-            except asyncio.CancelledError:
-                error = background_objects.ErrorReport(asyncio.CancelledError, f'Service {self.name} received a cancel '
-                                                                               f'command and was executed',
-                                                       traceback.format_exc())
-                self._encountered_errors.append(error)
-                raise asyncio.CancelledError
-            except Exception as e:
-                error = background_objects.ErrorReport(e, 'error caught at top level execution of service',
-                                                       traceback.format_exc(), e)
-                self._encountered_errors.append(error)
-            finally:
-                self.last_loop = time.time()
+            await self.inner_error_handler()
             await asyncio.sleep(self._loop_interval)
 
     def start(self):
