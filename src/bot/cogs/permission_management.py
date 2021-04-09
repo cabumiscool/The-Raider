@@ -27,7 +27,7 @@ class PermissionManagement(commands.Cog):
 
     @commands.command()
     @bot_checks.is_whitelist()
-    @bot_checks.check_permission_level(2)
+    @bot_checks.check_permission_level(6)
     async def check_permissions(self, ctx: Context, user: discord.member.User):
         user_id = user.id
         if user_id is None:
@@ -158,7 +158,7 @@ class PermissionManagement(commands.Cog):
         else:
             await ctx.send(f"Channel `{channel.name}` is not on the whitelist!")
 
-    @commands.command()
+    @commands.command(hiiden=True)
     @bot_checks.check_permission_level(8)
     async def test(self, ctx: Context, mention: Union[discord.TextChannel, str]):
         await ctx.send(f"channel is :  {mention},  type:  {type(mention)}")
