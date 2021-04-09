@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 import typing
 import time
-import json
-from operator import itemgetter
+# import json
+# from operator import itemgetter
 
 import asyncpg
 
@@ -483,11 +483,15 @@ class Database:
         query_args = (pages_number, account.guid)
         await self._db_pool.execute(query, *query_args)
 
-    async def update_account_fp_count(self, fp_count: int, account: QiAccount):
+    async def update_account_fp_count(self, fp_count: int, account: QiAccount, *, farm_update: bool = False):
         """Will update the fp count of the respective account"""
         await self.__init_check__()
-        query = '''UPDATE "QIACCOUNT" SET "FP"=$1 WHERE "GUID"=$2'''
-        query_args = (fp_count, account.guid)
+        if farm_update:
+            query = '''UPDATE "QIACCOUNT" SET "FP"=$1, "LAST_CURRENCY_UPDATE_AT"=$2 WHERE "GUID"=$3'''
+            query_args = (fp_count, time.time(), account.guid)
+        else:
+            query = '''UPDATE "QIACCOUNT" SET "FP"=$1 WHERE "GUID"=$2'''
+            query_args = (fp_count, account.guid)
         await self._db_pool.execute(query, *query_args)
 
     async def retrieve_specific_library_type_number_account(self, library_type: int) -> QiAccount:
@@ -496,6 +500,19 @@ class Database:
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
         "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "LIBRARY_TYPE" = $1 AND "EXPIRED" = False'''
         account_record = await self._db_pool.fetchrow(query, library_type)
+        account = QiAccount(account_record[0], account_record[1], account_record[2], account_record[3],
+                            account_record[4], account_record[5], account_record[6], account_record[7],
+                            account_record[8], account_record[9], account_record[10], account_record[11])
+        return account
+
+    async def retrieve_expired_account(self) -> typing.Union[None, QiAccount]:
+        """Will retrieve an expired account from the db giving priority to the library accounts"""
+        await self.__init_check__()
+        query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "EXPIRED" = TRUE ORDER BY "LIBRARY_TYPE" DESC '''
+        account_record = await self._db_pool.fetchrow(query)
+        if account_record is None:
+            return None
         account = QiAccount(account_record[0], account_record[1], account_record[2], account_record[3],
                             account_record[4], account_record[5], account_record[6], account_record[7],
                             account_record[8], account_record[9], account_record[10], account_record[11])
@@ -517,6 +534,16 @@ class Database:
                 accounts.append(QiAccount(record[0], record[1], record[2], record[3], record[4], record[5], record[6],
                                           record[7], record[8], record[9], record[10], record[11]))
         return accounts
+
+    async def retrieve_account_for_farming(self):
+        """Will retrieve an account that the last currency update was 24 hrs ago"""
+        query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT"
+        WHERE (select extract(epoch from now())) - "LAST_CURRENCY_UPDATE_AT" >= 86400.0 and "EXPIRED" = False
+          and "IN_USE" = False'''
+        record = await self._db_pool.fetchrow(query)
+        return QiAccount(record[0], record[1], record[2], record[3], record[4], record[5], record[6], record[7],
+                         record[8], record[9], record[10], record[11])
 
     async def retrieve_account_stats(self) -> typing.Tuple[typing.Tuple[int, int], int]:
         await self.__init_check__()
@@ -548,12 +575,37 @@ class Database:
         query_args = (account.guid,)
         await self._db_pool.execute(query, *query_args)
 
+    async def update_account_params(self, account: QiAccount):
+        """will update the cookies, ticket, and expired status of the given account at the db"""
+        await self.__init_check__()
+        query = f'UPDATE "QIACCOUNT" SET "COOKIES"=$1, "TICKET"=$2, "EXPIRED"=$3, ' \
+                f'"UPDATED_AT"={time.time()} WHERE "GUID"=$4'
+        query_args = (account.cookies, account.ticket, account.expired, account.guid)
+        await self._db_pool.execute(query, *query_args)
+
     async def release_account(self, account: QiAccount):
         """Will set an in use account as available again"""
         await self.__init_check__()
         query = 'UPDATE "QIACCOUNT" SET "IN_USE"=FALSE WHERE "GUID"=$1'
         query_args = (account.guid,)
         await self._db_pool.execute(query, *query_args)
+
+    async def retrieve_email_obj(self, *, id_: int = None, email_address: str = None):
+        """Will retrieve an email account object using the keyword parameter given as the search key, only one given
+        key will be used"""
+        await self.__init_check__()
+        query = '''SELECT "ID", "EMAIL_ADDRESS", "EMAIL_PASSWORD" FROM "EMAIL_ACCOUNTS"'''
+        if id_:
+            query = ' '.join([query, 'WHERE "ID" = $1'])
+            query_args = (id_,)
+        elif email_address:
+            query = ''.join([query, 'WHERE "EMAIL_ADDRESS" = $1'])
+            query_args = (email_address,)
+        else:
+            raise Exception
+        email_record = await self._db_pool.fetchrow(query, *query_args)
+        return EmailAccount(email_record[1], email_record[2], email_record[0])
+
 
     # TODO Delete once complete migration from seeker to raider
     async def retrieve_email_accounts(self) -> typing.Dict[int: EmailAccount]:
