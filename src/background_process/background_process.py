@@ -51,8 +51,8 @@ class BackgroundProcess:
             assert issubclass(type(loop), asyncio.AbstractEventLoop)
             self.loop = loop
 
-        # for id_, service in self.services.items():
-        #     service.start()
+        for id_, service in self.services.items():
+            service.start()
         # self.services[1].start()
         # self.services[2].start()
         # self.services[4].start()
