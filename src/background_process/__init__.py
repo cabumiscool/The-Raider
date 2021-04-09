@@ -19,7 +19,8 @@ from queue import Empty
 
 def background_starter(input_queue: Queue, output_queue: Queue, config: Settings):
     policy = asyncio.get_event_loop_policy()
-    policy.set_event_loop(policy.new_event_loop())
+    # policy.set_event_loop(policy.new_event_loop())
+    policy.set_event_loop(asyncio.SelectorEventLoop())
     loop = policy.get_event_loop()
 
     if sys.gettrace():  # checks if the code is running in debug mode and if it is it sets the loop in debug mode.
@@ -86,6 +87,8 @@ class BackgroundProcessInterface:
                     self._data_returns[data.id] = data
             except Empty:
                 await asyncio.sleep(1.5)
+            except Exception as e:
+                print(f"Critical exception at data receiver in background manager.... error:  {e} | type:  {type(e)}")
 
     async def wait_data_return(self, data_id: int, *, timeout: int = 30):
         start_time = time.time()
