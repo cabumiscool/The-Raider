@@ -14,6 +14,15 @@ from bs4 import BeautifulSoup
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
 
+def retrieve_csrftoken_from_session(session: aiohttp.ClientSession):
+    assert isinstance(session, aiohttp.ClientSession)
+    csrf_token = ''
+    for cookie in session.cookie_jar:
+        if cookie.key == '_csrfToken':
+            csrf_token = cookie.value
+    return csrf_token
+
+
 async def retrieve_energy_stone_books() -> list:
     books_ids = []
     async with aiohttp.request("get", "https://www.webnovel.com/vote") as resp:
@@ -46,7 +55,7 @@ async def retrieve_farm_status(session: aiohttp.ClientSession = None, account: Q
         proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
     if session:
-        # TODO get csrftoken from session and add to params
+        task_list_params['_csrfToken'] = retrieve_csrftoken_from_session(session)
         async with session.get(task_list_url, params=task_list_params) as request:
             response_dict = decode_qi_content(await request.read())
     else:
@@ -80,7 +89,7 @@ async def claim_login(session: aiohttp.ClientSession = None, account: QiAccount 
         proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
     if session:
-        # TODO: retrieve csrftoken from session
+        claim_data['_csrfToken'] = retrieve_csrftoken_from_session(session)
         async with session.post(claim_url, data=claim_data) as request:
             response_dict = decode_qi_content(await request.read())
     else:
@@ -114,7 +123,7 @@ async def claim_power_stone(book_id: typing.Union[int, str], session: aiohttp.Cl
         proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
     if session:
-        # TODO: retrieve the csrftoken from the session cookies
+        power_stone_vote_data['_csrfToken'] = retrieve_csrftoken_from_session(session)
         async with session.post(power_stone_vote_url, data=power_stone_vote_data) as request:
             response_dict = decode_qi_content(await request.read())
     else:
@@ -148,7 +157,7 @@ async def claim_energy_stone(book: typing.Union[SimpleBook, int, Book], session:
     else:
         energy_stone_vote_data = {'bookId': str(book.id)}
     if session:
-        # TODO: extract the csrftoken from the session and add it to the data dict
+        energy_stone_vote_data['_csrfToken'] = retrieve_csrftoken_from_session(session)
         async with session.post(energy_stone_vote_url, data=energy_stone_vote_data) as request:
             response_dict = decode_qi_content(await request.read())
     else:
