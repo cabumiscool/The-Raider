@@ -27,6 +27,7 @@ class MigrationCog(commands.Cog):
         self.config = bot.config
         self.db: Database = bot.db
 
+    @bot_checks.check_permission_level(10)
     @commands.command()
     # TODO add a check that only seeker can run this command
     # TODO delete once raider can farm by itself
@@ -116,6 +117,7 @@ class MigrationCog(commands.Cog):
 
     @commands.command()
     @bot_checks.has_attachment()
+    @bot_checks.check_permission_level(10)
     async def import_batch_books(self, ctx: Context):
         message_obj = ctx.message
         attachments_list = message_obj.attachments
