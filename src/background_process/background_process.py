@@ -1,5 +1,5 @@
-# import time
-# import typing
+import time
+import typing
 import asyncio
 import traceback
 
@@ -14,6 +14,8 @@ from background_process.new_chapter_finder import NewChapterFinder
 from background_process.buyer_service import BuyerService
 from background_process.paste_service import PasteCreator, PasteRequest, MultiPasteRequest, Paste
 # from background_process.proxy_manager_service import ProxyManager
+from background_process.cookie_maintainer_service import CookieMaintainerService
+from background_process.farmer_service import CurrencyFarmerService
 from background_process.background_objects import *
 
 from dependencies.database.database import Database
@@ -39,6 +41,8 @@ class BackgroundProcess:
                                                         3: BuyerService(self.database),
                                                         4: PasteCreator(),
                                                         # 5: ProxyManager(self.database)
+                                                        5: CookieMaintainerService(self.database),
+                                                        6: CurrencyFarmerService(self.database)
                                                         }
 
         if loop is None:
@@ -47,14 +51,21 @@ class BackgroundProcess:
             assert issubclass(type(loop), asyncio.AbstractEventLoop)
             self.loop = loop
 
-        for id_, service in self.services.items():
-            service.start()
+        # for id_, service in self.services.items():
+        #     service.start()
+        # self.services[1].start()
+        # self.services[2].start()
+        # self.services[4].start()
+        # self.services[5].start()
+        # self.services[6].start()
 
         self.queue_history = {}
+        self.last_main_loop = 0
         self.command_handler_task = self.loop.create_task(self.command_handler())
         self._main_loop_task = self.loop.create_task(self.run())
 
     def __return_data(self, data):
+        # print("adding the next object to the output queue:  ", type(data), "  data:  ", data)
         self.output_queue.put(data, block=False)
 
     async def main_loop(self):
@@ -104,14 +115,15 @@ class BackgroundProcess:
 
         for possible_chapter in possible_new_chapters:
             possible_chapter: classes.SimpleChapter
-            if possible_chapter.id not in self.queue_history[possible_chapter.parent_id]['chs']:
-                self.queue_history[possible_chapter.parent_id]['chs'][possible_chapter.id] = {'obj': possible_chapter,
-                                                                                              '_': time.time(),
-                                                                                              'in buy': True,
-                                                                                              'buy_done': False,
-                                                                                              'in_paste': False,
-                                                                                              'paste': False}
-                new_chapters.append(possible_chapter)
+            if possible_chapter.parent_id in self.queue_history:
+                if possible_chapter.id not in self.queue_history[possible_chapter.parent_id]['chs']:
+                    self.queue_history[possible_chapter.parent_id]['chs'][possible_chapter.id] = {'obj': possible_chapter,
+                                                                                                  '_': time.time(),
+                                                                                                  'in buy': True,
+                                                                                                  'buy_done': False,
+                                                                                                  'in_paste': False,
+                                                                                                  'paste': False}
+                    new_chapters.append(possible_chapter)
 
         # TODO add the ping checker around here
 
@@ -202,13 +214,19 @@ class BackgroundProcess:
             if new_paste:
                 self.__return_data(possible_paste)
 
-
-        # try:
-        #     self.services[5].retrieve_completed_cache()
-        # except (ErrorReport, ErrorList, ProxyErrorReport) as e:
-        #     self.__return_data(e)
-
+        await self.no_output_services_error_retrieval()
         await self.clean_queue()
+
+    async def no_output_services_error_retrieval(self):
+        for id_, service in self.services.items():
+            if service.output_service is True:
+                try:
+                    service.retrieve_completed_cache()
+                except ErrorReport as e:
+                    self.__return_data(e)
+                except ErrorList as e:
+                    for error in e.errors:
+                        self.__return_data(error)
 
     async def clean_queue(self):
         # clean up of queue history
@@ -216,10 +234,11 @@ class BackgroundProcess:
         for book_id, data_dict in self.queue_history.items():
             done = False
             if len(data_dict['chs']) == 0:
-                self.__return_data(ErrorReport(Exception, f'book "{data_dict["obj"].name}" was found at the background '
-                                                          f'queue with no chapters in queue', traceback="at the clean "
-                                                                                                        "queue func"))
-                continue   # TODO deal with this case better in case it fails to catch any new chapter as it
+                if time.time() - data_dict['_'] == 60:
+                    self.__return_data(
+                        ErrorReport(Exception, f'book "{data_dict["obj"].name}" was found at the background '
+                                               f'queue with no chapters in queue', "at the clean queue func"))
+                continue  # TODO deal with this case better in case it fails to catch any new chapter as it
                 # shouldn't even happen in the first place
             for chapter_id, chapter_dict in data_dict['chs'].items():
                 if chapter_dict['buy_done'] is False:
@@ -237,35 +256,51 @@ class BackgroundProcess:
                     book_ids_to_delete.append(book_id)
 
         # saving data to db
-        for book_id in book_ids_to_delete:
-            await self.database.update_book(self.queue_history[book_id]['obj'])
-            chapters: typing.List[typing.Union[classes.Chapter, classes.SimpleChapter]] = []
-            for chapter_id, chapter_data in self.queue_history[book_id]['chs'].items():
-                chapter_id: int
-                chapter_data: dict
-                chapters.append(chapter_data['obj'])
-            await self.database.batch_add_chapters(*chapters)
+        async_tasks = [asyncio.create_task(self.update_book_to_db_and_delete_local(book_id)) for
+                       book_id in book_ids_to_delete]
+        # for book_id in book_ids_to_delete:
+        #     await self.database.update_book(self.queue_history[book_id]['obj'])
+        #     chapters: typing.List[typing.Union[classes.Chapter, classes.SimpleChapter]] = []
+        #     for chapter_id, chapter_data in self.queue_history[book_id]['chs'].items():
+        #         chapter_id: int
+        #         chapter_data: dict
+        #         chapters.append(chapter_data['obj'])
+        #     await self.database.batch_add_chapters(*chapters)
+        #     del self.queue_history[book_id]
 
-        # cleaning up
-        for book_id in book_ids_to_delete:
-            del self.queue_history[book_id]
+        await asyncio.gather(*async_tasks)
+
+    async def update_book_to_db_and_delete_local(self, book_id: int):
+        async_tasks = [asyncio.create_task(self.database.update_book(self.queue_history[book_id]['obj']))]
+
+        chapters: typing.List[typing.Union[classes.Chapter, classes.SimpleChapter]] = []
+
+        for chapter_id, chapter_data in self.queue_history[book_id]['chs'].items():
+            chapter_id: int
+            chapter_data: dict
+            chapters.append(chapter_data['obj'])
+        async_tasks.append(asyncio.create_task(self.database.batch_add_chapters(*chapters)))
+        await asyncio.gather(*async_tasks)
+        del self.queue_history[book_id]
 
     async def force_queue_update(self, command: ForceQueueUpdate) -> ForceQueueUpdate:
         for book_id, data_dict in self.queue_history.items():
-            self.queue_history[book_id]['_'] = data_dict['_'] + 300
+            self.queue_history[book_id]['_'] = data_dict['_'] - 300
             for chapter_id, chapter_data in data_dict['chs'].items():
                 self.queue_history[book_id]['chs'][chapter_id]['buy_done'] = True
                 self.queue_history[book_id]['chs'][chapter_id]['in_paste'] = True
                 self.queue_history[book_id]['chs'][chapter_id]['paste'] = True
 
-        await self.clean_queue()
+        # await self.clean_queue()
 
-        return command.completed_status()
+        command.unknown_status(comment="Result couldn't be verified")
+        return command
 
     async def run(self):
         while self.running:
             try:
                 await self.main_loop()
+                self.last_main_loop = time.time()
                 await asyncio.sleep(5)
             except Exception as e:
                 self.__return_data(ErrorReport(type(e), f'found exception at the top in the background process',
@@ -298,9 +333,10 @@ class BackgroundProcess:
                 for key, value in chapter_data.items():
                     if not isinstance(value, bool):
                         continue
-                    status_int += 1
                     if value is False:
                         break
+                    status_int += 1
+
                 # new_book_dict['chs'].append({'chapter': chapter_obj, '_': chapter_data['_'], 'status': (key, value)})
                 chapters_list.append(ChapterStatus(chapter_data['_'], chapter_obj, status_int))
             data_to_return.append(BookStatus(data_dict['_'], book_obj, *chapters_list))
@@ -355,14 +391,17 @@ class BackgroundProcess:
             successful_stop = True
 
         if successful_stop is False:
-            return service_command.failed_status(comment=f"service {service_to_use.name} failed to stop successfully")
+            service_command.failed_status(comment=f"service {service_to_use.name} failed to stop successfully")
+            return service_command
 
         try:
             service_to_use.start()
         except AlreadyRunningServiceError:
-            return service_command.failed_status(comment=f"service {service_to_use.name} failed to start")
+            service_command.failed_status(comment=f"service {service_to_use.name} failed to start")
+            return service_command
         else:
-            return service_command.completed_status()
+            service_command.completed_status()
+            return service_command
 
     async def command_handler(self):
         while self.running:
@@ -384,7 +423,7 @@ class BackgroundProcess:
                     if issubclass(type(received_object), Command):
                         if isinstance(received_object, ForceQueueUpdate):
                             self.services_commands.append(asyncio.create_task(self.force_queue_update(received_object)))
-                        if isinstance(received_object, ProcessCommand):
+                        elif isinstance(received_object, ProcessCommand):
                             pass  # TODO do this
                         elif issubclass(type(received_object), ServiceCommand):
                             if isinstance(received_object, StartService):
@@ -406,6 +445,7 @@ class BackgroundProcess:
                                 for service_id, service in self.services.items():
                                     received_object.services.append(ServiceStatus(service_id, service.name,
                                                                                   service.last_loop))
+                                received_object.services.append(ServiceStatus(0, 'Main loop', self.last_main_loop))
                                 self.__return_data(received_object)
                             if isinstance(received_object, QueueHistoryStatusRequest):
                                 books_queue_status_list = self.read_history_queue()
