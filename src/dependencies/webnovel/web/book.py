@@ -391,7 +391,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
 
 async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
                         account: classes.QiAccount = None, proxy: Proxy = None, *, use_ss=False) -> classes.Chapter:
-    if account and session is None:
+    if account is None and session is None:
         raise ValueError("Missing either account or session as a parameter")
     volumes = await chapter_list_retriever(book_id, session=session, proxy=proxy)
     chapter_volume_index = find_volume_index_from_id(chapter_id, volumes)
