@@ -8,7 +8,7 @@ from background_process import background_objects
 
 class BaseService:
     """The base class from where all the services will inherit"""
-    def __init__(self, name: str = None, loop_time: int = 20):
+    def __init__(self, name: str = None, loop_time: int = 20, *, output_service: bool = True):
         if name is None:
             self.name = self.__class__.__name__
         else:
@@ -19,6 +19,7 @@ class BaseService:
         self._running = False
         self._loop_interval = loop_time
         self.last_loop = 0
+        self.output_service = output_service
         self._main_loop_task = None
         self._main_loop_task: asyncio.Task
         self._loop = asyncio.get_event_loop_policy().get_event_loop()
