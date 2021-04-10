@@ -121,7 +121,7 @@ class QiCommands(commands.Cog):
         if ranges[0] == ranges[-1]:
             range_str = f'{ranges[0]}'
         else:
-            range_str = f'{ranges[0]}-{ranges[1]}'
+            range_str = f'{ranges[0]}-{ranges[-1]}'
         paste_url = f"!paste {book_.name} - {range_str} {paste_response['full_url']}"
 
         return paste_url
@@ -157,6 +157,7 @@ class QiCommands(commands.Cog):
         pastes = await asyncio.gather(*async_tasks)
         paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
         await asyncio.gather(*paste_tasks)
+        asyncio.create_task(ctx.message.add_reaction('😄'))
 
     @commands.command(aliases=['bl'])
     @bot_checks.check_permission_level(3)
