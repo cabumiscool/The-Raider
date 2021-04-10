@@ -27,7 +27,7 @@ class PermissionManagement(commands.Cog):
 
     @commands.command()
     @bot_checks.is_whitelist()
-    @bot_checks.check_permission_level(6)
+    @bot_checks.check_permission_level(8)
     async def check_permissions(self, ctx: Context, user: discord.member.User):
         user_id = user.id
         if user_id is None:
@@ -60,7 +60,7 @@ class PermissionManagement(commands.Cog):
 
     @commands.command()
     @bot_checks.is_whitelist()
-    @bot_checks.check_permission_level(6)
+    @bot_checks.check_permission_level(8)
     async def authorize(self, ctx: Context, item: Union[discord.member.User, discord.guild.Role], level: int):
         db = self.db
         role = False
@@ -101,7 +101,7 @@ class PermissionManagement(commands.Cog):
                 await ctx.send(f"successfully changed `{item.name}` clearance level from {target_level} to {level}")
 
     @commands.command()
-    @bot_checks.check_permission_level(6)
+    @bot_checks.check_permission_level(8)
     async def whitelist(self, ctx: Context, channel: Union[discord.TextChannel]):
         channel_id = channel.id
         server_id: int = channel.guild.id
@@ -141,14 +141,14 @@ class PermissionManagement(commands.Cog):
         await ctx.send("Channel type assignment cleared successfully!")
 
     @commands.command()
-    @bot_checks.check_permission_level(6)
+    @bot_checks.check_permission_level(8)
     async def all_channels_types(self, ctx: Context):
         raise NotImplementedError
 
 
     @commands.command()
     @bot_checks.is_whitelist()
-    @bot_checks.check_permission_level(6)
+    @bot_checks.check_permission_level(8)
     async def whitelist_remove(self, ctx: Context, channel: discord.TextChannel):
         db = self.db
         channel_is_whitelist = await db.whitelist_check(channel.guild.id, channel.id)
