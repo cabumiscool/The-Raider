@@ -66,12 +66,11 @@ class BaseService:
             error = background_objects.ErrorReport(e, 'error caught at top level execution of service',
                                                    traceback.format_exc(), e)
             self._encountered_errors.append(error)
-        finally:
-            self.last_loop = time.time()
 
     async def __run(self):
         while self._running:
             await self.inner_error_handler()
+            self.last_loop = time.time()
             await asyncio.sleep(self._loop_interval)
 
     def start(self):

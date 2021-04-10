@@ -47,6 +47,7 @@ class CookieMaintainerService(BaseService):
 
                 elif response['code'] == 11401:
                     self.captcha_block = time.time()
+                    return
 
             if response['code'] == 0:
                 # cookie_and_ticket_data = login_obj.get_data()
@@ -58,7 +59,8 @@ class CookieMaintainerService(BaseService):
                 flag = True
 
             else:
-                print(f'Unknown Response for {expired_account.email}! Logging dict:{response}')
+                print(f'Unknown Response for {expired_account.email}! Response_code:  {response["code"]}.'
+                      f' Logging dict:{response}')
                 flag = False
 
             if flag is not False:
@@ -76,4 +78,5 @@ class CookieMaintainerService(BaseService):
                 await asyncio.sleep(self._loop_interval)
             else:
                 await self.inner_error_handler()
+                self.last_loop = time.time()
                 await asyncio.sleep(self._loop_interval)
