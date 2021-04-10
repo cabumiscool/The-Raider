@@ -57,6 +57,10 @@ class SimpleChapter:
         self.parent_id = int(parent_id)
         self.volume_index = int(volume_index)
 
+    def __repr__(self):
+        return f'<SIMPLE CHAPTER (ID:{self.id}, NAME:{self.name}, INDEX:{self.index}, PRIVILEGE:{self.is_privilege}, ' \
+               f'VIP:{self.is_vip}, PARENT_ID:{self.parent_id}, VOLUME_INDEX:{self.volume_index})>'
+
 
 class Chapter(SimpleChapter):
     def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, vip_status: int, name: str,
@@ -75,6 +79,12 @@ class Chapter(SimpleChapter):
         self.editor = editor
         self.translator = translator
         self.price = int(price)
+
+    def __repr__(self):
+        return f'<CHAPTER (ID:{self.id}, NAME:{self.name}, INDEX:{self.index}, PRIVILEGE:{self.is_privilege}, ' \
+               f'VIP:{self.is_vip}, PARENT_ID:{self.parent_id}, VOLUME_INDEX:{self.volume_index}, PRICE:{self.price}' \
+               f'IS_FULL_CONTENT:{self.is_full_content}>, EDITOR:{self.editor}, TRANSLATOR:{self.translator}, ' \
+               f'NOTE:{self.note}, CONTENT:{self.content})>'
 
     def return_simple_chapter(self):
         return SimpleChapter(int(self.is_privilege), self.id, self.parent_id, self.index, self.is_vip, self.name,
@@ -113,6 +123,9 @@ class Volume:
         self._start_index = starting_index
         self._last_index = last_index
         self._missing_indexes = missing
+
+    def __repr__(self):
+        return f'<VOLUME (INDEX:{self.index}, NAME:{self.name}, BOOK_ID:{self.book_id})>'
 
     def __check_if_index_in_volume(self, index: int):
         return self._start_index <= index <= self._last_index and index not in self._missing_indexes
@@ -197,6 +210,10 @@ class SimpleBook:
             self.cover_id = int(cover_id)
         self.library_number = library_number  # this value can only be found in the internal db
 
+    def __repr__(self):
+        return f'<SIMPLE BOOK (ID:{self.id}, NAME:{self.name}, TOTAL_CHAPTERS:{self.total_chapters}, ' \
+               f'LIBRARY_NUMBER:{self.library_number}, ABBREVIATION:{self.abbreviation}, COVER_ID:{self.cover_id})>'
+
     def __ne__(self, other):
         if isinstance(other, (SimpleBook, Book)):
             return self.total_chapters != other.total_chapters
@@ -227,19 +244,24 @@ class Book(SimpleBook):
                          library_number=library_number)
         self.privilege = is_privileged
         type_is_tl = int(type_is_tl)
-        self.book_type = self._types[type_is_tl]
+        self.book_type = Book._types[type_is_tl]
         self.book_type_num = type_is_tl
         self.book_status = int(action_status)
-        self.book_status_text = self._status.get(self.book_status, 'UNKNOWN')
+        self.book_status_text = Book._status.get(self.book_status, 'UNKNOWN')
         if reading_type is not None:
             reading_type = int(reading_type)
-            self.read_type = self._payment_method[reading_type]
+            self.read_type = Book._payment_method[reading_type]
             self.read_type_num = reading_type
         else:
             self.read_type = None
             self.read_type_num = None
         self._volumes_list = []
         self._volume_dict = {}
+
+    def __repr__(self):
+        return f'<BOOK (ID:{self.id}, NAME:{self.name}, PRIVILEGE:{self.privilege}, BOOK_TYPE:{self.book_type} ' \
+               f'TOTAL_CHAPTERS:{self.total_chapters}, READ_TYPE:{self.read_type}, COVER_ID:{self.cover_id}, ' \
+               f'BOOK_STATUS:{self.book_status_text}, LIBRARY_NUMBER:{self.library_number})>'
 
     def __ne__(self, other):
         if isinstance(other, Book):
@@ -343,6 +365,11 @@ class QiAccount:
         self.host_email_id = main_email_id
         self.guid = int(guid)
 
+    def __repr__(self):
+        return f'<QI_ACCOUNT (ID:{self.id}, GUID:{self.guid}, EMAIL:{self.email}, FP_COUNT:{self.fast_pass_count}, ' \
+               f'EXPIRED:{self.expired}, UPDATE_TIME{self.update_time}, HOST_EMAIL:{self.host_email_id}, ' \
+               f'LIBRARY_TYPE:{self.library_type}, LIBRARY_PAGES:{self.library_pages})>'
+
     def _read_valid(self, user_dict: dict) -> bool:
         if user_dict['userName'] != '':
             self.fast_pass_count = user_dict['fastPass']
@@ -382,3 +409,6 @@ class EmailAccount:
         self.id = id_
         self.email = email
         self.password = password
+
+    def __repr__(self):
+        return f'<EMAIL_ACCOUNT (ID:{self.id}, EMAIL:{self.email})>'
