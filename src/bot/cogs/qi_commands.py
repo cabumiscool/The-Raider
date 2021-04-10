@@ -158,6 +158,12 @@ class QiCommands(commands.Cog):
         paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
         await asyncio.gather(*paste_tasks)
 
+    @commands.command(aliases=['bl'])
+    @bot_checks.check_permission_level(3)
+    async def buy_link(self, ctx: Context, pastebin_link: str):
+        paste = await privatebinapi.get_async(pastebin_link)
+        await self.buy(ctx, paste['text'])
+
     @commands.command(aliases=['qi', 'q'])
     @bot_checks.check_permission_level(6)
     async def qi_book(self, ctx: Context, book_id: int):
