@@ -32,7 +32,7 @@ def check_permission_level(required_level: int = 0):
         perm = await db.permission_retriever(*ids)
         if perm is None:
             perm = 0
-        if perm > required_level or is_god:
+        if perm >= required_level or is_god:
             return True
         raise bot_exceptions.NotEnoughPerms(f"{ctx.author} does not have enough permission to run the command")
 
