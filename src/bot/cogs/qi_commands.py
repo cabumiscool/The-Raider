@@ -2,6 +2,7 @@ import re
 import asyncio
 import time
 from typing import Union, List, Tuple, Dict
+from operator import attrgetter
 
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -105,7 +106,7 @@ class QiCommands(commands.Cog):
         ranges = [chapter.index for chapter in chapters]
         ranges.sort()
         chapters = await asyncio.gather(*async_tasks)
-
+        chapters.sort(key=attrgetter('index'))
         chapters_strings = []
         for chapter in chapters:
             metadata = paste_metadata % (
@@ -129,6 +130,7 @@ class QiCommands(commands.Cog):
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
     async def buy(self, ctx: Context, *args):
+        asyncio.create_task(ctx.message.add_reaction('🧐'))
         user_input = " ".join(args)
         parsed_chapter_requests = book_string_and_range_matcher(user_input)
         book_chapter_requests = {}
