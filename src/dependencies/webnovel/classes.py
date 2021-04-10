@@ -245,10 +245,11 @@ class Book(SimpleBook):
         if isinstance(other, Book):
             if len(self._volumes_list) > 0 and len(self._volumes_list) > 0:
                 return_list = []
+                # self_chapters_id = [volume.return_all_chapters_ids() for volume in self.return_volume_list()]
+                self_chapters_id = __retrieve_all_chapters_ids__(self)
 
-                self_chapters_id = [volume.return_all_chapters_ids() for volume in self.return_volume_list()]
-
-                other_chapters_id = [volume.return_all_chapters_ids() for volume in other.return_volume_list()]
+                # other_chapters_id = [volume.return_all_chapters_ids() for volume in other.return_volume_list()]
+                other_chapters_id = __retrieve_all_chapters_ids__(other)
 
                 for chapter_id in self_chapters_id:
                     if chapter_id in other_chapters_id:
@@ -289,6 +290,14 @@ class Book(SimpleBook):
                     pass
             raise ValueError("Chapter not found on the volume")
         raise exceptions.MissingVolumesError('The book object is missing volume objects')
+
+
+def __retrieve_all_chapters_ids__(book: Book):
+    chapters_id = []
+    for volume in book.return_volume_list():
+        volume_chapters_list = volume.return_all_chapters_ids()
+        chapters_id.extend(volume_chapters_list)
+    return  chapters_id
 
 
 class SimpleComic:

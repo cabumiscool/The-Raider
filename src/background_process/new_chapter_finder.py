@@ -18,7 +18,7 @@ class NewChapterFinder(BaseService):
         complete_qi_book = await book.full_book_retriever(book_obj)
         db_book = await self.database.retrieve_complete_book(book_id=book_obj.id)
 
-        new_ids = (complete_qi_book != db_book)[0]
+        new_ids = complete_qi_book != db_book
 
         for chapter_id in new_ids:
             chapter_objs.append(complete_qi_book.retrieve_chapter_by_id(chapter_id))
