@@ -71,7 +71,7 @@ class CookieMaintainerService(BaseService):
                 await self.db.update_account_params(expired_account)
                 # print(f"Updated Cookies of {account[0]}")
 
-    async def __run(self):
+    async def inner_loop_manager(self):
         while True:
             if time.time() - self.captcha_block < 3600:
                 self.last_loop = -10

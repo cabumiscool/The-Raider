@@ -67,7 +67,7 @@ class BaseService:
                                                    traceback.format_exc(), e)
             self._encountered_errors.append(error)
 
-    async def __run(self):
+    async def inner_loop_manager(self):
         while self._running:
             await self.inner_error_handler()
             self.last_loop = time.time()
@@ -78,7 +78,7 @@ class BaseService:
             raise background_objects.AlreadyRunningServiceError(f"service '{self.name}' was attempted to be made to"
                                                                 f" start when it is already running")
         else:
-            self._main_loop_task = self._loop.create_task(self.__run())
+            self._main_loop_task = self._loop.create_task(self.inner_loop_manager())
             self._running = True
             if self.last_loop == 0:
                 self.last_loop = 1
