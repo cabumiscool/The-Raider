@@ -119,6 +119,8 @@ async def check_code(session: aiohttp.ClientSession, ticket: str, webnovel_email
     if response['code'] == 0:
         data = response['data']
         ticket = data['ticket']
+    elif response['code'] == 11401:
+        pass
     else:
         print(f"Check code : {response}")
     return response, ticket
