@@ -215,6 +215,8 @@ class Database:
         all_volumes_list = await self.retrieve_all_volumes(book_id)
 
         record = await self._db_pool.fetchrow(complete_metadata_query, book_id)
+        if record is None:
+            raise NoEntryFoundInDatabaseError
         abbreviation = record[8]
         book = Book(record[0], record[1], record[2], record[3], record[4], record[5], record[6], record[7],
                     abbreviation, library_number=record[9])
