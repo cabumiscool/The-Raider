@@ -54,8 +54,14 @@ async def chapter_retriever(book_id: int, chapter_id: int, volume_index: int, se
     price = chapter_dict_content['price']
     chapter_dict_content: dict
     extra_note = chapter_dict_content.get('extraWords', None)
-    editors = '/'.join(chapter_dict_content['editors'])
-    translators = '/'.join(chapter_dict_content['translators'])
+    try:
+        editors = '/'.join(chapter_dict_content['editors'])
+    except TypeError:
+        editors = f"{chapter_dict_content['editors']} | value couldn't be parsed... tell a dev!"
+    try:
+        translators = '/'.join(chapter_dict_content['translators'])
+    except TypeError:
+        translators = f"{chapter_dict_content['translators']} | value couldn't be parsed... tell a dev!"
 
     chapter_note = classes.ChapterNote(0, '', '', extra_note, '', '')
 
