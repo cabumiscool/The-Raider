@@ -145,7 +145,6 @@ class PermissionManagement(commands.Cog):
     async def all_channels_types(self, ctx: Context):
         raise NotImplementedError
 
-
     @commands.command()
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(8)
@@ -162,6 +161,15 @@ class PermissionManagement(commands.Cog):
     @bot_checks.check_permission_level(8)
     async def test(self, ctx: Context, mention: Union[discord.TextChannel, str]):
         await ctx.send(f"channel is :  {mention},  type:  {type(mention)}")
+
+    @commands.command()
+    @bot_checks.check_permission_level(9)
+    async def shutdown(self, ctx: Context):
+        try:
+            await ctx.send("Shutting Down....")
+            await self.bot.logout()
+        finally:
+            exit(0)
 
 
 def setup(bot):
