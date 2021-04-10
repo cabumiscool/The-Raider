@@ -178,15 +178,11 @@ class MigrationCog(commands.Cog):
         count_message = await ctx.send("Starting.....")
         counter = 1
         error_books = []
-        book_adding_tasks = [(asyncio.create_task(self.db.insert_new_book(book)), book)for book in completed_books]
-        time_ = time.time()
-        for task, book in book_adding_tasks:
-            if time.time() - time_ > 3:
-                await count_message.edit(content=f"Adding book {counter} of a total of {len(completed_books)}")
-                time_ = time.time()
+        for book in completed_books:
+            await count_message.edit(content=f"Adding book {counter} of a total of {len(completed_books)}")
             counter += 1
             try:
-                await task
+                await self.db.insert_new_book(book)
             except asyncio.CancelledError as e:
                 raise e
             except Exception:
