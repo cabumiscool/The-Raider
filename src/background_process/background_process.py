@@ -66,7 +66,7 @@ class BackgroundProcess:
 
     def __return_data(self, data):
         # print("adding the next object to the output queue:  ", type(data), "  data:  ", data)
-        if not isinstance(data, Ping) or not isinstance(data, Paste):
+        if type(data) != type(Ping) or type(data) != type(Paste):
             print(f"sending data to the main proc obj:   {data},   type:  {data}")
         self.output_queue.put(data, block=False)
 
