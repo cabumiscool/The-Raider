@@ -63,8 +63,8 @@ class BaseService:
             self._encountered_errors.append(error)
             raise asyncio.CancelledError
         except Exception as e:
-            error = background_objects.ErrorReport(e, 'error caught at top level execution of service',
-                                                   traceback.format_exc(), e)
+            error = background_objects.ErrorReport(type(e), 'error caught at top level execution of service',
+                                                   traceback.format_exc(), str(e))
             self._encountered_errors.append(error)
 
     async def inner_loop_manager(self):
