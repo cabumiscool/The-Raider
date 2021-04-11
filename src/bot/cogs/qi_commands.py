@@ -9,6 +9,9 @@ from discord.ext.commands import Context
 import privatebinapi
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
+
+from dependencies.privatebin import upload_to_privatebin
+
 from dependencies.database.database import Database
 from dependencies.database import database_exceptions
 from dependencies.webnovel.classes import SimpleBook, SimpleChapter
@@ -65,7 +68,7 @@ class QiCommands(commands.Cog):
 
         description = 'Please select the required book:'
         embed = generate_embed(f'Book Selection for {book_string}', ctx.author, description=description, color=200)
-        for index, book_id, score in enumerate(possible_matches):
+        for index, (book_id, score) in enumerate(possible_matches):
             book_obj = await self.db.retrieve_simple_book(book_id)
             score = possible_matches[index][1]
             name = f"{NUMERIC_EMOTES[index]} {book_obj.name}"
@@ -116,8 +119,9 @@ class QiCommands(commands.Cog):
 
         complete_string = '\n'.join(chapters_strings)
 
-        paste_response = await privatebinapi.send_async(server='https://vim.cx/', text=complete_string,
-                                                        formatting="markdown")
+        paste_response = await upload_to_privatebin(complete_string)
+        # paste_response = await privatebinapi.send_async(server='https://vim.cx/', text=complete_string,
+        #                                                 formatting="markdown")
         if ranges[0] == ranges[-1]:
             range_str = f'{ranges[0]}'
         else:

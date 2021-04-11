@@ -3,6 +3,7 @@ import time
 import asyncio
 from operator import attrgetter
 import privatebinapi
+from dependencies.privatebin import upload_to_privatebin
 from background_process.base_service import BaseService
 from background_process import background_objects
 from dependencies.webnovel import classes
@@ -61,16 +62,21 @@ class PasteRequest:
 
 
 async def paste_builder(paste_request: typing.Union[PasteRequest, MultiPasteRequest]):
-    paste_dict = await privatebinapi.send_async('https://vim.cx/', text=paste_request.return_paste_content(),
-                                                formatting='markdown')
+    # paste_dict = await privatebinapi.send_async('https://vim.cx/', text=paste_request.return_paste_content(),
+    #                                             formatting='markdown')
+    paste_url = await upload_to_privatebin(paste_request.return_paste_content())
     complete_book = await full_book_retriever(paste_request.book)
     if isinstance(paste_request, PasteRequest):
-        return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
-                     paste_dict['status'], complete_book, [paste_request.chapter.id],
+        # return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
+        #              paste_dict['status'], complete_book, [paste_request.chapter.id],
+        #              (paste_request.chapter.index, paste_request.chapter.index))
+        return Paste('', paste_url, '', '', 0, complete_book, [paste_request.chapter.id],
                      (paste_request.chapter.index, paste_request.chapter.index))
     elif isinstance(paste_request, MultiPasteRequest):
-        return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
-                     paste_dict['status'], complete_book, [chapter.id for chapter in paste_request.chapters],
+        # return Paste(paste_dict['id'], paste_dict['full_url'], paste_dict['deletetoken'], paste_dict['passcode'],
+        #              paste_dict['status'], complete_book, [chapter.id for chapter in paste_request.chapters],
+        #              (paste_request.chapters[0].index, paste_request.chapters[-1].index))
+        return Paste('', paste_url, '', '', 0, complete_book, [chapter.id for chapter in paste_request.chapters],
                      (paste_request.chapters[0].index, paste_request.chapters[-1].index))
     else:
         # should an error be raised here in case an unknown object is passed?
