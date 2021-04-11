@@ -65,34 +65,38 @@ class BackgroundManager(commands.Cog):
 
     @tasks.loop(seconds=3)
     async def pastes_retriever(self):
-        default_paste_channel: discord.TextChannel = await self.bot.fetch_channel(827393945796870184)
+        try:
+            default_paste_channel: discord.TextChannel = await self.bot.fetch_channel(827393945796870184)
 
-        translated_paste_channel_id = await self.db.channel_type_retriever(1)
-        if translated_paste_channel_id is None:
-            translated_paste_channel = default_paste_channel
-        else:
-            translated_paste_channel: discord.TextChannel = await self.bot.fetch_channel(translated_paste_channel_id)
-
-        original_paste_channel_id = await self.db.channel_type_retriever(2)
-        if original_paste_channel_id is None:
-            original_paste_channel = default_paste_channel
-        else:
-            original_paste_channel: discord.TextChannel = await self.bot.fetch_channel(original_paste_channel_id)
-
-        pastes = self.background_process_interface.return_all_pastes()
-        send_tasks = []
-        for paste in pastes:
-            if paste.ranges[0] == paste.ranges[1]:
-                range_str = paste.ranges[0]
+            translated_paste_channel_id = await self.db.channel_type_retriever(1)
+            if translated_paste_channel_id is None:
+                translated_paste_channel = default_paste_channel
             else:
-                range_str = f"{paste.ranges[0]}-{paste.ranges[1]}"
-            paste_format = f"!paste {paste.book_obj.name} - {range_str} <{paste.full_url}>"
-            if paste.book_obj.book_type_num == 1:
-                send_tasks.append(asyncio.create_task(translated_paste_channel.send(paste_format)))
-            elif paste.book_obj.book_type_num == 2:
-                send_tasks.append(asyncio.create_task(original_paste_channel.send(paste_format)))
+                translated_paste_channel: discord.TextChannel = await self.bot.fetch_channel(translated_paste_channel_id)
 
-        await asyncio.gather(*send_tasks)
+            original_paste_channel_id = await self.db.channel_type_retriever(2)
+            if original_paste_channel_id is None:
+                original_paste_channel = default_paste_channel
+            else:
+                original_paste_channel: discord.TextChannel = await self.bot.fetch_channel(original_paste_channel_id)
+
+            pastes = self.background_process_interface.return_all_pastes()
+            send_tasks = []
+            for paste in pastes:
+                if paste.ranges[0] == paste.ranges[1]:
+                    range_str = paste.ranges[0]
+                else:
+                    range_str = f"{paste.ranges[0]}-{paste.ranges[1]}"
+                paste_format = f"!paste {paste.book_obj.name} - {range_str} <{paste.full_url}>"
+                if paste.book_obj.book_type_num == 1:
+                    send_tasks.append(asyncio.create_task(translated_paste_channel.send(paste_format)))
+                elif paste.book_obj.book_type_num == 2:
+                    send_tasks.append(asyncio.create_task(original_paste_channel.send(paste_format)))
+
+            await asyncio.gather(*send_tasks)
+        except Exception as e:
+            print(f"Critical error at the paste retriever!!:   {e} | type:  {type(e)}")
+            raise e
 
     @bot_checks.check_permission_level(5)
     @commands.command(aliases=['stat', 'status'],
