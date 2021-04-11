@@ -122,7 +122,7 @@ class QiCommands(commands.Cog):
             range_str = f'{ranges[0]}'
         else:
             range_str = f'{ranges[0]}-{ranges[-1]}'
-        paste_url = f"!paste {book_.name} - {range_str} {paste_response['full_url']}"
+        paste_url = f"!paste {book_.name} - {range_str} <{paste_response['full_url']}>"
 
         return paste_url
 

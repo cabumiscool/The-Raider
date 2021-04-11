@@ -86,7 +86,7 @@ class BackgroundManager(commands.Cog):
                 range_str = paste.ranges[0]
             else:
                 range_str = f"{paste.ranges[0]}-{paste.ranges[1]}"
-            paste_format = f"!paste {paste.book_obj.name} - {range_str} {paste.full_url}"
+            paste_format = f"!paste {paste.book_obj.name} - {range_str} <{paste.full_url}>"
             if paste.book_obj.book_type_num == 1:
                 send_tasks.append(asyncio.create_task(translated_paste_channel.send(paste_format)))
             elif paste.book_obj.book_type_num == 2:
