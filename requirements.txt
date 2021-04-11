@@ -8,4 +8,5 @@ python-Levenshtein~=0.12.1
 PrivateBinAPI~=1.0.0
 pylint==2.7.4
 beautifulsoup4~=4.9.3
-aioimaplib
+aioimaplib~=0.7.18
+cryptography~=3.4.7
