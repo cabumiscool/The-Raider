@@ -136,7 +136,7 @@ class Volume:
     def retrieve_chapter_by_index(self, chapter_index: int) -> SimpleChapter:
         if self.__check_if_index_in_volume(chapter_index):
             return self._chapters_with_index[chapter_index]
-        raise ValueError(f"The index '{chapter_index}' is not part of this volume")
+        raise KeyError(f"The index '{chapter_index}' is not part of this volume")
 
     def retrieve_chapter_by_id(self, chapter_id: int) -> SimpleChapter:
         """
@@ -310,8 +310,20 @@ class Book(SimpleBook):
                     return chapter
                 except KeyError:
                     pass
-            raise ValueError("Chapter not found on the volume")
+            raise ValueError("Chapter not found on the Book")
         raise exceptions.MissingVolumesError('The book object is missing volume objects')
+
+    def retrieve_chapter_by_index(self, chapter_index: int):
+        if len(self._volumes_list) > 0:
+            for volume in self._volumes_list:
+                try:
+                    chapter = volume.retrieve_chapter_by_index(chapter_index)
+                    return chapter
+                except KeyError:
+                    pass
+            raise ValueError("Chapter not found on the Book")
+        else:
+            raise exceptions.MissingVolumesError('The book object is missing volume objects')
 
 
 def __retrieve_all_chapters_ids__(book: Book):
