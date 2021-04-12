@@ -10,3 +10,4 @@ pylint==2.7.4
 beautifulsoup4~=4.9.3
 aioimaplib~=0.7.18
 cryptography~=3.4.7
+lxml
