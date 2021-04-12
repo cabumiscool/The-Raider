@@ -268,7 +268,7 @@ class Database:
     async def release_accounts_over_five_in_use_minutes(self):
         await self.__init_check__()
         release_query = '''UPDATE "QIACCOUNT" SET "IN_USE"=False 
-        WHERE "USE_TIME"-(select extract(epoch from now()))>=300'''
+        WHERE (select extract(epoch from now())) - "USE_TIME" >=300'''
         await self._db_pool.execute(release_query)
 
     async def retrieve_buyer_account(self) -> QiAccount:
