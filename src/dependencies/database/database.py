@@ -502,6 +502,8 @@ class Database:
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
         "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "LIBRARY_TYPE" = $1 AND "EXPIRED" = False'''
         account_record = await self._db_pool.fetchrow(query, library_type)
+        if account_record is None:
+            raise NoEntryFoundInDatabaseError(f"No entry found for library type:  {library_type}")
         account = QiAccount(account_record[0], account_record[1], account_record[2], account_record[3],
                             account_record[4], account_record[5], account_record[6], account_record[7],
                             account_record[8], account_record[9], account_record[10], account_record[11])
