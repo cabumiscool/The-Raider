@@ -19,6 +19,7 @@ from background_process.farmer_service import CurrencyFarmerService
 from background_process.background_objects import *
 
 from dependencies.database.database import Database
+from dependencies.database.database_exceptions import DatabaseDuplicateEntry
 from dependencies.webnovel import classes
 
 from config import Settings
@@ -282,7 +283,14 @@ class BackgroundProcess:
             chapter_data: dict
             chapters.append(chapter_data['obj'])
         async_tasks.append(asyncio.create_task(self.database.batch_add_chapters(*chapters)))
-        await asyncio.gather(*async_tasks)
+        try:
+            await asyncio.gather(*async_tasks)
+        except DatabaseDuplicateEntry:
+            for chapter_id, chapter_data in self.queue_history[book_id]['chs'].items():
+                try:
+                    await self.database.insert_new_chapter(chapter_data['obj'])
+                except DatabaseDuplicateEntry:
+                    pass
         del self.queue_history[book_id]
 
     async def force_queue_update(self, command: ForceQueueUpdate) -> ForceQueueUpdate:
