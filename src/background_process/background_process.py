@@ -67,8 +67,8 @@ class BackgroundProcess:
 
     def __return_data(self, data):
         # print("adding the next object to the output queue:  ", type(data), "  data:  ", data)
-        if type(data) != Ping and type(data) != Paste:
-            print(f"sending data to the main proc obj:   {data},   type:  {data}")
+        # if type(data) != Ping and type(data) != Paste:
+        #     print(f"sending data to the main proc obj:   {data},   type:  {data}")
         self.output_queue.put(data, block=False)
 
     async def main_loop(self):

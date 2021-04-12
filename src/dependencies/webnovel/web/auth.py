@@ -145,6 +145,10 @@ async def check_trust(session: aiohttp.ClientSession, ticket: str, encry_param: 
     if response['code'] == 0:
         data = response['data']
         ticket = data['ticket']
+    elif response['code'] == 11318:
+        pass
+    elif response['code'] == 11401:
+        pass
     else:
         print(f"Check Trust: {response}")
     return response, ticket
