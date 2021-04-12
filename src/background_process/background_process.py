@@ -222,7 +222,7 @@ class BackgroundProcess:
 
     async def no_output_services_error_retrieval(self):
         for id_, service in self.services.items():
-            if service.output_service is True:
+            if service.output_service is False:
                 try:
                     service.retrieve_completed_cache()
                 except ErrorReport as e:
