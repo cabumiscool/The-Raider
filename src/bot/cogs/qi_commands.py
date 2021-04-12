@@ -167,10 +167,12 @@ class QiCommands(commands.Cog):
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
     async def id_buy(self, ctx: Context, book_id:int, starting_index: int):
+        asyncio.create_task(ctx.message.add_reaction('🧐'))
         book_obj = await book.full_book_retriever(book_id)
         chapter_obj = book_obj.retrieve_chapter_by_index(starting_index)
         paste = await self.buy_wrapper(book_obj, chapter_obj)
         await ctx.send(paste)
+        asyncio.create_task(ctx.message.add_reaction('😄'))
 
     @commands.command(aliases=['bl'])
     @bot_checks.check_permission_level(3)
