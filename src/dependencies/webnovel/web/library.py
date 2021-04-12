@@ -46,6 +46,9 @@ def __parse_library_page(library_page_list: typing.List[dict]) -> typing.List[ty
     for item in library_page_list:
         type_ = item['novelType']
         if type_ == 0:
+            if item.get('bookName') is None:
+                # book that was removed fromm qi
+                continue
             book_obj = classes.SimpleBook(item['bookId'], item['bookName'], item['totalChapterNum'],
                                           item['coverUpdateTime'])
             items.append(book_obj)
