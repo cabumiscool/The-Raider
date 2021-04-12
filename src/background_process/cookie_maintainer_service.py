@@ -38,7 +38,7 @@ class CookieMaintainerService(BaseService):
 
                 if response['code'] == 11318:
                     encry_param = response['encry']
-                    response, ticket = await auth.send_trust_email(session, ticket, encry_param)
+                    response = await auth.send_trust_email(session, ticket, encry_param)
                     await asyncio.sleep(55)
                     keycode = await self.mail_agents[expired_account.host_email_id].get_keycode_by_recipient(
                         expired_account.email)
