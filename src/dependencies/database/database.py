@@ -395,7 +395,10 @@ class Database:
                 "VOLUME") VALUES ($1, $2, $3, $4, $5, $6, $7)'''
         chapter_tuple_formatted = (chapter.parent_id, chapter.id, chapter.name, chapter.is_privilege, chapter.index,
                                    chapter.is_vip, chapter.volume_index)
-        await self._db_pool.execute(query, chapter_tuple_formatted)
+        try:
+            await self._db_pool.execute(query, chapter_tuple_formatted)
+        except asyncpg.UniqueViolationError:
+            raise DatabaseDuplicateEntry
 
     async def batch_add_chapters(self, *chapters: typing.Union[SimpleChapter, Chapter],
                                  connection: asyncpg.Connection = None):
@@ -408,10 +411,13 @@ class Database:
             assert isinstance(chapter, (Chapter, SimpleChapter)) or issubclass(type(chapter), (Chapter, SimpleChapter))
             formatted_db_chapters.append((chapter.parent_id, chapter.id, chapter.name, chapter.is_privilege,
                                           chapter.index, chapter.is_vip, chapter.volume_index))
-        if connection:
-            await connection.executemany(query, formatted_db_chapters)
-        else:
-            await self._db_pool.executemany(query, formatted_db_chapters)
+        try:
+            if connection:
+                await connection.executemany(query, formatted_db_chapters)
+            else:
+                await self._db_pool.executemany(query, formatted_db_chapters)
+        except asyncpg.UniqueViolationError:
+            raise DatabaseDuplicateEntry
 
     async def retrieve_proxies_ip(self):
         await self.__init_check__()
