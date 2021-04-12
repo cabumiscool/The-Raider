@@ -163,6 +163,15 @@ class QiCommands(commands.Cog):
         await asyncio.gather(*paste_tasks)
         asyncio.create_task(ctx.message.add_reaction('😄'))
 
+    @commands.command(aliases=['ib'])
+    @bot_checks.is_whitelist()
+    @bot_checks.check_permission_level(2)
+    async def id_buy(self, ctx: Context, book_id:int, starting_index: int):
+        book_obj = await book.full_book_retriever(book_id)
+        chapter_obj = book_obj.retrieve_chapter_by_index(starting_index)
+        paste = await self.buy_wrapper(book_obj, chapter_obj)
+        await ctx.send(paste)
+
     @commands.command(aliases=['bl'])
     @bot_checks.check_permission_level(3)
     async def buy_link(self, ctx: Context, pastebin_link: str):
