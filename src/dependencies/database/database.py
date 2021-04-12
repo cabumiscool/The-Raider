@@ -584,7 +584,7 @@ class Database:
         await self.__init_check__()
         query = f'UPDATE "QIACCOUNT" SET "COOKIES"=$1, "TICKET"=$2, "EXPIRED"=$3, ' \
                 f'"UPDATED_AT"={time.time()} WHERE "GUID"=$4'
-        query_args = (account.cookies, account.ticket, account.expired, account.guid)
+        query_args = (json.dumps(account.cookies), account.ticket, account.expired, account.guid)
         await self._db_pool.execute(query, *query_args)
 
     async def release_account(self, account: QiAccount):
