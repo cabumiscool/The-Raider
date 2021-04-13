@@ -519,7 +519,8 @@ class Database:
         """Will retrieve an expired account from the db giving priority to the library accounts"""
         await self.__init_check__()
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
-        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "EXPIRED" = TRUE ORDER BY "LIBRARY_TYPE" DESC '''
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "EXPIRED" = TRUE and "IGNORE_RENEW" = False 
+        ORDER BY "LIBRARY_TYPE" DESC '''
         account_record = await self._db_pool.fetchrow(query)
         if account_record is None:
             return None
