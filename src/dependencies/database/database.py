@@ -396,7 +396,7 @@ class Database:
         chapter_tuple_formatted = (chapter.parent_id, chapter.id, chapter.name, chapter.is_privilege, chapter.index,
                                    chapter.is_vip, chapter.volume_index)
         try:
-            await self._db_pool.execute(query, chapter_tuple_formatted)
+            await self._db_pool.execute(query, *chapter_tuple_formatted)
         except asyncpg.UniqueViolationError:
             raise DatabaseDuplicateEntry
 
