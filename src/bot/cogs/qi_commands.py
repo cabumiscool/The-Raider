@@ -133,7 +133,6 @@ class QiCommands(commands.Cog):
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
     async def buy(self, ctx: Context, *args):
-        asyncio.create_task(ctx.message.add_reaction('🧐'))
         user_input = " ".join(args)
         if not user_input.endswith('\n'):  # To make regex parsing easier
             user_input += '\n'
@@ -162,18 +161,15 @@ class QiCommands(commands.Cog):
         pastes = await asyncio.gather(*async_tasks)
         paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
         await asyncio.gather(*paste_tasks)
-        asyncio.create_task(ctx.message.add_reaction('😄'))
 
     @commands.command(aliases=['ib'])
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
     async def id_buy(self, ctx: Context, book_id: int, starting_index: int):
-        asyncio.create_task(ctx.message.add_reaction('🧐'))
         book_obj = await book.full_book_retriever(book_id)
         chapter_obj = book_obj.retrieve_chapter_by_index(starting_index)
         paste = await self.buy_wrapper(book_obj, chapter_obj)
         await ctx.send(paste)
-        asyncio.create_task(ctx.message.add_reaction('😄'))
 
     @commands.command(aliases=['bl'])
     @bot_checks.check_permission_level(3)
