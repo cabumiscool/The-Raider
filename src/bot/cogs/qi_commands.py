@@ -1,23 +1,21 @@
-import re
 import asyncio
+import re
 import time
-from typing import Union, List, Tuple, Dict
 from operator import attrgetter
+from typing import Union, List, Tuple, Dict
 
+import privatebinapi
 from discord.ext import commands
 from discord.ext.commands import Context
-import privatebinapi
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
-
-from dependencies.privatebin import upload_to_privatebin
-
-from dependencies.database.database import Database
 from dependencies.database import database_exceptions
+from dependencies.database.database import Database
+from dependencies.privatebin import upload_to_privatebin
 from dependencies.webnovel.classes import SimpleBook, SimpleChapter
-from dependencies.webnovel.web import book
-from dependencies.webnovel.waka import book as waka_book
 from dependencies.webnovel.utils import book_string_to_book_id
+from dependencies.webnovel.waka import book as waka_book
+from dependencies.webnovel.web import book
 from . import bot_checks
 
 NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '0⃣']
@@ -169,7 +167,7 @@ class QiCommands(commands.Cog):
     @commands.command(aliases=['ib'])
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
-    async def id_buy(self, ctx: Context, book_id:int, starting_index: int):
+    async def id_buy(self, ctx: Context, book_id: int, starting_index: int):
         asyncio.create_task(ctx.message.add_reaction('🧐'))
         book_obj = await book.full_book_retriever(book_id)
         chapter_obj = book_obj.retrieve_chapter_by_index(starting_index)
