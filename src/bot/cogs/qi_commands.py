@@ -23,7 +23,7 @@ NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣'
 range_match = re.compile(r'\[?\**`?(\d+)[ \-]*(\d*)`?\**]?,? ?')
 bloat_content_match = re.compile(r'((:sparkles: )?\**\d+\** chapter[s]? missing from )')
 title_range_match = re.compile(
-    r'[`"\']?([\w\d,!.:()’?\-\' ]+?)[\'"`]? ?[\s\- ]+((?:\[?\**`?\d+[ \-]*\d*`?\**]?,? ?)+)\n')
+    r'[`"\' ]?([\w\d,!.:()’?\-\' ]+?)[\'"` ]? ?[\s\- ]+((?:\[?\**`?\d+[ \-]*\d*`?\**]?,? ?)+)\n')
 
 paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%s" ' \
                  'data-SS-Price="%s" data-index="%s" data-is-Vip="%s" data-source="qi_latest" data-from="%s" ' \
@@ -132,8 +132,9 @@ class QiCommands(commands.Cog):
     @commands.command(aliases=['b'])
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
-    async def buy(self, ctx: Context, *args):
-        user_input = " ".join(args)
+    async def buy(self, ctx: Context):
+        user_input = ctx.message.content
+        user_input = user_input[user_input.find(' '):]
         if not user_input.endswith('\n'):  # To make regex parsing easier
             user_input += '\n'
         parsed_chapter_requests = book_string_and_range_matcher(user_input)
