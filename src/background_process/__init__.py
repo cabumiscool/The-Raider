@@ -41,6 +41,7 @@ class BackgroundProcessInterface:
         self._data_returns = {}
         self._errors = []
         self._pastes = []
+        self._pings = []
         self.loop = asyncio.get_event_loop()
         self._data_receiver_task = self.loop.create_task(self.__data_receiver())
         self.start_process()
@@ -83,6 +84,8 @@ class BackgroundProcessInterface:
                         self._errors.append(data)
                 elif isinstance(data, Paste):
                     self._pastes.append(data)
+                elif isinstance(data, ChapterPing):
+                    self._pings.append(data)
                 else:
                     self._data_returns[data.id] = data
             except Empty:
