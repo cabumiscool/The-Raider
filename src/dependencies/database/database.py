@@ -617,6 +617,28 @@ class Database:
         email_record = await self._db_pool.fetchrow(query, *query_args)
         return EmailAccount(email_record[1], email_record[2], email_record[0])
 
+    async def retrieve_all_books_pings(self) -> typing.Union[typing.Dict[int: int], None]:
+        """Will retrieve all the books ids that have users requesting to be pinged about an update"""
+        query = '''SELECT "BOOK_ID", "USER_ID" FROM "PINGS_REQUESTS"'''
+        rows = await self._db_pool.fetch(query)
+        if len(rows) == 0:
+            return None
+        return_dict = {}
+        for row in rows:
+            book_id = int(row[0])
+            user_id = int(row[1])
+            if row[0] in return_dict:
+                return_dict[book_id].append(user_id)
+            else:
+                return_dict[book_id] = [user_id]
+
+        return return_dict
+
+    async def insert_ping_request(self):
+        pass
+
+    async def remove_ping_request(self):
+        pass
 
     # TODO Delete once complete migration from seeker to raider
     async def retrieve_email_accounts(self) -> typing.Dict[int: EmailAccount]:
