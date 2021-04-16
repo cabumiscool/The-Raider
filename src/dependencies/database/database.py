@@ -547,7 +547,7 @@ class Database:
         """Will retrieve an account that the last currency update was 24 hrs ago"""
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
         "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT"
-        WHERE (select extract(epoch from now())) - "LAST_CURRENCY_UPDATE_AT" >= 86400.0 or "EXPIRED" = False
+        WHERE (select extract(epoch from now())) - "LAST_CURRENCY_UPDATE_AT" >= 86400.0 and "EXPIRED" = False
           and "IN_USE" = False'''
         record = await self._db_pool.fetchrow(query)
         if record:
