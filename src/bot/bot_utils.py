@@ -20,12 +20,12 @@ async def emoji_selection_detector(ctx: Context, emoji_list: List[Union[discord.
                                    embed: discord.Embed = None, wait_for: int = 30, *, message_content: str = None,
                                    show_reject: bool = True) -> Union[None, discord.Emoji, discord.PartialEmoji, str]:
     def reaction_check(reaction, user_obj):
-        if ctx.author.id == user_obj.id and reaction.emoji in [*emoji_list, '✕']:
+        if ctx.author.id == user_obj.id and reaction.emoji in [*emoji_list, '❌']:
             return True
         return False
 
     message = await ctx.send(content=message_content, embed=embed)
-    await asyncio.gather(message.add_reaction(emote for emote in emoji_list))
+    await asyncio.gather(*[asyncio.create_task(message.add_reaction(emote)) for emote in emoji_list])
     if show_reject:
         await message.add_reaction('❌')
     try:

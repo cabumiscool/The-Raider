@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import typing
 import time
-# import json
-# from operator import itemgetter
 
 import asyncpg
 
@@ -234,7 +231,7 @@ class Database:
                                                                              record[1]) for record in records_list]}
         else:
             data_dict = {book_name: int(book_id) for book_name, book_id in [(record[0],
-                                                                            record[1])for record in records_list]}
+                                                                             record[1]) for record in records_list]}
         return data_dict
 
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
@@ -279,7 +276,7 @@ class Database:
         select_accounts_guid_with_fp_query = '''SELECT "GUID", "FP" FROM "QIACCOUNT" 
         WHERE "IN_USE"=False and "EXPIRED"=False order by "FP" DESC'''
         accounts_with_fp_records = await self._db_pool.fetch(select_accounts_guid_with_fp_query)
-        accounts_with_fp_tuples = ((guid, fp)for guid, fp in accounts_with_fp_records)
+        accounts_with_fp_tuples = ((guid, fp) for guid, fp in accounts_with_fp_records)
         # accounts_with_fp_tuples_sorted = accounts_with_fp_tuples.sort(key=itemgetter(1), reverse=True)
         update_query = '''UPDATE "QIACCOUNT" SET "IN_USE"=True, "USE_TIME" = (select extract(epoch from now())) 
         WHERE "GUID"=$1 and "IN_USE"=False'''
@@ -550,11 +547,13 @@ class Database:
         """Will retrieve an account that the last currency update was 24 hrs ago"""
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
         "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT"
-        WHERE (select extract(epoch from now())) - "LAST_CURRENCY_UPDATE_AT" >= 86400.0 and "EXPIRED" = False
+        WHERE (select extract(epoch from now())) - "LAST_CURRENCY_UPDATE_AT" >= 86400.0 or "EXPIRED" = False
           and "IN_USE" = False'''
         record = await self._db_pool.fetchrow(query)
-        return QiAccount(record[0], record[1], record[2], record[3], record[4], record[5], record[6], record[7],
-                         record[8], record[9], record[10], record[11])
+        if record:
+            return QiAccount(record[0], record[1], record[2], record[3], record[4], record[5], record[6], record[7],
+                             record[8], record[9], record[10], record[11])
+        return None
 
     async def retrieve_account_stats(self) -> typing.Tuple[typing.Tuple[int, int], int]:
         await self.__init_check__()

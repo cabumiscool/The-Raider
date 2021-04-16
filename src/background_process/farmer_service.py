@@ -24,6 +24,8 @@ class CurrencyFarmerService(BaseService):
             self.last_updated_energy_books = time.time()
 
         account_to_farm = await self.db.retrieve_account_for_farming()
+        if account_to_farm is None:
+            return
 
         account_is_working = await account_to_farm.async_check_valid()
         if account_is_working is False:

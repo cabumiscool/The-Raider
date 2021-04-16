@@ -80,9 +80,7 @@ class Raider(commands.AutoShardedBot):
         await super().before_identify_hook(shard_id, initial=initial)
 
     async def on_command_error(self, ctx, error):
-        if isinstance(error, commands.errors.CommandInvokeError):
-            await ctx.send(f"What you are attempting to do isn't implemented by the lazy devs 😱 | error: {error}")
-        elif isinstance(error, commands.DisabledCommand):
+        if isinstance(error, commands.DisabledCommand):
             await ctx.send('Sorry. This command is disabled and cannot be used.')
         elif isinstance(error, commands.NoPrivateMessage):
             await ctx.send('This command cannot be used in private messages.')
@@ -94,6 +92,7 @@ class Raider(commands.AutoShardedBot):
                 print(f'In {ctx.command.qualified_name}:', file=sys.stderr)
                 traceback.print_tb(original.__traceback__)
                 print(f'{original.__class__.__name__}: {original}', file=sys.stderr)
+                await ctx.send(f"What you are trying to do caused a error, whip the devs to fix it 😈 ```{error}```")
         elif isinstance(error, commands.ArgumentParsingError):
             await ctx.send(error)
 
@@ -167,13 +166,37 @@ class Raider(commands.AutoShardedBot):
     #         # Just in case we have any outstanding DB connections
     #         await ctx.release()
 
-    async def on_message(self, message):
-        if message.author.bot:  # can be edited to allow message from feather could probably be moved to process command
-            if message.author.id == 626487260031746050:
-                pass
+    async def invoke(self, ctx):
+        """|coro|
+
+        Overridden function to add emotes during the start and the end of commands.
+        Invokes the command given under the invocation context and
+        handles all the internal event dispatch mechanisms.
+
+        Parameters
+        -----------
+        ctx: :class:`.Context`
+            The invocation context to invoke.
+        """
+        if ctx.command is not None:
+            self.dispatch('command', ctx)
+            try:
+                if await self.can_run(ctx, call_once=True):
+                    await ctx.message.add_reaction('🧐')
+                    await ctx.command.invoke(ctx)
+                    await ctx.message.add_reaction('😀')
+                else:
+                    raise commands.CheckFailure('The global check once functions failed.')
+            except commands.CommandError as exc:
+                await ctx.command.dispatch_error(ctx, exc)
+                await ctx.message.add_reaction('🔥')
             else:
-                return
-        await self.process_commands(message)
+                self.dispatch('command_completion', ctx)
+            finally:
+                await ctx.message.clear_reaction('🧐')
+        elif ctx.invoked_with:
+            exc = commands.CommandNotFound('Command "{}" is not found'.format(ctx.invoked_with))
+            self.dispatch('command_error', ctx, exc)
 
     async def process_commands(self, message):
         if message.author.bot:
