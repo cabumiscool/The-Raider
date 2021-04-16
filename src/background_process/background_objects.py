@@ -191,3 +191,9 @@ class ProcessStatus(StatusRequest):
         super().__init__(command_id)
         self.last_main_loop_execution = 0
 
+
+class ChapterPing:
+    def __init__(self, book_obj: SimpleBook, chapters_range: typing.List[typing.Tuple[int, int]], *users: int):
+        self.book_obj = book_obj
+        self.ranges = chapters_range
+        self.users = users
