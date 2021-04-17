@@ -160,7 +160,7 @@ class BackgroundManager(commands.Cog):
         embed = bot_utils.generate_embed('Services Status', ctx.author, *fields)
         await ctx.send(embed=embed)
 
-    @bot_checks.check_permission_level(8)
+    @bot_checks.check_permission_level(6)
     @commands.command(brief='Will retrieve the contents of the background queue WIP')
     async def queue_status(self, ctx: Context):
         queue_history_stats = await self.background_process_interface.request_queue_status()
