@@ -3,6 +3,7 @@ import aiohttp
 import typing
 import time
 from background_process.base_service import BaseService
+from background_process.background_objects import NoAvailableBuyerAccountFoundError
 from dependencies.database.database import Database
 from dependencies.webnovel import classes
 from dependencies.proxy_classes import Proxy
@@ -185,15 +186,21 @@ class BuyerService(BaseService):
                         break
                 else:
                     account = await self.database.retrieve_buyer_account()
+                    account_try = 0
                     while True:
                         account_working = await account.async_check_valid()
                         if account_working:
                             if account.fast_pass_count == 0:
                                 await self.database.update_account_fp_count(0, account)
+                                account_try += 1
                                 continue
                             break
                         else:
+                            account_try += 1
                             await self.database.expired_account(account)
+                            if account_try >= 10:
+                                raise NoAvailableBuyerAccountFoundError("No available account was found for a "
+                                                                        "new buyer pool")
                             account = await self.database.retrieve_buyer_account()
                     new_pool = BuyerPool(account=account)
                     new_pool.buy(chapter)

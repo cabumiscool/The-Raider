@@ -18,6 +18,10 @@ class ProxyErrorReport(ErrorReport):
         self.proxy_id = proxy_id
 
 
+class NoAvailableBuyerAccountFoundError(Exception):
+    """Raised when no buyer account either valid or with enough fps is found"""
+
+
 class ErrorList(Exception):
     def __init__(self, *errors):
         self.errors = errors
