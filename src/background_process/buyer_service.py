@@ -193,6 +193,9 @@ class BuyerService(BaseService):
                             if account.fast_pass_count == 0:
                                 await self.database.update_account_fp_count(0, account)
                                 account_try += 1
+                                if account_try >= 10:
+                                    raise NoAvailableBuyerAccountFoundError("No available account was found for a "
+                                                                            "new buyer pool")
                                 continue
                             break
                         else:
