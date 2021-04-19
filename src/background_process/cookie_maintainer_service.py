@@ -48,7 +48,7 @@ class CookieMaintainerService(BaseService):
                 elif response['code'] == 11401:
                     print('Captcha block!')
                     self.captcha_block = time.time()
-                    return
+                    raise Exception(f"Captcha blocked at {int(time.time())}")
 
             if response['code'] == 0:
                 # cookie_and_ticket_data = login_obj.get_data()
