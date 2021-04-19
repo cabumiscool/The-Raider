@@ -1,14 +1,11 @@
 import json
-from typing import List, Union, Tuple, TYPE_CHECKING
+from typing import List, Union, Tuple
 
 from fuzzywuzzy import process
 
 
-if TYPE_CHECKING:
-    from dependencies.webnovel.classes import Book
-
-SELECTION_SCORE_DIFF: int = 3
-SELECTION_SCORE: int = 80
+SELECTION_SCORE_CUTOFF: int = 3
+SELECTION_SCORE_MIN: int = 80
 
 
 def decode_qi_content(binary_content: bytes) -> dict:
@@ -18,7 +15,7 @@ def decode_qi_content(binary_content: bytes) -> dict:
 
 
 async def book_string_to_book_id(all_books_ids_names_sub_names_dict: dict, book_string, limit: int = 5, *,
-                                 base_score: int = SELECTION_SCORE, selection_diff: int = SELECTION_SCORE_DIFF
+                                 base_score: int = SELECTION_SCORE_MIN, selection_diff: int = SELECTION_SCORE_CUTOFF
                                  ) -> Union[None, List[Tuple[int, int]]]:
     choices_list = [choice for choice in all_books_ids_names_sub_names_dict]
     matches = process.extractBests(book_string, choices_list, limit=limit)

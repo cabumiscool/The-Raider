@@ -1,4 +1,3 @@
-# import asyncio
 import datetime
 import sys
 import traceback
@@ -9,7 +8,7 @@ import discord
 from discord.ext import commands
 
 from config import Settings
-from dependencies.database.database import Database
+from dependencies.database import Database
 
 initial_extensions = ('bot.cogs.permission_management', 'bot.cogs.qi_commands', 'bot.cogs.background_manager',
                       'bot.cogs.migration_cog')

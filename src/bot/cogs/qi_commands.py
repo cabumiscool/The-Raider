@@ -182,22 +182,15 @@ class QiCommands(commands.Cog):
     @bot_checks.check_permission_level(6)
     async def qi_book(self, ctx: Context, book_id: int):
         await ctx.send(f'Book ID Received: {book_id}')
-        book_in_db = True
         try:
             db_book = await self.db.retrieve_complete_book(book_id)
-        except database_exceptions.NoEntryFoundInDatabaseError:
-            book_in_db = False
-        except Exception as e:
-            raise e
-
-        if book_in_db is False:
-            await ctx.send(f"Book - {book_id} is not available in the Database. Retrieving from qi and adding")
-            full_book = await book.full_book_retriever(book_id)
-            await self.db.insert_new_book(full_book)
-            await ctx.send(f"successfully added {full_book.name} to database")
-        else:
-            await ctx.send(f'book found at db with the name of:  {db_book.name}.    enabled?:  '
+            await ctx.send(f'Book found in db with the name of:  {db_book.name}.    Enabled?:  '
                            f'{bool(db_book.library_number)}')
+        except database_exceptions.NoEntryFoundInDatabaseError:
+            await ctx.send(f"Book - {book_id} is not available in the Database. Retrieving from qi and adding...")
+            full_book = await full_book_retriever(book_id)
+            await self.db.insert_new_book(full_book)
+            await ctx.send(f"Added {full_book.name} to database")
 
     @commands.command(aliases=['batch_add, many_add'])
     async def batch_add_books(self, ctx: Context, *book_ids):

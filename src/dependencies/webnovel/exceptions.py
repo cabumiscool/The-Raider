@@ -3,6 +3,7 @@ class ErrorList(Exception):
         self.errors = []
         self.errors.extend(errors)
 
+
 class AlreadyBoughtChapter(Exception):
     """Used when a chapter is already bought"""
 

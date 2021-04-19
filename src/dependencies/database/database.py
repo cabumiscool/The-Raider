@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
+import typing
 
 import asyncpg
 
-from dependencies.database.database_exceptions import *
-from dependencies.proxy_classes import Proxy, DummyProxy
-from dependencies.webnovel.classes import *
+from .database_exceptions import *
+from ..proxy_classes import Proxy, DummyProxy
+from ..webnovel.classes import Chapter, Book, Volume, SimpleChapter, SimpleBook, SimpleComic, QiAccount, EmailAccount
 
 
 class Database:
