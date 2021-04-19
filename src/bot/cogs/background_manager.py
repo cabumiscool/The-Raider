@@ -50,9 +50,9 @@ class BackgroundManager(commands.Cog):
         errors = self.background_process_interface.return_all_exceptions()
         async_tasks = []
         for error in errors:
-            error_string = f'error occurred, comment: {error.comment} | error: {error.error} | ' \
-                           f'error type:  {type(error)} '
-            error_traceback = f' traceback: {error.traceback}'
+            error_string = f'Error occurred, Comment: {error.comment} | Error: {error.error} | ' \
+                           f'Error type:  {type(error)} '
+            error_traceback = f'Traceback: {error.traceback}'
             if len(error_string) + 3 + len(error_traceback) >= 2000:
                 error_string = ''.join(('`', error_string, 'Traceback appended as the file below', '`'))
                 traceback_file = discord.File(StringIO(error_traceback), 'error_traceback.txt')
@@ -123,9 +123,9 @@ class BackgroundManager(commands.Cog):
             background_process_status = "Dead"
 
         embed = bot_utils.generate_embed('Bot Stats', ctx.author, ('Last Background Ping', last_ping_str),
+                                         ('Fp Left', fp_count), ('Bot Uptime', bot_uptime),
                                          ('Background Process', background_process_status),
-                                         ('Accounts', f"{accounts_count[0]}/{accounts_count[1]}"),
-                                         ('Fp Left', fp_count), ('Bot Uptime', bot_uptime))
+                                         ('Accounts', f"{accounts_count[0]}/{accounts_count[1]}"),)
         await ctx.send(embed=embed)
 
     def inner_services_cache_updater(self, services_status_object: AllServicesStatus):
@@ -150,7 +150,7 @@ class BackgroundManager(commands.Cog):
             elif last_execution == -1:
                 last_execution_str = 'Service was stopped'
             elif last_execution == -10:
-                last_execution_str = 'Captcha cooldown was hit.... resting'
+                last_execution_str = 'Captcha cool down was hit.... resting'
             else:
                 time_difference = datetime.datetime.now() - datetime.datetime.fromtimestamp(last_execution)
                 last_execution_str = f'{time_difference.total_seconds():.3f} secs ago'

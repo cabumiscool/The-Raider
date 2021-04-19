@@ -170,6 +170,7 @@ class Raider(commands.AutoShardedBot):
         """|coro|
 
         Overridden function to add emotes during the start and the end of commands.
+
         Invokes the command given under the invocation context and
         handles all the internal event dispatch mechanisms.
 
@@ -217,13 +218,4 @@ class Raider(commands.AutoShardedBot):
         try:
             super().run(self.config.bot_token, reconnect=True)
         except Exception as e:
-            print(f"Error at start!  error: {e},  type:  {type(e)}")
-        # finally:
-        #     with open('prev_events.log', 'w', encoding='utf-8') as fp:
-        #         for data in self._prev_events:
-        #             try:
-        #                 x = json.dumps(data, ensure_ascii=True, indent=4)
-        #             except:
-        #                 fp.write(f'{data}\n')
-        #             else:
-        #                 fp.write(f'{x}\n')
+            print(f"Error at startup!  error: {e},  type:  {type(e)}")

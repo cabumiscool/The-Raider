@@ -46,7 +46,7 @@ class CookieMaintainerService(BaseService):
                     response, ticket = await auth.check_trust(session, ticket, encry_param, keycode)
 
                 elif response['code'] == 11401:
-                    print('Catptcha block!')
+                    print('Captcha block!')
                     self.captcha_block = time.time()
                     return
 
