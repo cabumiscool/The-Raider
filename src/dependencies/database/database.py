@@ -272,9 +272,8 @@ class Database:
         """Will retrieve an account for buying and should mark in the db either here or in sql that the account is being
          used to prevent a double count and attempting a buy when there aren't anymore fp"""
         await self.__init_check__()
-        select_query = '''SELECT Get_Unused_QiAccount()'''
         select_accounts_guid_with_fp_query = '''SELECT "GUID", "FP" FROM "QIACCOUNT" 
-        WHERE "IN_USE"=False and "EXPIRED"=False order by "FP" DESC'''
+        WHERE "IN_USE"=False and "EXPIRED"=False and "FP" > 0 order by "FP" DESC'''
         accounts_with_fp_records = await self._db_pool.fetch(select_accounts_guid_with_fp_query)
         accounts_with_fp_tuples = ((guid, fp) for guid, fp in accounts_with_fp_records)
         # accounts_with_fp_tuples_sorted = accounts_with_fp_tuples.sort(key=itemgetter(1), reverse=True)

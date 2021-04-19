@@ -23,16 +23,11 @@ class MailAgent:
         self.initialized = False
 
     async def initialize(self):
-        try:
-            await self.IMAP_client.wait_hello_from_server()
-            login_result, login_data = await self.IMAP_client.login(self.mail_address, self.mail_pass)
-            if login_result == "OK":
-                await self.IMAP_client.select("inbox")
-                self.initialized = True
-                return
-        except Exception as e:
-            print(e)
-            raise Exception(f"Mail Agent Login failed for {self.mail_address}\nException: {e}")
+        await self.IMAP_client.wait_hello_from_server()
+        login_result, login_data = await self.IMAP_client.login(self.mail_address, self.mail_pass)
+        if login_result == "OK":
+            await self.IMAP_client.select("inbox")
+            self.initialized = True
 
     async def __get_latest_mail__(self, subject: str, recipient: str):
         res, search_data = await self.IMAP_client.search(

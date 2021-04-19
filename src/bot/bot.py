@@ -201,9 +201,7 @@ class Raider(commands.AutoShardedBot):
 
     async def process_commands(self, message):
         if message.author.bot:
-            if message.author.id == 626487260031746050:
-                pass
-            else:
+            if message.author.id not in [626487260031746050]:
                 return
 
         ctx = await self.get_context(message)
