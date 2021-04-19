@@ -291,13 +291,15 @@ class Database:
 
     async def __update_simple_book(self, book: SimpleBook):
         await self.__init_check__()
-        update_book_query = '''UPDATE "BOOKS_DATA" SET "BOOK_NAME"=$2, "BOOK_ABBREVIATION"=$3, "TOTAL_CHAPTERS"=$4,
-        "COVER_ID"=$5 WHERE "BOOK_ID"=$1'''
+        update_book_query = '''UPDATE "BOOKS_DATA" SET "BOOK_NAME"=$2, "TOTAL_CHAPTERS"=$3, "COVER_ID"=$4'''
+        update_book_query_where_clause = 'WHERE "BOOK_ID"=$1'
         if book.qi_abbreviation:
             abbreviation = book.abbreviation
+            update_book_query = f'{update_book_query}, "BOOK_ABBREVIATION"=$5 {update_book_query_where_clause}'
+            query_args = (book.id, book.name, book.total_chapters, book.cover_id, abbreviation)
         else:
-            abbreviation = None
-        query_args = (book.id, book.name, abbreviation, book.total_chapters, book.cover_id)
+            update_book_query = f'{update_book_query} {update_book_query_where_clause}'
+            query_args = (book.id, book.name, book.total_chapters, book.cover_id)
         await self._db_pool.execute(update_book_query, *query_args)
 
     async def check_if_volume_entry_exists(self, book_id: int, volume_index: int):
