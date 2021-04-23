@@ -74,8 +74,9 @@ class QiCommands(commands.Cog):
     @commands.command(aliases=['b'])
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
-    async def buy(self, ctx: Context):
-        user_input = ctx.message.content
+    async def buy(self, ctx: Context, *, user_input: str = None):
+        if user_input is None:
+            user_input = ctx.message.content
         user_input = user_input[user_input.find(' '):]
         if not user_input.endswith('\n'):  # To make regex parsing easier
             user_input += '\n'
@@ -118,7 +119,7 @@ class QiCommands(commands.Cog):
     @bot_checks.check_permission_level(3)
     async def buy_link(self, ctx: Context, pastebin_link: str):
         paste = await privatebinapi.get_async(pastebin_link)
-        await self.buy(ctx, paste['text'])
+        await self.buy(ctx, user_input=paste['text'])
 
     @commands.command(aliases=['qi', 'q'])
     @bot_checks.check_permission_level(6)
