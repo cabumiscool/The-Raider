@@ -57,6 +57,10 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
         range_str = f'{ranges[0]}'
     else:
         range_str = f'{ranges[0]}-{ranges[-1]}'
-    paste_url = f"!paste {book_.name} - {range_str} <{paste_response}>"
+
+    book_name = book_.name
+    if book_name.strip()[-1].isdigit():
+        book_name = f'"{book_name}"'
+    paste_url = f"!paste {book_name} - {range_str} <{paste_response}>"
 
     return paste_url
