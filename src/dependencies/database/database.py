@@ -520,7 +520,7 @@ class Database:
         await self.__init_check__()
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
         "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "EXPIRED" = TRUE and "IGNORE_RENEW" = False 
-        ORDER BY "LIBRARY_TYPE" DESC '''
+        ORDER BY "UPDATED_AT"'''
         account_record = await self._db_pool.fetchrow(query)
         if account_record is None:
             return None
@@ -609,10 +609,10 @@ class Database:
         await self.__init_check__()
         query = '''SELECT "ID", "EMAIL_ADDRESS", "EMAIL_PASSWORD" FROM "EMAIL_ACCOUNTS"'''
         if id_:
-            query = ' '.join([query, 'WHERE "ID" = $1'])
+            query += ' WHERE "ID" = $1'
             query_args = (id_,)
         elif email_address:
-            query = ''.join([query, 'WHERE "EMAIL_ADDRESS" = $1'])
+            query += ' WHERE "EMAIL_ADDRESS" = $1'
             query_args = (email_address,)
         else:
             raise Exception

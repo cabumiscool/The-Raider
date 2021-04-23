@@ -35,6 +35,8 @@ class MailAgent:
         if res != 'OK':
             return ''
         data_list = search_data[0].split()
+        if len(data_list) == 0:
+            return ''
         data_item_last = data_list[-1]
         result_search, fetch_data = await self.IMAP_client.fetch(data_item_last, "(RFC822)")
         raw_mail = fetch_data[1].decode("utf-8")
@@ -42,7 +44,16 @@ class MailAgent:
         formatted_mail = raw_mail.replace('=\r\n', '').replace('\t', '').replace('=3D', '=')
         return formatted_mail
 
+    async def __do_get_latest_mail__(self, subject: str, recipient: str):
+        # TODO: Check cock.li IMAP requests later for the same behaviour
+        # Cock li IMAP server seems to update cache only when you call it twice
+        res, search_data = await self.IMAP_client.search(
+            f'(FROM "noreply@webnovel.com" SUBJECT "{subject}" TO {recipient})')
+        if res != 'OK':
+            return ''
+
     async def get_keycode_by_recipient(self, recipient: str):
+        await self.__do_get_latest_mail__("Webnovel Support", recipient)
         parsed_mail = await self.__get_latest_mail__("Webnovel Support", recipient)
         if parsed_mail == '':
             return ''
