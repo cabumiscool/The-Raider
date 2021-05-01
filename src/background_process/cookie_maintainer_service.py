@@ -5,7 +5,7 @@ import aiohttp
 
 from background_process.base_service import BaseService
 from dependencies.database.database import Database
-from dependencies.email_agent import MailAgent
+from dependencies.email_agent import MailAgent, MailAgentNotInitialized, MailAgentConnectionBroken
 from dependencies.webnovel.web import auth
 
 
@@ -18,15 +18,21 @@ class CookieMaintainerService(BaseService):
 
     async def main(self):
         expired_account = await self.db.retrieve_expired_account()
-
         if expired_account is None:
             return
 
-        if expired_account.host_email_id not in self.mail_agents:
-            email_account = await self.db.retrieve_email_obj(id_=expired_account.host_email_id)
-            mail_agent = MailAgent(email_account.email, email_account.password)
-            await mail_agent.initialize()
-            self.mail_agents[expired_account.host_email_id] = mail_agent
+        host_index = expired_account.host_email_id
+
+        if host_index not in self.mail_agents:
+            email_account = await self.db.retrieve_email_obj(id_=host_index)
+            self.mail_agents[host_index] = MailAgent(email_account.email, email_account.password)
+            await self.mail_agents[host_index].initialize()
+
+        try:
+            await self.mail_agents[host_index].check_connection()
+        except (MailAgentNotInitialized, MailAgentConnectionBroken) as err:
+            await self.mail_agents[host_index].initialize()
+            raise err
 
         async with aiohttp.ClientSession(cookies=expired_account.cookies) as session:
             try:
