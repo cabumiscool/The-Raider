@@ -30,6 +30,10 @@ class MailAgent:
         self.mail_pass = mail_pass
         self.__initialized = False
 
+    def __repr__(self):
+        return f'<MAIL AGENT (MAIL_ADDRESS:{self.mail_address}, HOST:{self.host}, PORT:{self.port}, ' \
+               f'INITIALIZED:{self.__initialized})>'
+
     async def initialize(self):
         self.imap_client = aioimaplib.IMAP4_SSL(host=self.host, timeout=120)
         await self.imap_client.wait_hello_from_server()
