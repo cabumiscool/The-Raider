@@ -1,0 +1,21 @@
+version: '3'
+
+################### NETWORKS
+
+networks:
+ raider-net:
+   driver: bridge
+
+
+################### SERVICES
+
+services:
+  raider:
+    container_name: 'Raider'
+    image: raider:latest
+    networks:
+      - raider-net
+    volumes:
+      - ./settings.ini:/Raider/settings.ini
+    ports:
+      - 8118:8118
