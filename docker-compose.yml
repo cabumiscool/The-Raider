@@ -10,12 +10,32 @@ networks:
 ################### SERVICES
 
 services:
-  raider:
-    container_name: 'Raider'
-    image: raider:latest
+  openvpn-client:
+    # Needs a vpn.conf in ./vpn directory
+    container_name: 'OpenVPNClient'
+    image: dperson/openvpn-client
+    restart: unless-stopped
     networks:
       - raider-net
+    dns:
+      - '1.1.1.1'
+      - '8.8.8.8'
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
     volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./vpn:/vpn
+
+  raider:
+    # Run the build command in makefile to build the image
+    container_name: 'Raider'
+    image: raider:latest
+    restart: unless-stopped
+    depends_on:
+      - openvpn-client
+    network_mode: 'service:openvpn-client'
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
       - ./settings.ini:/Raider/settings.ini
-    ports:
-      - 8118:8118
