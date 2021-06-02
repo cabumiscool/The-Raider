@@ -105,8 +105,6 @@ async def retrieve_library_page(page_index: int = 1, session: aiohttp.ClientSess
             pass
         else:
             break
-    if page_index == 27:
-        print('breakpoint')
     result = response['code']
     req_data = response['data']
 
