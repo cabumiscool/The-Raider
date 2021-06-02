@@ -19,7 +19,7 @@ NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣'
 range_match = re.compile(r'\[?\**`?(\d+)[ \-]*(\d*)`?\**]?,? ?')
 bloat_content_match = re.compile(r'((:sparkles: )?\**\d+\** chapter[s]? missing from )')
 title_range_match = re.compile(
-    r'[`"\' ]?([\w\d,!.:()’?\-\' ]+?)[\'"` ]? ?[\s\- ]+((?:\[?\**`?\d+[ \-]*\d*`?\**]?,? ?)+)\n')
+    r'[`"\' ]?([\w\d,!.:()’?´+\-\' ]+?)[\'"` ]? ?[\s\- ]+((?:\[?\**`?\d+[ \-]*\d*`?\**]?,? ?)+)\n')
 
 
 def book_string_and_range_matcher(user_string: str) -> Dict[str, List[Tuple[int, int]]]:
@@ -77,7 +77,8 @@ class QiCommands(commands.Cog):
     async def buy(self, ctx: Context, *, user_input: str = None):
         if user_input is None:
             user_input = ctx.message.content
-        user_input = user_input[user_input.find(' '):]
+        if user_input.startswith('.'):
+            user_input = user_input[user_input.find(' '):]
         if not user_input.endswith('\n'):  # To make regex parsing easier
             user_input += '\n'
         parsed_chapter_requests = book_string_and_range_matcher(user_input)
@@ -100,7 +101,8 @@ class QiCommands(commands.Cog):
 
         async_tasks = []
         for book_id, chapters_list in book_chapter_requests.items():
-            async_tasks.append(asyncio.create_task(generic_buyer(self.db, books_objs[book_id], *chapters_list)))
+            tsk = asyncio.create_task(generic_buyer(self.db, books_objs[book_id], chapters_list, force_waka=force_waka))
+            async_tasks.append(tsk)
 
         pastes = await asyncio.gather(*async_tasks)
         paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
