@@ -419,6 +419,40 @@ class Database:
         except asyncpg.UniqueViolationError:
             raise DatabaseDuplicateEntry
 
+    async def delete_chapter(self, chapter: typing.Union[SimpleChapter, Chapter]):
+        assert isinstance(chapter, (SimpleChapter, Chapter))
+        await self.__init_check__()
+        query = '''DELETE FROM "CHAPTERS" WHERE "CHAPTER_ID" = $1'''
+        await self._db_pool.execute(query, chapter.id)
+
+    async def batch_delete_chapters(self, *chapters: typing.Union[SimpleChapter, Chapter]):
+        chapter_ids = []
+        for obj in chapters:
+            assert isinstance(obj, (SimpleChapter, Chapter))
+            chapter_ids.append((obj.id,))
+        await self.__init_check__()
+        query = '''DELETE FROM "CHAPTERS" WHERE "CHAPTER_ID" = $1'''
+        await self._db_pool.executemany(query, chapter_ids)
+
+    async def update_chapter(self, chapter: typing.Union[SimpleChapter, Chapter]):
+        assert isinstance(chapter, (SimpleChapter, Chapter))
+        await self.__init_check__()
+        query = '''UPDATE "CHAPTERS" SET "CHAPTER_NAME"=$1, "INDEX"=$2, "PRIVILEGE"=$3, "VIP_LEVEL"=$4, "VOLUME"=$5 
+        WHERE "CHAPTER_ID"=$6'''
+        await self._db_pool.execute(query, chapter.name, chapter.index, chapter.is_privilege, chapter.is_vip,
+                                    chapter.volume_index, chapter.id)
+
+    async def batch_update_chapters(self, *chapters: typing.Union[SimpleChapter, Chapter]):
+        chapter_args = []
+        for obj in chapters:
+            assert isinstance(obj, (SimpleChapter, Chapter))
+            chapter_args.append((obj.name, obj.index, obj.is_privilege, obj.is_vip,
+                                 obj.volume_index, obj.id))
+        await self.__init_check__()
+        query = '''UPDATE "CHAPTERS" SET "CHAPTER_NAME"=$1, "INDEX"=$2, "PRIVILEGE"=$3, "VIP_LEVEL"=$4, "VOLUME"=$5 
+        WHERE "CHAPTER_ID"=$6'''
+        await self._db_pool.executemany(query, chapter_args)
+
     async def retrieve_proxies_ip(self):
         await self.__init_check__()
         query = 'SELECT "IP" FROM "PROXIES"'
