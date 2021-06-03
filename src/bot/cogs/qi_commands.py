@@ -101,7 +101,7 @@ class QiCommands(commands.Cog):
 
         async_tasks = []
         for book_id, chapters_list in book_chapter_requests.items():
-            tsk = asyncio.create_task(generic_buyer(self.db, books_objs[book_id], chapters_list))
+            tsk = asyncio.create_task(generic_buyer(self.db, books_objs[book_id], *chapters_list))
             async_tasks.append(tsk)
 
         pastes = await asyncio.gather(*async_tasks)
