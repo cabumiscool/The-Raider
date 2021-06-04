@@ -137,6 +137,53 @@ class QiCommands(commands.Cog):
             await self.db.insert_new_book(full_book)
             await ctx.send(f"Added {full_book.name} to database")
 
+    @bot_checks.check_permission_level(6)
+    @commands.command()
+    async def refresh_book(self, ctx: Context, book_id: int):
+        qi_book = await full_book_retriever(book_id)
+        await ctx.send(f"Checking metadata of {qi_book.name}")
+        db_book = await self.db.retrieve_complete_book(book_id)
+        qi_book_volumes = qi_book.return_volume_list()
+        db_book_volumes = db_book.return_volume_list()
+
+        qi_book_chapter_list = []
+        for volume in qi_book_volumes:
+            qi_book_chapter_list.extend(volume.return_all_chapter_objs())
+        qi_book_chapter_dict = {chapter.id: chapter for chapter in qi_book_chapter_list}
+
+        db_book_chapter_list = []
+        for volume in db_book_volumes:
+            db_book_chapter_list.extend(volume.return_all_chapter_objs())
+        db_book_chapter_dict = {chapter.id: chapter for chapter in db_book_chapter_list}
+
+        chapters_to_add = []
+        chapters_to_update = []
+        chapters_to_remove = []
+
+        for chapter_id, chapter_obj in qi_book_chapter_dict.items():
+            if chapter_id not in db_book_chapter_dict:
+                chapters_to_add.append(chapter_obj)
+                continue
+            db_chapter_obj = db_book_chapter_dict[chapter_id]
+            del db_book_chapter_dict[chapter_id]
+            if chapter_obj != db_chapter_obj:
+                chapters_to_update.append(chapter_obj)
+        for chapter_id, chapter_obj in db_book_chapter_dict.items():
+            chapters_to_remove.append(chapter_obj)
+
+        await self.db.update_book(qi_book)
+        await ctx.send(f"Metadata updated for {qi_book.name}")
+        if len(chapters_to_add) != 0:
+            await ctx.send(f"Adding {len(chapters_to_add)} chapter of book {qi_book.name}")
+            await self.db.batch_add_chapters(*chapters_to_add)
+        if len(chapters_to_update) != 0:
+            await ctx.send(f"Updating metadata of {len(chapters_to_update)} chapters for book {qi_book.name}")
+            await self.db.batch_update_chapters(*chapters_to_update)
+        if len(chapters_to_remove) != 0:
+            await ctx.send(f"Deleting {len(chapters_to_remove)} chapters from the db of book {qi_book.name}")
+            await self.db.batch_delete_chapters(*chapters_to_remove)
+        await ctx.send(f"Metadata successfully updated for {qi_book.name}")
+
     @commands.command(aliases=['batch_add, many_add'])
     async def batch_add_books(self, ctx: Context, *book_ids):
         pass
