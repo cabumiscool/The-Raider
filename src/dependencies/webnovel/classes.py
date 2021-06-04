@@ -57,6 +57,40 @@ class SimpleChapter:
         self.parent_id = int(parent_id)
         self.volume_index = int(volume_index)
 
+    def __eq__(self, other):
+        if isinstance(other, (Chapter, SimpleChapter)):
+            if not self.is_privilege == other.is_privilege:
+                return False
+            elif not self.index == other.index:
+                return False
+            elif not self.is_vip == other.is_vip:
+                return False
+            elif not self.name == other.name:
+                return False
+            elif not self.volume_index == other.volume_index:
+                return False
+            else:
+                return True
+        else:
+            raise NotImplementedError
+
+    def __ne__(self, other):
+        if isinstance(other, (Chapter, SimpleChapter)):
+            if not self.is_privilege == other.is_privilege:
+                return True
+            elif not self.index == other.index:
+                return True
+            elif not self.is_vip == other.is_vip:
+                return True
+            elif not self.name == other.name:
+                return True
+            elif not self.volume_index == other.volume_index:
+                return True
+            else:
+                return False
+        else:
+            raise NotImplementedError
+
     def __repr__(self):
         return f'<SIMPLE CHAPTER (ID:{self.id}, NAME:{self.name}, INDEX:{self.index}, PRIVILEGE:{self.is_privilege}, ' \
                f'VIP:{self.is_vip}, PARENT_ID:{self.parent_id}, VOLUME_INDEX:{self.volume_index})>'
