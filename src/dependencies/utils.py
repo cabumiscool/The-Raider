@@ -42,8 +42,9 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
     while True:
         account = await account_retriever()
         db_fp_count = account.fast_pass_count
-        qi_fp_count = await account.async_check_valid()
-        if db_fp_count == 0:
+        await account.async_check_valid()
+        qi_fp_count = account.fast_pass_count
+        if qi_fp_count == 0:
             if db_fp_count != qi_fp_count:
                 await db.update_account_fp_count(0, account)
             continue
@@ -52,7 +53,7 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
                 await db.update_account_fp_count(qi_fp_count, account)
             accounts_to_use.append(account)
             enough_fp_count = enough_fp_count - account.fast_pass_count
-            if enough_fp_count == 0:
+            if enough_fp_count <= 0:
                 break
 
     async_tasks = []
