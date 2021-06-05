@@ -6,6 +6,7 @@ from .webnovel.classes import SimpleBook, SimpleChapter, QiAccount
 from .webnovel.waka import book as waka_book
 from .webnovel.web import book
 from .database import Database
+from .database.database_exceptions import NoAccountFound
 from .privatebin import upload_to_privatebin
 
 paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%s" ' \
@@ -16,13 +17,13 @@ data_from = ['qi', 'waka-waka']
 
 async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapter):
 
-    async def individual_buyer(buyer_account: QiAccount, chapter: SimpleChapter):
-        if chapter.is_privilege:
+    async def individual_buyer(inner_chapter: SimpleChapter, buyer_account: QiAccount):
+        if inner_chapter.is_privilege:
             waka_proxy = await db.retrieve_proxy(1)
-            chapter_obj = await waka_book.chapter_retriever(book_id=chapter.parent_id, chapter_id=chapter.id,
-                                                            volume_index=chapter.volume_index, proxy=waka_proxy)
+            chapter_obj = await waka_book.chapter_retriever(book_id=inner_chapter.parent_id, chapter_id=inner_chapter.id,
+                                                            volume_index=inner_chapter.volume_index, proxy=waka_proxy)
         else:
-            chapter_obj = await book.chapter_buyer(book_id=chapter.parent_id, chapter_id=chapter.id,
+            chapter_obj = await book.chapter_buyer(book_id=inner_chapter.parent_id, chapter_id=inner_chapter.id,
                                                    account=buyer_account)
 
         return chapter_obj
@@ -40,7 +41,13 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
     accounts_to_use = []
     accounts_used = []
     while True:
-        account = await account_retriever()
+        try:
+            account = await account_retriever()
+        except NoAccountFound:
+            if len(accounts_to_use) != 0:
+                for account in accounts_to_use:
+                    await db.release_account(account)
+            return f"Couldn't retrieve a valid account to buy the chapter for {book_.name}, please try again...."
         db_fp_count = account.fast_pass_count
         await account.async_check_valid()
         qi_fp_count = account.fast_pass_count
@@ -58,7 +65,7 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
 
     async_tasks = []
     for chapter in chapters:
-        async_tasks.append(asyncio.create_task(individual_buyer(accounts_to_use[0], chapter)))
+        async_tasks.append(asyncio.create_task(individual_buyer(chapter, accounts_to_use[0])))
         accounts_to_use[0].fast_pass_count -= 1
         if accounts_to_use[0].fast_pass_count == 0:
             used_account = accounts_to_use.pop(0)
