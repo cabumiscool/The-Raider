@@ -1,14 +1,13 @@
+import asyncio
 import json
 import typing
-import asyncio
+from urllib.parse import quote
 
 import aiohttp
 
-from urllib.parse import quote
-
-from dependencies.webnovel import classes
-from dependencies.webnovel.exceptions import ErrorList
 from dependencies.proxy_classes import Proxy
+from .. import classes
+from ..exceptions import ErrorList
 
 main_api_url = "https://www.webnovel.com/apiajax/Library"
 

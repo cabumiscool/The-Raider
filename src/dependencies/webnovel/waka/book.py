@@ -1,13 +1,13 @@
 import aiohttp
+
 # import aiohttp_socks
 # import asyncio
 from dependencies.proxy_classes import Proxy
-from dependencies.webnovel import classes
-from dependencies.webnovel.utils import decode_qi_content
-from dependencies.webnovel.exceptions import UnknownResponseCode
+from .. import classes
+from ..exceptions import UnknownResponseCode
+from ..utils import decode_qi_content
 
 API_ENDPOINT = 'https://m.ficool.com/app/api/book'
-
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 

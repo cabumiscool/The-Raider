@@ -3,7 +3,6 @@ from typing import List, Union, Tuple
 
 from fuzzywuzzy import process
 
-
 SELECTION_SCORE_CUTOFF: int = 3
 SELECTION_SCORE_MIN: int = 80
 
@@ -26,12 +25,3 @@ async def book_string_to_book_id(all_books_ids_names_sub_names_dict: dict, book_
         return [(all_books_ids_names_sub_names_dict[matches[0][0]], matches[0][1])]
     matched_book_ids_and_score = [(all_books_ids_names_sub_names_dict[match], score) for match, score in matches]
     return matched_book_ids_and_score
-
-
-# TODO: To be implemented later and modify buy in qi_commands Cog
-async def book_range_to_chapter_ids(book_id: int, chapter_range: tuple):
-    raise NotImplementedError
-
-
-async def book_chapter_ids_to_paste(book_id: int, chapter_range: list):
-    raise NotImplementedError

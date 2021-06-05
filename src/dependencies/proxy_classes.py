@@ -1,7 +1,6 @@
 import asyncio
-
-from typing import Union
 from operator import attrgetter
+from typing import Union
 
 import aiohttp
 import aiohttp_socks
