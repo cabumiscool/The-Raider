@@ -1,21 +1,21 @@
-from asyncio import CancelledError
 import json
-from typing import List, Union, Tuple
+from asyncio import CancelledError
 from time import time
+from typing import List, Union, Tuple
 
 import aiohttp
 import aiohttp_socks
 
 from dependencies.proxy_classes import Proxy
-from dependencies.webnovel import classes, exceptions
-from dependencies.webnovel.utils import decode_qi_content
+from .. import classes, exceptions
+from ..utils import decode_qi_content
 
 API_ENDPOINT_1 = 'https://www.webnovel.com/apiajax/chapter'
-
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
 API_ENDPOINT_2 = 'https://www.webnovel.com/go/pcm/chapter'
+
 
 # TODO change the api and related metadata from first api to second as first is gone
 
@@ -81,7 +81,7 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
             if proxy:
                 proxy_connector = proxy.generate_connector()
 
-            resp_dict = await __chapter_list_retriever_call(params, api, session,  proxy_connector=proxy_connector)
+            resp_dict = await __chapter_list_retriever_call(params, api, session, proxy_connector=proxy_connector)
             # if session is None:
             #     # TODO check if it is possible to retrieve a specific cookie from the session
             #
@@ -233,14 +233,16 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
                            price, volume_index, note_obj, editor, translator)
 
 
-async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes.Book, int], session: aiohttp.ClientSession = None,
+async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes.Book, int],
+                              session: aiohttp.ClientSession = None,
                               proxy: Proxy = None) -> classes.Book:
     if isinstance(book_or_book_id, int):
         book_or_book_id = classes.SimpleBook(book_or_book_id, '', 0)
     try_attempts = 0
     while True:
         try:
-            volumes, chapter_list_book_meta = await chapter_list_retriever(book_or_book_id, session, proxy, return_book=True)
+            volumes, chapter_list_book_meta = await chapter_list_retriever(book_or_book_id, session, proxy,
+                                                                           return_book=True)
             break
         except json.JSONDecodeError:
             pass
@@ -271,7 +273,8 @@ async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes
             raise TimeoutError
     chapter_list_book_meta: classes.SimpleBook
     last_chapter_volume_index = find_volume_index_from_id(last_chapter.id, volumes)
-    last_chapter_obj = __full_chapter_parser(book_or_book_id.id, last_chapter.id, chapter_meta_dict, last_chapter_volume_index)
+    last_chapter_obj = __full_chapter_parser(book_or_book_id.id, last_chapter.id, chapter_meta_dict,
+                                             last_chapter_volume_index)
     reading_type = last_chapter_obj.is_vip
     book_status = book_meta_dict['actionStatus']
     is_priv = last_chapter.is_privilege

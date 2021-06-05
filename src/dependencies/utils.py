@@ -2,12 +2,12 @@ import asyncio
 import time
 from operator import attrgetter
 
-from .webnovel.classes import SimpleBook, SimpleChapter, QiAccount
-from .webnovel.waka import book as waka_book
-from .webnovel.web import book
 from .database import Database
 from .database.database_exceptions import NoAccountFound
 from .privatebin import upload_to_privatebin
+from .webnovel.classes import SimpleBook, SimpleChapter, QiAccount
+from .webnovel.waka import book as waka_book
+from .webnovel.web import book
 
 paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%s" ' \
                  'data-SS-Price="%s" data-index="%s" data-is-Vip="%s" data-source="qi_latest" data-from="%s" ' \
@@ -16,11 +16,11 @@ data_from = ['qi', 'waka-waka']
 
 
 async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapter):
-
     async def individual_buyer(inner_chapter: SimpleChapter, buyer_account: QiAccount):
         if inner_chapter.is_privilege:
             waka_proxy = await db.retrieve_proxy(1)
-            chapter_obj = await waka_book.chapter_retriever(book_id=inner_chapter.parent_id, chapter_id=inner_chapter.id,
+            chapter_obj = await waka_book.chapter_retriever(book_id=inner_chapter.parent_id,
+                                                            chapter_id=inner_chapter.id,
                                                             volume_index=inner_chapter.volume_index, proxy=waka_proxy)
         else:
             chapter_obj = await book.chapter_buyer(book_id=inner_chapter.parent_id, chapter_id=inner_chapter.id,

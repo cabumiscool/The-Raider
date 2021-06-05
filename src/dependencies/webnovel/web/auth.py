@@ -1,9 +1,11 @@
-import aiohttp
-# import aiohttp_socks
 import asyncio
-import time
 import json
 import random
+import time
+
+import aiohttp
+
+# import aiohttp_socks
 
 check_status_url = 'https://ptlogin.webnovel.com/login/checkStatus'
 logout_url = 'https://ptlogin.webnovel.com/login/logout'
@@ -19,7 +21,6 @@ re_send_email_url = 'https://ptlogin.webnovel.com/login/ReSendEmail'
 send_trust_email_url = 'https://ptlogin.webnovel.com/login/sendTrustEmail'
 re_send_trust_email_url = 'https://ptlogin.webnovel.com/login/reSendTrustEmail'
 check_trust_url = 'https://ptlogin.webnovel.com/login/checkTrust'
-
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 

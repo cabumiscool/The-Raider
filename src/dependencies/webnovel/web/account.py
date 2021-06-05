@@ -1,14 +1,14 @@
 import typing
 
 import aiohttp
-# import aiohttp_socks
-
-from dependencies.webnovel.classes import QiAccount, SimpleBook, Book
-from dependencies.webnovel.exceptions import UnknownResponseCode
-from dependencies.webnovel.utils import decode_qi_content
-from dependencies.proxy_classes import Proxy
-
 from bs4 import BeautifulSoup
+
+from dependencies.proxy_classes import Proxy
+from ..classes import QiAccount, SimpleBook, Book
+from ..exceptions import UnknownResponseCode
+from ..utils import decode_qi_content
+
+# import aiohttp_socks
 
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}

@@ -1,11 +1,11 @@
-import typing
 import json
+import typing
 from operator import attrgetter
 
 import aiohttp
 
-from .utils import decode_qi_content
 from . import exceptions
+from .utils import decode_qi_content
 
 
 class DataDescriptorChecker:
@@ -365,7 +365,7 @@ def __retrieve_all_chapters_ids__(book: Book):
     for volume in book.return_volume_list():
         volume_chapters_list = volume.return_all_chapters_ids()
         chapters_id.extend(volume_chapters_list)
-    return  chapters_id
+    return chapters_id
 
 
 class SimpleComic:
