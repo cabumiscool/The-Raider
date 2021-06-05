@@ -54,12 +54,12 @@ class BackgroundManager(commands.Cog):
                            f'Error type:  {type(error)} '
             error_traceback = f'Traceback: {error.traceback}'
             if len(error_string) + 3 + len(error_traceback) >= 2000:
-                error_string = ''.join(('`', error_string, 'Traceback appended as the file below', '`'))
+                error_string = ''.join(('```', error_string, 'Traceback appended as the file below', '```'))
                 traceback_file = discord.File(StringIO(error_traceback), 'error_traceback.txt')
                 async_tasks.append(asyncio.create_task(error_channel.send(error_string, file=traceback_file)))
             else:
                 error_string = '|'.join((error_string, error_traceback))
-                error_string = ''.join(('`', error_string, '`'))
+                error_string = ''.join(('```', error_string, '```'))
                 async_tasks.append(asyncio.create_task(error_channel.send(error_string)))
         await asyncio.gather(*async_tasks)
 
