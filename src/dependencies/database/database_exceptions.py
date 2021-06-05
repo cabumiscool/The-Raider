@@ -12,3 +12,7 @@ class DatabaseDuplicateEntry(Exception):
 
 class NoEntryFoundInDatabaseError(Exception):
     """raised when a database query can't find any matching data"""
+
+
+class NoAccountFound(Exception):
+    """raised when a database query trying to retrieve an account object can't find a valid object"""
