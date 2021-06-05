@@ -10,9 +10,8 @@ from dependencies.webnovel import classes
 from dependencies.webnovel.web.book import full_book_retriever
 
 
-paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%s" ' \
-                 'data-SS-Price="%s" data-index="%s" data-is-Vip="%s" data-source="qi_latest" data-from="%s" ' \
-                 '>Chapter %s:  %s</h3>'
+paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%s" data-SS-Price="%s" data-index="%s"' \
+                 ' data-is-Vip="%s" data-source="qi_latest" data-from="%s" >Chapter %s:  %s</h3>'
 data_from = ['qi', 'waka-waka']
 
 
