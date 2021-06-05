@@ -609,6 +609,8 @@ class Database:
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
         "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "GUID" = $1'''
         account_record_obj = await self._db_pool.fetchrow(query, guid)
+        if account_record_obj is None:
+            raise NoAccountFound
         account_obj = QiAccount(account_record_obj[0], account_record_obj[1], account_record_obj[2],
                                 account_record_obj[3], account_record_obj[4], account_record_obj[5],
                                 account_record_obj[6], account_record_obj[7], account_record_obj[8],
