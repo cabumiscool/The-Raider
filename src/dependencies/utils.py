@@ -68,6 +68,8 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
     ranges.sort()
     chapters = await asyncio.gather(*async_tasks)
     for used_account in accounts_used:
+        await used_account.async_check_valid()
+        await db.update_account_fp_count(used_account.fast_pass_count, used_account)
         await db.release_account(used_account)
     chapters.sort(key=attrgetter('index'))
     chapters_strings = []
