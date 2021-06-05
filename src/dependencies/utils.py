@@ -2,7 +2,7 @@ import asyncio
 import time
 from operator import attrgetter
 
-from .webnovel.classes import SimpleBook, SimpleChapter
+from .webnovel.classes import SimpleBook, SimpleChapter, QiAccount
 from .webnovel.waka import book as waka_book
 from .webnovel.web import book
 from .database import Database
@@ -15,31 +15,59 @@ data_from = ['qi', 'waka-waka']
 
 
 async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapter):
-    waka_proxy = await db.retrieve_proxy(1)
 
-    async def individual_buyer(chapter: SimpleChapter):
-        buyer_account = await db.retrieve_buyer_account()
-        while True:
-            working = await buyer_account.async_check_valid()
-            if working:
-                break
-            buyer_account = await db.retrieve_buyer_account()
-
+    async def individual_buyer(buyer_account: QiAccount, chapter: SimpleChapter):
         if chapter.is_privilege:
+            waka_proxy = await db.retrieve_proxy(1)
             chapter_obj = await waka_book.chapter_retriever(book_id=chapter.parent_id, chapter_id=chapter.id,
                                                             volume_index=chapter.volume_index, proxy=waka_proxy)
         else:
             chapter_obj = await book.chapter_buyer(book_id=chapter.parent_id, chapter_id=chapter.id,
                                                    account=buyer_account)
 
-        await db.release_account(buyer_account)
-
         return chapter_obj
 
-    async_tasks = [asyncio.create_task(individual_buyer(chapter)) for chapter in chapters]
+    async def account_retriever() -> QiAccount:
+        buyer_account = await db.retrieve_buyer_account()
+        while True:
+            working = await buyer_account.async_check_valid()
+            if working:
+                break
+            buyer_account = await db.retrieve_buyer_account()
+        return buyer_account
+
+    enough_fp_count = len(chapters)
+    accounts_to_use = []
+    accounts_used = []
+    while True:
+        account = await account_retriever()
+        db_fp_count = account.fast_pass_count
+        qi_fp_count = await account.async_check_valid()
+        if db_fp_count == 0:
+            if db_fp_count != qi_fp_count:
+                await db.update_account_fp_count(0, account)
+            continue
+        else:
+            if db_fp_count != qi_fp_count:
+                await db.update_account_fp_count(qi_fp_count, account)
+            accounts_to_use.append(account)
+            enough_fp_count = enough_fp_count - account.fast_pass_count
+            if enough_fp_count == 0:
+                break
+
+    async_tasks = []
+    for chapter in chapters:
+        async_tasks.append(asyncio.create_task(individual_buyer(accounts_to_use[0], chapter)))
+        accounts_to_use[0].fast_pass_count -= 1
+        if accounts_to_use[0].fast_pass_count == 0:
+            used_account = accounts_to_use.pop(0)
+            accounts_used.append(used_account)
+
     ranges = [chapter.index for chapter in chapters]
     ranges.sort()
     chapters = await asyncio.gather(*async_tasks)
+    for used_account in accounts_used:
+        await db.release_account(used_account)
     chapters.sort(key=attrgetter('index'))
     chapters_strings = []
     for chapter in chapters:
