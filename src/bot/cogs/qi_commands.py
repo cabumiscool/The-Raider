@@ -100,13 +100,26 @@ class QiCommands(commands.Cog):
                     book_chapter_requests[book_obj.id].extend(chapter_objs)
 
         async_tasks = []
+        no_chapters_found_books = []
         for book_id, chapters_list in book_chapter_requests.items():
+            if len(chapters_list) == 0:
+                no_chapters_found_books.append(books_objs[book_id])
+                continue
             tsk = asyncio.create_task(generic_buyer(self.db, books_objs[book_id], *chapters_list))
             async_tasks.append(tsk)
 
         pastes = await asyncio.gather(*async_tasks)
         paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
         await asyncio.gather(*paste_tasks)
+
+        error_messages = []
+        for book in no_chapters_found_books:
+            error_messages.append(asyncio.create_task(ctx.send(f"The chapters range given for book `{book.name}` were"
+                                                               f" not found on the db. A possible cause is that this "
+                                                               f"book is still in the background queue or a library "
+                                                               f"account has totally expired preventing the update "
+                                                               f"from being found.")))
+        await asyncio.gather(*error_messages)
 
     @commands.command(aliases=['ib'])
     @bot_checks.is_whitelist()
