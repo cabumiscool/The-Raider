@@ -5,7 +5,7 @@ import aiohttp
 
 from background_process.base_service import BaseService
 from dependencies.database.database import Database
-from dependencies.email_agent import MailAgent, MailAgentNotInitialized, MailAgentConnectionBroken
+from dependencies.email_agent import MailAgent
 from dependencies.webnovel.web import auth
 
 
@@ -14,7 +14,6 @@ class CookieMaintainerService(BaseService):
         super().__init__(name="Cookie Maintainer Service", output_service=False)
         self.db = database
         self.captcha_block = 0
-        self.mail_agents = {}
 
     async def main(self):
         expired_account = await self.db.retrieve_expired_account()
@@ -23,16 +22,9 @@ class CookieMaintainerService(BaseService):
 
         host_index = expired_account.host_email_id
 
-        if host_index not in self.mail_agents:
-            email_account = await self.db.retrieve_email_obj(id_=host_index)
-            self.mail_agents[host_index] = MailAgent(email_account.email, email_account.password)
-            await self.mail_agents[host_index].initialize()
-
-        try:
-            await self.mail_agents[host_index].check_connection()
-        except (MailAgentNotInitialized, MailAgentConnectionBroken) as err:
-            await self.mail_agents[host_index].initialize()
-            raise err
+        email_account = await self.db.retrieve_email_obj(id_=host_index)
+        mail_agent = MailAgent(email_account.email, email_account.password)
+        await mail_agent.initialize()
 
         async with aiohttp.ClientSession(cookies=expired_account.cookies) as session:
             try:
@@ -46,8 +38,7 @@ class CookieMaintainerService(BaseService):
                         encry_param = response['encry']
                         response = await auth.send_trust_email(session, ticket, encry_param)
                         await asyncio.sleep(55)
-                        keycode = await self.mail_agents[expired_account.host_email_id].get_keycode_by_recipient(
-                            expired_account.email)
+                        keycode = await mail_agent.get_keycode_by_recipient(expired_account.email)
 
                         response, ticket = await auth.check_trust(session, ticket, encry_param, keycode)
                         expired_account.ticket = ticket
