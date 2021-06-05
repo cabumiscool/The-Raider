@@ -1,6 +1,6 @@
 import sys
 
-from config import Settings
+from config import ConfigReader
 
 from background_process.background_objects import *
 from background_process.background_process import BackgroundProcess
@@ -13,11 +13,11 @@ from multiprocessing import Queue, Process
 from queue import Empty
 
 
-# process = BackgroundProcess(queue.Queue(), queue.Queue(), Settings())
+# process = BackgroundProcess(queue.Queue(), queue.Queue(), ConfigReader())
 # print(process)
 
 
-def background_starter(input_queue: Queue, output_queue: Queue, config: Settings):
+def background_starter(input_queue: Queue, output_queue: Queue, config: ConfigReader):
     policy = asyncio.get_event_loop_policy()
     # policy.set_event_loop(policy.new_event_loop())
     policy.set_event_loop(asyncio.SelectorEventLoop())
@@ -32,7 +32,7 @@ def background_starter(input_queue: Queue, output_queue: Queue, config: Settings
 
 
 class BackgroundProcessInterface:
-    def __init__(self, config: Settings):
+    def __init__(self, config: ConfigReader):
         self.config = config
         self.toward_background = Queue()
         self.from_background = Queue()

@@ -22,11 +22,11 @@ from dependencies.database.database import Database
 from dependencies.database.database_exceptions import DatabaseDuplicateEntry
 from dependencies.webnovel import classes
 
-from config import Settings
+from config import ConfigReader
 
 
 class BackgroundProcess:
-    def __init__(self, input_queue: Queue, output_queue: Queue, config: Settings,
+    def __init__(self, input_queue: Queue, output_queue: Queue, config: ConfigReader,
                  loop: asyncio.AbstractEventLoop = None):
         self.input_queue = input_queue
         self.output_queue = output_queue

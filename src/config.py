@@ -1,10 +1,42 @@
 from ast import literal_eval
 from configparser import ConfigParser
 
-import exceptions
+from exceptions import RaiderBaseException
 
 
-class Settings:
+class ConfigBaseException(RaiderBaseException):
+    """
+    Base exception for all errors related to the config file
+    """
+    MESSAGE = "Config Base Exception"
+    ERROR_CODE = 100
+
+
+class MissingConfiguration(ConfigBaseException):
+    """
+    Is raised when the config file is missing information
+    """
+    MESSAGE = "Missing Configuration in ConfigReader file"
+    ERROR_CODE = 101
+
+    def __init__(self, missing_section: str, details: str = ''):
+        super().__init__(self.MESSAGE)
+        self.missing_section = missing_section
+        self.details = details
+
+    def __str__(self):
+        return f"<{self.__class__.__name__}: MISSING_SECTION={self.missing_section}, DETAILS={self.details} >"
+
+
+class ConfigNotFound(ConfigBaseException):
+    """
+    Raised when the config file is empty or just created
+    """
+    MESSAGE = "ConfigReader file missing or empty"
+    ERROR_CODE = 102
+
+
+class ConfigReader:
     def __read_settings_file(self):
         config = self.config
         config.read('../settings.ini')
@@ -16,16 +48,16 @@ class Settings:
             database_section = settings_file['database']
         except KeyError:
             self.__write_default_settings_values()
-            raise exceptions.EmptySettingsFile()
+            raise ConfigNotFound
         if database_section['host'] == '' or database_section['password'] == '' or database_section['user'] == '':
-            raise exceptions.SettingsNotConfigured('database')
+            raise MissingConfiguration('database')
         misc_section = settings_file['misc']
         try:
             use_test = literal_eval(misc_section['use-test'])
             if type(use_test) != bool:
-                raise exceptions.SettingsNotConfigured('use-test', 'The value is not a bool')
+                raise MissingConfiguration('use-test', 'The value is not a bool')
         except ValueError:
-            raise exceptions.SettingsNotConfigured('use-test', 'The value is not a selection of "True" or "False"')
+            raise MissingConfiguration('use-test', 'The value is not a selection of "True" or "False"')
         self.use_test = use_test
         if use_test is False:
             bot_section = settings_file['main bot']
@@ -33,7 +65,7 @@ class Settings:
             bot_section = settings_file['test bot']
         self.bot_section = bot_section
         if bot_section['token'] == '':
-            raise exceptions.SettingsNotConfigured('token', 'Corresponding Bot Token is missing')
+            raise MissingConfiguration('token', 'Corresponding Bot Token is missing')
 
     def __write_default_settings_values(self):
         config = self.config
@@ -72,7 +104,7 @@ class Settings:
         self.db_host = ''
         self.db_name = ''
         self.db_user = ''
-        self.db_port = 3306
+        self.db_port = 5342
         self.db_password = ''
         self.min_db_conns = 0
         self.max_db_conns = 0
