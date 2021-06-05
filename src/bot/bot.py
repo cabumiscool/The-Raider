@@ -7,7 +7,7 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from config import Settings
+from config import ConfigReader
 from dependencies.database import Database
 
 initial_extensions = ('bot.cogs.permission_management', 'bot.cogs.qi_commands', 'bot.cogs.background_manager',
@@ -27,7 +27,7 @@ def _custom_prefix_adder(*args):
 
 class Raider(commands.AutoShardedBot):
     def __init__(self):
-        self.config = Settings()
+        self.config = ConfigReader()
         super().__init__(command_prefix=_custom_prefix_adder(self.config.bot_prefix),
                          description=self.config.bot_description, pm_help=None, help_attrs=dict(hidden=True),
                          fetch_offline_members=False, heartbeat_timeout=150.0,
