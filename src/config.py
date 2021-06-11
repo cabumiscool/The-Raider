@@ -1,7 +1,7 @@
 from ast import literal_eval
 from configparser import ConfigParser
 
-from exceptions import RaiderBaseException
+from dependencies.exceptions import RaiderBaseException
 
 
 class ConfigBaseException(RaiderBaseException):
