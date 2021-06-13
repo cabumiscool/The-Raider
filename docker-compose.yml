@@ -10,6 +10,30 @@ networks:
 ################### SERVICES
 
 services:
+
+  privoxy-vpn:
+    container_name: 'PrivoxyVPN'
+    image: binhex/arch-privoxyvpn
+    restart: unless-stopped
+    networks:
+      - raider-net
+    cap_add:
+      - net_admin
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./docker-files/privoxyvpn:/config
+    environment:
+      VPN_ENABLED: 'yes'
+      VPN_PROV: pia
+      VPN_CLIENT: openvpn
+      SOCKS_USER: seeker
+      SOCKS_PASS: seeker_pass
+      ENABLE_SOCKS: 'yes'
+      ENABLE_PRIVOXY: 'yes'
+      LAN_NETWORK: 172.0.0.1/8
+      NAME_SERVERS: 1.1.1.1,1.0.0.1,8.8.8.8,8.8.4.4
+      STRICT_PORT_FORWARD: 'no'
+
   openvpn-client:
     # Needs a vpn.conf in ./vpn directory
     container_name: 'OpenVPNClient'
