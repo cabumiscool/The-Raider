@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from config import ConfigReader
 from dependencies.database import Database
+from dependencies.exceptions import RaiderBaseException
 
 initial_extensions = ('bot.cogs.permission_management', 'bot.cogs.qi_commands', 'bot.cogs.background_manager',
                       'bot.cogs.migration_cog')
@@ -87,6 +88,8 @@ class Raider(commands.AutoShardedBot):
             await ctx.send('You are missing required arguments in the command. :frowning:')
         elif isinstance(error, commands.CommandInvokeError):
             original = error.original
+            if isinstance(original, RaiderBaseException):
+                await ctx.send(f"An error occurred. Error: {original.get_message()}")
             if not isinstance(original, discord.HTTPException):
                 print(f'In {ctx.command.qualified_name}:', file=sys.stderr)
                 traceback.print_tb(original.__traceback__)
