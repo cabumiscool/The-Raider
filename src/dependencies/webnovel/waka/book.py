@@ -46,14 +46,21 @@ async def chapter_retriever(book_id: int, chapter_id: int, volume_index: int, se
 
     dict_content = data_dict['data']
 
+    chapter_dict_content: dict
     chapter_dict_content = dict_content['chapter']
-    index = chapter_dict_content['index']
     vip_status = chapter_dict_content['lockType']  # probably the equivalent of vip status in qi data
     name = chapter_dict_content['name']
-    content = chapter_dict_content['content']
+    index = chapter_dict_content['index']
     price = chapter_dict_content['price']
-    chapter_dict_content: dict
+    content = chapter_dict_content['content']
+    has_rich_content = chapter_dict_content['hasRichContent']
     extra_note = chapter_dict_content.get('extraWords', None)
+
+    # For Formatting plain text chapters
+    if has_rich_content != 1:
+        content = content.replace("\r\n", "</p>\n<p>")
+        content = f"<p>{content}</p>"
+
     try:
         editors = '/'.join(chapter_dict_content['editors'])
     except TypeError:
