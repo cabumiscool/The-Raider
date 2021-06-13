@@ -18,7 +18,7 @@ from background_process.background_objects import *
 from dependencies.webnovel.classes import QiAccount, Book
 from dependencies.webnovel.web.book import full_book_retriever
 from dependencies.proxy_classes import Proxy
-from dependencies.webnovel.exceptions import FailedRequest
+from dependencies.webnovel.exceptions import FailedWebnovelRequest
 
 
 class MigrationCog(commands.Cog):
@@ -147,7 +147,7 @@ class MigrationCog(commands.Cog):
         for task, book_id in async_tasks:
             try:
                 book: Book = await task
-            except (FailedRequest, TimeoutError):
+            except (FailedWebnovelRequest, TimeoutError):
                 failed_books_id.append(book_id)
                 continue
             completed_books.append(book)
