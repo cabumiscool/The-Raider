@@ -4,3 +4,6 @@ class RaiderBaseException(Exception):
     """
     MESSAGE = "Raider Base Exception"
     ERROR_CODE = 0
+
+    def get_message(self) -> str:
+        return self.MESSAGE
