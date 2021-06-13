@@ -385,9 +385,9 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
         paragraphs_list = data['content']
         return '\n'.join([paragraph_dict['content'] for paragraph_dict in paragraphs_list])
     if request_code == 1:
-        raise exceptions.FailedChapterBuy()
+        raise exceptions.ChapterBuyFailed()
     elif request_code == 2:
-        raise exceptions.AlreadyBoughtChapter()
+        raise exceptions.ChapterAlreadyBought()
     else:
         raise exceptions.UnknownResponseCode(request_code, content_dict['msg'])
 
