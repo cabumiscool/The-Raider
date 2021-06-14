@@ -1,28 +1,18 @@
-import time
-import typing
 import asyncio
 import traceback
-
-from queue import Empty
 from multiprocessing.queues import Queue
-
-# from operator import attrgetter
-
-from background_process.base_service import BaseService
-from background_process.update_checking_service import BooksLibraryChecker
-from background_process.new_chapter_finder import NewChapterFinder
-from background_process.buyer_service import BuyerService
-from background_process.paste_service import PasteCreator, PasteRequest, MultiPasteRequest, Paste
-# from background_process.proxy_manager_service import ProxyManager
-from background_process.cookie_maintainer_service import CookieMaintainerService
-from background_process.farmer_service import CurrencyFarmerService
-from background_process.background_objects import *
-
-from dependencies.database.database import Database
-from dependencies.database.database_exceptions import DatabaseDuplicateEntry
-from dependencies.webnovel import classes
+from queue import Empty
 
 from config import ConfigReader
+from dependencies.database import Database
+from dependencies.database.database_exceptions import DatabaseDuplicateEntry
+from dependencies.webnovel import classes
+from .background_objects import *
+from .services import BaseService, BooksLibraryChecker, NewChapterFinder, BuyerService, PasteCreator, PasteRequest, \
+    MultiPasteRequest, Paste, CookieMaintainerService, CurrencyFarmerService
+
+
+# from operator import attrgetter
 
 
 class BackgroundProcess:
@@ -120,12 +110,13 @@ class BackgroundProcess:
             possible_chapter: classes.SimpleChapter
             if possible_chapter.parent_id in self.queue_history:
                 if possible_chapter.id not in self.queue_history[possible_chapter.parent_id]['chs']:
-                    self.queue_history[possible_chapter.parent_id]['chs'][possible_chapter.id] = {'obj': possible_chapter,
-                                                                                                  '_': time.time(),
-                                                                                                  'in buy': True,
-                                                                                                  'buy_done': False,
-                                                                                                  'in_paste': False,
-                                                                                                  'paste': False}
+                    self.queue_history[possible_chapter.parent_id]['chs'][possible_chapter.id] = {
+                        'obj': possible_chapter,
+                        '_': time.time(),
+                        'in buy': True,
+                        'buy_done': False,
+                        'in_paste': False,
+                        'paste': False}
                     new_chapters.append(possible_chapter)
 
         # TODO add the ping checker around here

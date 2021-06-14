@@ -1,12 +1,12 @@
-import typing
 import asyncio
-import aiohttp
-import aiohttp_socks
-from dependencies.proxy_classes import Proxy
+import typing
 
-from background_process.base_service import BaseService
-from background_process.background_objects import ProxyErrorReport
+import aiohttp
+
 from dependencies.database.database import Database
+from dependencies.proxy_classes import Proxy
+from .base_service import BaseService
+from ..background_objects import ProxyErrorReport
 
 urls_to_test_against = {1: 'https://m.ficool.com', 2: 'https://www.webnovel.com'}
 default_proxy_arguments = {'force_close': True, 'enable_cleanup_closed': True}

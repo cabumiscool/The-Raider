@@ -1,13 +1,10 @@
 import typing
-
 from operator import attrgetter
 
-from background_process.base_service import BaseService
-from background_process.background_objects import ChapterPing
-
 from dependencies.database.database import Database
-
 from dependencies.webnovel.classes import SimpleChapter
+from .base_service import BaseService
+from ..background_objects import ChapterPing
 
 
 def build_chapters_ranges(chapters: typing.List[SimpleChapter]) -> typing.List[typing.Tuple[int, int]]:
@@ -30,7 +27,7 @@ def build_chapters_ranges(chapters: typing.List[SimpleChapter]) -> typing.List[t
         ranges.append((chapters[0], chapters[-1]))
     else:
         if ranges[-1][0] != starting_range:
-            ranges.append((starting_range, expected_index-1))
+            ranges.append((starting_range, expected_index - 1))
 
     return ranges
 

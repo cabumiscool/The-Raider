@@ -3,7 +3,7 @@ import time
 import asyncio
 import traceback
 
-from background_process import background_objects
+from .. import background_objects
 
 
 class BaseService:

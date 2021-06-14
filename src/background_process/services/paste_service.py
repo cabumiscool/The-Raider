@@ -1,14 +1,13 @@
-import typing
-import time
 import asyncio
+import time
+import typing
 from operator import attrgetter
-import privatebinapi
+
 from dependencies.privatebin import upload_to_privatebin
-from background_process.base_service import BaseService
-from background_process import background_objects
 from dependencies.webnovel import classes
 from dependencies.webnovel.web.book import full_book_retriever
-
+from .base_service import BaseService
+from ..background_objects import ErrorList
 
 paste_metadata = '<h3 data-book-Id="%s" data-chapter-Id="%s" data-almost-unix="%s" data-SS-Price="%s" data-index="%s"' \
                  ' data-is-Vip="%s" data-source="qi_latest" data-from="%s" >Chapter %s:  %s</h3>'
@@ -116,7 +115,6 @@ class PasteCreator(BaseService):
             self.pastes_tasks.remove(completed_task)
 
         if len(exceptions) > 1:
-            raise background_objects.ErrorList(*exceptions)
+            raise ErrorList(*exceptions)
         elif len(exceptions) == 1:
             raise exceptions[0]
-

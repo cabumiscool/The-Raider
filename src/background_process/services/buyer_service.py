@@ -1,15 +1,16 @@
 import asyncio
-import aiohttp
-import typing
 import time
-from background_process.base_service import BaseService
-from background_process.background_objects import NoAvailableBuyerAccountError
-from dependencies.database.database import Database
-from dependencies.webnovel import classes
-from dependencies.proxy_classes import Proxy
-from dependencies.webnovel.web import book
-from dependencies.webnovel.waka import book as wbook
+import typing
 
+import aiohttp
+
+from dependencies.database.database import Database
+from dependencies.proxy_classes import Proxy
+from dependencies.webnovel import classes
+from dependencies.webnovel.waka import book as wbook
+from dependencies.webnovel.web import book
+from .base_service import BaseService
+from ..background_objects import NoAvailableBuyerAccountError
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
@@ -195,7 +196,7 @@ class BuyerService(BaseService):
                                 account_try += 1
                                 if account_try >= 10:
                                     raise NoAvailableBuyerAccountError("No available account was found for a "
-                                                                            "new buyer pool")
+                                                                       "new buyer pool")
                                 continue
                             break
                         else:
@@ -203,7 +204,7 @@ class BuyerService(BaseService):
                             await self.database.expired_account(account)
                             if account_try >= 10:
                                 raise NoAvailableBuyerAccountError("No available account was found for a "
-                                                                        "new buyer pool")
+                                                                   "new buyer pool")
                             account = await self.database.retrieve_buyer_account()
                     new_pool = BuyerPool(account=account)
                     new_pool.buy(chapter)

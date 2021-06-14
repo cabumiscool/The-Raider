@@ -1,11 +1,12 @@
-import typing
 import asyncio
-from background_process.base_service import BaseService
-from background_process.background_objects import LibraryRetrievalError
+import typing
+
 from dependencies.database.database import Database
-from dependencies.webnovel.web import library
-from dependencies.webnovel.classes import QiAccount, SimpleBook, SimpleComic
 from dependencies.proxy_classes import Proxy
+from dependencies.webnovel.classes import QiAccount, SimpleBook, SimpleComic
+from dependencies.webnovel.web import library
+from .base_service import BaseService
+from ..background_objects import LibraryRetrievalError
 
 
 async def retrieve_library_accounts(database: Database) -> typing.List[QiAccount]:

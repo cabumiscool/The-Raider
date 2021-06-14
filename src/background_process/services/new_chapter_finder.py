@@ -1,10 +1,10 @@
 import asyncio
 import typing
 
-from background_process.base_service import BaseService
-from dependencies.database.database import Database
+from dependencies.database import Database
 from dependencies.webnovel import classes
 from dependencies.webnovel.web import book
+from .base_service import BaseService
 
 
 class NewChapterFinder(BaseService):

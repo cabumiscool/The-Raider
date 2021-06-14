@@ -3,10 +3,10 @@ import time
 
 import aiohttp
 
-from background_process.base_service import BaseService
-from dependencies.database.database import Database
+from dependencies.database import Database
 from dependencies.email_agent import MailAgent
 from dependencies.webnovel.web import auth
+from .base_service import BaseService
 
 
 class CookieMaintainerService(BaseService):

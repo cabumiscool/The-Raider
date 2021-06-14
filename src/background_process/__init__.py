@@ -1,16 +1,12 @@
-import sys
-
-from config import ConfigReader
-
-from background_process.background_objects import *
-from background_process.background_process import BackgroundProcess
-from background_process.paste_service import Paste
-
-from dependencies.database.database import Database
-
 import asyncio
+import sys
 from multiprocessing import Queue, Process
 from queue import Empty
+
+from config import ConfigReader
+from .background_objects import *
+from .background_process import BackgroundProcess
+from .services.paste_service import Paste
 
 
 # process = BackgroundProcess(queue.Queue(), queue.Queue(), ConfigReader())

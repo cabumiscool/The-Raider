@@ -1,12 +1,11 @@
-import aiohttp
-import time
 import random
+import time
 
-from dependencies.database.database import Database
+import aiohttp
 
-from background_process.base_service import BaseService
-
+from dependencies.database import Database
 from dependencies.webnovel.web import account
+from .base_service import BaseService
 
 
 class CurrencyFarmerService(BaseService):
