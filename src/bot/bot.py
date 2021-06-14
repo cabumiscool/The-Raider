@@ -196,7 +196,7 @@ class Raider(commands.AutoShardedBot):
             else:
                 self.dispatch('command_completion', ctx)
             finally:
-                await ctx.message.clear_reaction('🧐')
+                await ctx.message.remove_reaction('🧐', self.user)
         elif ctx.invoked_with:
             exc = commands.CommandNotFound('Command "{}" is not found'.format(ctx.invoked_with))
             self.dispatch('command_error', ctx, exc)
