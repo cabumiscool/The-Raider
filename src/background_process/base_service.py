@@ -75,7 +75,7 @@ class BaseService:
 
     def start(self):
         if self._running:
-            raise background_objects.AlreadyRunningServiceError(f"service '{self.name}' was attempted to be made to"
+            raise background_objects.ServiceAlreadyRunningException(f"service '{self.name}' was attempted to be made to"
                                                                 f" start when it is already running")
         else:
             self._main_loop_task = self._loop.create_task(self.inner_loop_manager())
@@ -102,5 +102,5 @@ class BaseService:
                     if (time.time() - starting_time) > timeout or time.time() - starting_time < timeout/3:
                         raise TimeoutError
         else:
-            raise background_objects.ServiceIsNotRunningError(f"service '{self.name}' was attempted to be made to stop "
+            raise background_objects.ServiceIsNotRunningException(f"service '{self.name}' was attempted to be made to stop "
                                                               f"when it isn't running")

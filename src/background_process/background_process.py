@@ -359,7 +359,7 @@ class BackgroundProcess:
             await service_to_use.stop()
         except TimeoutError:
             service_command.failed_status()
-        except ServiceIsNotRunningError:
+        except ServiceIsNotRunningException:
             service_command.failed_status(comment=f'Service "{service_to_use.name}" is not running')
         except asyncio.CancelledError as e:
             raise e
@@ -374,7 +374,7 @@ class BackgroundProcess:
         service_to_use = self.services[service_command.service_id]
         try:
             service_to_use.start()
-        except AlreadyRunningServiceError:
+        except ServiceAlreadyRunningException:
             service_command.failed_status(comment=f"service {service_to_use.name} is already running")
         except asyncio.CancelledError as e:
             raise e
@@ -391,7 +391,7 @@ class BackgroundProcess:
 
         try:
             await service_to_use.stop()
-        except ServiceIsNotRunningError:
+        except ServiceIsNotRunningException:
             successful_stop = True
         except asyncio.CancelledError as e:
             raise e
@@ -406,7 +406,7 @@ class BackgroundProcess:
 
         try:
             service_to_use.start()
-        except AlreadyRunningServiceError:
+        except ServiceAlreadyRunningException:
             service_command.failed_status(comment=f"service {service_to_use.name} failed to start")
             return service_command
         else:

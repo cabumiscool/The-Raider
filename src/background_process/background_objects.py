@@ -1,10 +1,20 @@
 import time
+
 # import typing
+from dependencies.exceptions import RaiderBaseException
 from dependencies.webnovel.classes import *
 
 
-class ErrorReport(Exception):
-    def __init__(self, error: typing.Type[BaseException], error_comment: str, traceback: str, error_object=None):
+class DaemonBaseException(RaiderBaseException):
+    """
+    Base exception for all background process(aka daemon) related exceptions
+    """
+    MESSAGE = "Daemon Base Exception"
+    ERROR_CODE = 900
+
+
+class ErrorReport(DaemonBaseException):
+    def __init__(self, error: typing.Type[Exception], error_comment: str, traceback: str, error_object=None):
         self.error = error
         self.comment = error_comment
         self.traceback = traceback
@@ -12,39 +22,63 @@ class ErrorReport(Exception):
 
 
 class ProxyErrorReport(ErrorReport):
-    def __init__(self, error: typing.Type[BaseException], error_comment: str, traceback: str, proxy_id: int,
+    def __init__(self, error: typing.Type[Exception], error_comment: str, traceback: str, proxy_id: int,
                  error_object=None):
         super().__init__(error, error_comment, traceback, error_object)
         self.proxy_id = proxy_id
 
 
-class NoAvailableBuyerAccountFoundError(Exception):
-    """Raised when no buyer account either valid or with enough fps is found"""
-
-
-class ErrorList(Exception):
+class ErrorList(RaiderBaseException):
     def __init__(self, *errors):
         self.errors = errors
 
 
-class AlreadyRunningProcessError(Exception):
-    pass
+class ProcessAlreadyRunningException(DaemonBaseException):
+    """
+    Raised when a process spawn is requested while another instance of background process is alive
+    """
+    MESSAGE = "Process already running!"
+    ERROR_CODE = 911
 
 
-class ProcessNotRunningError(Exception):
-    pass
+class ProcessNotRunningException(DaemonBaseException):
+    """
+    Raised when a process communication request occurs without a active background process
+    """
+    MESSAGE = "Process not running!"
+    ERROR_CODE = 912
 
 
-class AlreadyRunningServiceError(Exception):
-    pass
+class ServiceAlreadyRunningException(DaemonBaseException):
+    """
+    Raised when a service spawn is requested while another instance of the service is alive
+    """
+    MESSAGE = "Service already running!"
+    ERROR_CODE = 921
 
 
-class ServiceIsNotRunningError(Exception):
-    pass
+class ServiceIsNotRunningException(DaemonBaseException):
+    """
+    Raised when a service communication request occurs without a corresponding active service
+    """
+    MESSAGE = "Service not running!"
+    ERROR_CODE = 922
 
 
-class LibraryRetrievalError(BaseException):
-    pass
+class LibraryRetrievalError(DaemonBaseException):
+    """
+    Raised when a retrieving a account of a particular type is not possible(occurs due to lack of accounts)
+    """
+    MESSAGE = "Library account retrieval failed!"
+    ERROR_CODE = 931
+
+
+class NoAvailableBuyerAccountError(RaiderBaseException):
+    """
+    Raised when no buyer account is available to usage
+    """
+    MESSAGE = "No available buyer account!"
+    ERROR_CODE = 932
 
 
 class Ping:
@@ -129,6 +163,7 @@ class RestartService(ServiceCommand):
 class ForceQueueUpdate(Command):
     pass
 
+
 # class ServiceStatus(ServiceCommand):
 #   def __init__(self, command_id: int, service_name: str):
 #       super().__init__(command_id, service_name)
@@ -179,6 +214,7 @@ class StatusRequest(Command):
 
 class QueueHistoryStatusRequest(StatusRequest):
     """Will request a status report on the history queue"""
+
     def __init__(self, command_id: int):
         super().__init__(command_id)
         self.books_status_list: typing.List[BookStatus] = []

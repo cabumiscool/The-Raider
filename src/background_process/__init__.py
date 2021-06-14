@@ -48,7 +48,7 @@ class BackgroundProcessInterface:
 
     def start_process(self):
         if self.process.is_alive():
-            raise background_objects.AlreadyRunningProcessError
+            raise background_objects.ProcessAlreadyRunningException
         else:
             self.toward_background = Queue()
             self.from_background = Queue()
@@ -64,7 +64,7 @@ class BackgroundProcessInterface:
             # TODO write a shutdown procedure
             pass
         else:
-            raise background_objects.ProcessNotRunningError
+            raise background_objects.ProcessNotRunningException
 
     def __generate_data_id(self):
         self._data_counter += 1
