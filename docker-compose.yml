@@ -17,6 +17,7 @@ networks:
 services:
 
   privoxy-vpn:
+    # Needs a *.ovpn in /config/openvpn directory
     container_name: 'PrivoxyVPN'
     image: binhex/arch-privoxyvpn
     restart: unless-stopped
@@ -29,13 +30,11 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - .docker-files/privoxyvpn:/config
     environment:
-      VPN_ENABLED: 'yes'
+      VPN_ENABLED: $ENABLE_PROXY
       VPN_PROV: pia
       VPN_CLIENT: openvpn
-      SOCKS_USER: seeker
-      SOCKS_PASS: seeker_pass
-      ENABLE_SOCKS: 'yes'
-      ENABLE_PRIVOXY: 'yes'
+      ENABLE_SOCKS: $ENABLE_SOCKS_PROXY
+      ENABLE_PRIVOXY: $ENABLE_PROXY
       LAN_NETWORK: 172.30.30.0/24
       NAME_SERVERS: 1.1.1.1,1.0.0.1
       STRICT_PORT_FORWARD: 'no'
@@ -49,7 +48,9 @@ services:
       - raider-net
     dns:
       - '1.1.1.1'
+      - '1.0.0.1'
       - '8.8.8.8'
+      - '8.8.4.4'
     cap_add:
       - NET_ADMIN
     devices:
