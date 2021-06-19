@@ -4,7 +4,7 @@ aiohttp_socks==0.6.0
 requests~=2.25.0
 asyncpg==0.22.0
 fuzzywuzzy~=0.18.0
-python-Levenshtein~=0.12.1
+python-Levenshtein-wheels==0.13.2
 PrivateBinAPI~=1.0.0
 pylint==2.8.2
 beautifulsoup4~=4.9.3
