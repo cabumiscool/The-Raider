@@ -4,7 +4,7 @@ MAINTAINER RazBum Team
 
 RUN apt-get update -y
 RUN apt-get upgrade -y
-RUN apt-get install -y python3-pip python3-dev apt-utils
+RUN apt-get install -y python3-pip python3-dev
 
 COPY ./requirements.txt /Raider/requirements.txt
 COPY ./src /Raider/src
