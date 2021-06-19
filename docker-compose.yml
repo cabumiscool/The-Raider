@@ -21,7 +21,7 @@ services:
       - net_admin
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./docker-files/privoxyvpn:/config
+      - .docker-files/privoxyvpn:/config
     environment:
       VPN_ENABLED: 'yes'
       VPN_PROV: pia
@@ -50,7 +50,7 @@ services:
       - /dev/net/tun
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./vpn:/vpn
+      - .docker-files/openvpn-client:/vpn
 
   raider:
     # Run the build command in makefile to build the image
