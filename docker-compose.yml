@@ -57,6 +57,21 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - .docker-files/openvpn-client:/vpn
 
+  raider-db:
+    container_name: 'RaiderDB'
+    image: postgres:11
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=$POSTGRES_DB
+      - PUID=$PUID
+      - PGID=$PGID
+    volumes:
+      - .docker-files/raider-db:/var/lib/postgresql/data
+
   raider:
     # Run the build command in makefile to build the image
     container_name: 'Raider'
@@ -64,6 +79,7 @@ services:
     restart: unless-stopped
     depends_on:
       - openvpn-client
+      - raider-db
     network_mode: 'service:openvpn-client'
     volumes:
       - /etc/localtime:/etc/localtime:ro
