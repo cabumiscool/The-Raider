@@ -134,7 +134,7 @@ class WakaBuyerPool:
     def __init__(self, waka_proxy: Proxy):
         self._proxy = waka_proxy
         self._buyers = []
-        self._done_managers = []
+        self._done_managers = set()
         self._chapters = []
         self._connector = waka_proxy.generate_connector(**default_connector_settings)
         self._session = aiohttp.ClientSession(connector=self._connector)
@@ -145,14 +145,18 @@ class WakaBuyerPool:
             if manager.is_done():
                 if manager.is_error():
                     self._buyers.append(WakaBuyManager(chapter=manager.chapter, session=self._session))
-                    self._buyers.remove(manager)
+                    self._done_managers.add(manager)
                     manager.return_chapter()
                 else:
                     self._chapters.append(manager.return_chapter())
-                    self._done_managers.append(manager)
+                    self._done_managers.add(manager)
+                    # self._done_managers.append(manager)
 
         for manager_to_delete in self._done_managers:
-            self._buyers.remove(manager_to_delete)
+            try:
+                self._buyers.remove(manager_to_delete)
+            except ValueError:
+                pass
         self._done_managers.clear()
         chapters_to_return = self._chapters.copy()
         self._chapters.clear()
