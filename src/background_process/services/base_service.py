@@ -8,6 +8,7 @@ from .. import background_objects
 
 class BaseService:
     """The base class from where all the services will inherit"""
+
     def __init__(self, name: str = None, loop_time: int = 20, *, output_service: bool = True):
         if name is None:
             self.name = self.__class__.__name__
@@ -56,6 +57,7 @@ class BaseService:
     async def inner_error_handler(self):
         try:
             await self.main()
+            return True
         except asyncio.CancelledError:
             error = background_objects.ErrorReport(asyncio.CancelledError, f'Service {self.name} received a cancel '
                                                                            f'command and was executed',
@@ -66,17 +68,19 @@ class BaseService:
             error = background_objects.ErrorReport(type(e), 'error caught at top level execution of service',
                                                    traceback.format_exc(), str(e))
             self._encountered_errors.append(error)
+            return False
 
     async def inner_loop_manager(self):
         while self._running:
-            await self.inner_error_handler()
-            self.last_loop = time.time()
+            successful_run = await self.inner_error_handler()
+            if successful_run:
+                self.last_loop = time.time()
             await asyncio.sleep(self._loop_interval)
 
     def start(self):
         if self._running:
             raise background_objects.ServiceAlreadyRunningException(f"service '{self.name}' was attempted to be made to"
-                                                                f" start when it is already running")
+                                                                    f" start when it is already running")
         else:
             self._main_loop_task = self._loop.create_task(self.inner_loop_manager())
             self._running = True
@@ -94,13 +98,14 @@ class BaseService:
                 return True
             else:
                 while True:
-                    await asyncio.sleep(timeout/3)
+                    await asyncio.sleep(timeout / 3)
                     if self._main_loop_task.done():
                         self._running = False
                         self.last_loop = -1
                         return True
-                    if (time.time() - starting_time) > timeout or time.time() - starting_time < timeout/3:
+                    if (time.time() - starting_time) > timeout or time.time() - starting_time < timeout / 3:
                         raise TimeoutError
         else:
-            raise background_objects.ServiceIsNotRunningException(f"service '{self.name}' was attempted to be made to stop "
-                                                              f"when it isn't running")
+            raise background_objects.ServiceIsNotRunningException(
+                f"service '{self.name}' was attempted to be made to stop "
+                f"when it isn't running")
