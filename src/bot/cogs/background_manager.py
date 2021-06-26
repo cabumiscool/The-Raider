@@ -46,7 +46,7 @@ class BackgroundManager(commands.Cog):
     async def error_retriever(self):
         # TODO add support to add a pickle file including the error object for deeper debugging
         error_channel: discord.TextChannel = await self.bot.fetch_channel(803352701295525908)
-        # Todo: retrieve the error channel dynamically
+        # Todo: retrieve the error channel dynamically the same way book channels are retrieved
         errors = self.background_process_interface.return_all_exceptions()
         async_tasks = []
         for error in errors:
@@ -62,6 +62,44 @@ class BackgroundManager(commands.Cog):
                 error_string = ''.join(('```', error_string, '```'))
                 async_tasks.append(asyncio.create_task(error_channel.send(error_string)))
         await asyncio.gather(*async_tasks)
+
+    @commands.command()
+    @bot_checks.check_permission_level(6)
+    async def restart_background(self, ctx: Context):
+        background_stop_status = await self.background_process_interface.stop_process(graceful=False)
+        if background_stop_status:
+            try:
+                await self.background_process_interface.start_process()
+            except ProcessAlreadyRunningException:
+                await ctx.send("Couldn't start the background process, please try again")
+            else:
+                await ctx.send("Background process successfully started! :)")
+        else:
+            await ctx.send("Couldn't stop the background process successfully please verify manually if it stopped and"
+                           " restart it manually")
+            return
+
+    @commands.command()
+    @bot_checks.check_permission_level(6)
+    async def start_background(self, ctx: Context):
+        try:
+            await self.background_process_interface.start_process()
+        except ProcessAlreadyRunningException:
+            await ctx.send("Couldn't start the background process, please try again")
+        else:
+            await ctx.send("Background process successfully started! :)")
+
+    @commands.command()
+    @bot_checks.check_permission_level(6)
+    async def stop_background(self, ctx: Context):
+        background_stop_status = await self.background_process_interface.stop_process(graceful=False)
+        if background_stop_status:
+            await ctx.send("Successfully stopped the background process")
+        else:
+            await ctx.send("Couldn't stop the background process successfully please verify manually if it stopped and"
+                           " restart it manually")
+            return
+
 
     @tasks.loop(seconds=3)
     async def pastes_retriever(self):

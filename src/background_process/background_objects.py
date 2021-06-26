@@ -127,11 +127,11 @@ class StopProcess(ProcessCommand):
     pass
 
 
-class RestartProcess(ProcessCommand):
+class HardStopProcess(ProcessCommand):
     pass
 
 
-class HardRestartProcess(ProcessCommand):
+class RestartProcess(ProcessCommand):
     pass
 
 

@@ -55,10 +55,17 @@ class BackgroundProcessInterface:
     def is_alive(self):
         return self.process.is_alive()
 
-    def stop_process(self):
+    async def stop_process(self, *, graceful: bool = True):
         if self.process.is_alive():
             # TODO write a shutdown procedure
-            pass
+            if not graceful:
+                self.__send_data(HardStopProcess)
+                for x in range(0,5):
+                    await asyncio.sleep(2)
+                    if not self.is_alive():
+                        return True
+                self.process.kill()
+                return True
         else:
             raise background_objects.ProcessNotRunningException
 

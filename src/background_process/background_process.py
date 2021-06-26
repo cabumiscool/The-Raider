@@ -424,8 +424,10 @@ class BackgroundProcess:
                     if issubclass(type(received_object), Command):
                         if isinstance(received_object, ForceQueueUpdate):
                             self.services_commands.append(asyncio.create_task(self.force_queue_update(received_object)))
-                        elif isinstance(received_object, ProcessCommand):
-                            pass  # TODO do this
+                        elif issubclass(type(received_object), ProcessCommand):
+                            # TODO write the graceful stop method
+                            if isinstance(received_object, HardStopProcess):
+                                exit()
                         elif issubclass(type(received_object), ServiceCommand):
                             if isinstance(received_object, StartService):
                                 service_command = self.service_starter(received_object)
