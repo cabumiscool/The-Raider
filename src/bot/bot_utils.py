@@ -6,11 +6,18 @@ from discord.ext.commands import Context
 
 
 def generate_embed(title: str, author: discord.Member, *fields: Tuple[AnyStr, AnyStr], description: str = None,
-                   color: int = 0) -> discord.Embed:
+                   color: int = 0, image_url: str = None) -> discord.Embed:
     for field in fields:
         assert len(field) == 2
+
+    if description is None:
+        description = ""
     embed = discord.Embed(title=title, color=color, description=description)
     embed.set_footer(text=author.display_name, icon_url=author.avatar_url)
+
+    if image_url is not None:
+        embed.set_image(url=image_url)
+
     for field in fields:
         embed.add_field(name=field[0], value=field[1])
     return embed
