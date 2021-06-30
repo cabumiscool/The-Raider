@@ -5,6 +5,7 @@ from typing import Union, List, Tuple, Dict
 import privatebinapi
 from discord.ext import commands
 from discord.ext.commands import Context
+import discord
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
 from dependencies.database import database_exceptions, Database
@@ -38,6 +39,29 @@ def book_string_and_range_matcher(user_string: str) -> Dict[str, List[Tuple[int,
             chapter_indices.append((range_start, range_end))
         book_string_and_ranges[book_string] = chapter_indices
     return book_string_and_ranges
+
+
+def build_book_embed(book: Book, cover_url: str, author: discord.Member):
+    if book.qi_abbreviation:
+        abbreviation_name = "Abbreviation:"
+    else:
+        abbreviation_name = "Pseudo Abbreviation"
+    priv_fields = [("Is Privilege?:", book.privilege)]
+    if book.privilege:
+        priv_fields.extend([("# Privilege Chapters:", book.return_priv_chapters_count()),
+                            ("Last Non Privilege Chapter:",
+                             book.total_chapters - book.return_priv_chapters_count())])
+    embed = generate_embed(book.name, author,
+                           ("Book Id:", book.id),
+                           ("Has Abbreviation:", book.qi_abbreviation),
+                           (abbreviation_name, book.abbreviation),
+                           ("Total Chapters:", book.total_chapters),
+                           ("Book Status", book.book_status_text),
+                           ("Type:", book.book_type),
+                           ("Read Type:", book.read_type),
+                           *priv_fields,
+                           image_url=cover_url)
+    return embed
 
 
 class QiCommands(commands.Cog):
@@ -196,6 +220,42 @@ class QiCommands(commands.Cog):
             await ctx.send(f"Deleting {len(chapters_to_remove)} chapters from the db of book {qi_book.name}")
             await self.db.batch_delete_chapters(*chapters_to_remove)
         await ctx.send(f"Metadata successfully updated for {qi_book.name}")
+
+    @commands.group(brief='Checks the metadata of an object either from qi or db, for more info use [help check]')
+    @bot_checks.check_permission_level(6)
+    async def check(self, ctx: Context):
+        if ctx.invoked_subcommand is None:
+            await ctx.send('No valid operation was requested')
+
+    @check.group(brief='Checks the metadata of objects from qi')
+    @bot_checks.check_permission_level(6)
+    async def qi(self, ctx: Context):
+        if ctx.invoked_subcommand is None:
+            await ctx.send('No valid operation was requested')
+
+    @qi.command(brief='Retrieves the metadata of the given book id from qi and displays it')
+    @bot_checks.check_permission_level(6)
+    async def book(self, ctx: Context, book_id: int):
+        book: Book = await full_book_retriever(book_id)
+        author = ctx.author
+        cover_url = await generate_thumbnail_url_or_file(book.id)
+        embed = build_book_embed(book, cover_url, author)
+        await ctx.send(embed=embed)
+
+    @check.group(brief='Checks the metadata of objects from the internal db')
+    @bot_checks.check_permission_level(6)
+    async def db(self, ctx: Context):
+        if ctx.invoked_subcommand is None:
+            await ctx.send('No valid operation was requested')
+
+    @db.command(brief='Retrieves the metadata of the given book id from the internal db and displays it')
+    @bot_checks.check_permission_level(6)
+    async def book(self, ctx: Context, book_id: int):
+        book: Book = await self.db.retrieve_complete_book(book_id)
+        author = ctx.author
+        cover_url = await generate_thumbnail_url_or_file(book.id)
+        embed = build_book_embed(book, cover_url, author)
+        await ctx.send(embed=embed)
 
     @commands.command(aliases=['batch_add, many_add'])
     async def batch_add_books(self, ctx: Context, *book_ids):
