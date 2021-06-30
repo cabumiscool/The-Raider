@@ -9,9 +9,9 @@ import discord
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
 from dependencies.database import database_exceptions, Database
-from dependencies.webnovel.classes import SimpleBook
+from dependencies.webnovel.classes import SimpleBook, Book
 from dependencies.webnovel.utils import book_string_to_book_id
-from dependencies.webnovel.web.book import full_book_retriever
+from dependencies.webnovel.web.book import full_book_retriever, generate_thumbnail_url_or_file
 from dependencies.utils import generic_buyer
 from . import bot_checks
 
