@@ -233,20 +233,21 @@ class QiCommands(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send('No valid operation was requested')
 
-    @qi.command(brief='Retrieves the metadata of the given book id from qi and displays it')
-    @bot_checks.check_permission_level(6)
-    async def book(self, ctx: Context, book_id: int):
-        book: Book = await full_book_retriever(book_id)
-        author = ctx.author
-        cover_url = await generate_thumbnail_url_or_file(book.id)
-        embed = build_book_embed(book, cover_url, author)
-        await ctx.send(embed=embed)
-
     @check.group(brief='Checks the metadata of objects from the internal db')
     @bot_checks.check_permission_level(6)
     async def db(self, ctx: Context):
         if ctx.invoked_subcommand is None:
             await ctx.send('No valid operation was requested')
+
+    @qi.command(brief='Retrieves the metadata of the given book id from qi and displays it',
+                name='book')
+    @bot_checks.check_permission_level(6)
+    async def qi_book_check(self, ctx: Context, book_id: int):
+        book: Book = await full_book_retriever(book_id)
+        author = ctx.author
+        cover_url = await generate_thumbnail_url_or_file(book.id)
+        embed = build_book_embed(book, cover_url, author)
+        await ctx.send(embed=embed)
 
     @db.command(brief='Retrieves the metadata of the given book id from the internal db and displays it')
     @bot_checks.check_permission_level(6)
