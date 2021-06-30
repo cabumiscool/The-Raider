@@ -269,7 +269,8 @@ class Book(SimpleBook):
     _types = {1: 'Translated', 2: 'Original'}
     _payment_method = ["Free", "Adwall", "Premium"]
     # translating related fields in status could also be in progress and not started... maybe. ui concern
-    _status = {-1: 'UNTRANSLATED', 30: 'TRANSLATING', 40: 'SUSPEND', 50: 'COMPLETED'}
+    # og_status = {-1: 'UNTRANSLATED', 30: 'TRANSLATING', 40: 'SUSPEND', 50: 'COMPLETED'}
+    _status = {-1: 'NOT STARTED', 30: 'IN PROGRESS', 40: 'SUSPENDED', 50: 'COMPLETED'}
 
     def __init__(self, book_id: int, book_name: str, total_chapter_count: int, is_privileged: bool,
                  type_is_tl: int, cover_id: int, action_status: int,
