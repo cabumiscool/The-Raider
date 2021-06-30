@@ -359,6 +359,14 @@ class Book(SimpleBook):
         else:
             raise exceptions.MissingVolumesError('The book object is missing volume objects')
 
+    def return_priv_chapters_count(self):
+        chapters_count = 0
+        for volume in self._volumes_list:
+            for chapter in volume.return_all_chapter_objs():
+                if chapter.is_privilege:
+                    chapters_count += 1
+        return chapters_count
+
 
 def __retrieve_all_chapters_ids__(book: Book):
     chapters_id = []
