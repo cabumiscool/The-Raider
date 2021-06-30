@@ -3,6 +3,8 @@ from asyncio import CancelledError
 from time import time
 from typing import List, Union, Tuple
 
+from io import BytesIO
+
 import aiohttp
 import aiohttp_socks
 
@@ -20,6 +22,25 @@ API_ENDPOINT_2 = 'https://www.webnovel.com/go/pcm/chapter'
 # TODO change the api and related metadata from first api to second as first is gone
 
 # TODO change the input from the proxy connector to the proxy class where required
+
+
+async def generate_thumbnail_url_or_file(book_id: int, url_only: bool = True, session: aiohttp.ClientSession = None,
+                                         proxy_connector: aiohttp_socks.ProxyConnector = None) -> Union[str, BytesIO]:
+    assert isinstance(book_id, int)
+    cover_url = f"https://img.webnovel.com/bookcover/{book_id}/150/150.jpg"
+    if not url_only:
+        if session is None:
+            if not proxy_connector:
+                proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
+
+            async with aiohttp.request('GET', cover_url, connector=proxy_connector) as req:
+                image_file = BytesIO(await req.read())
+        else:
+            async with session.get(cover_url) as req:
+                image_file = BytesIO(await req.read())
+        return image_file
+    else:
+        return cover_url
 
 
 def find_volume_index_from_id(chapter_id, volumes: List[classes.Volume]) -> int:
