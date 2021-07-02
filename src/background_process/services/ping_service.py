@@ -50,7 +50,7 @@ class PingService(BaseService):
 
         books_to_retrieve = {}
         for released_chapter in input_cache:
-            if released_chapter.id in ping_requests_dict:
+            if released_chapter.parent_id in ping_requests_dict:
                 if released_chapter.parent_id not in books_to_retrieve:
                     books_to_retrieve[released_chapter.parent_id] = [released_chapter]
                 else:
