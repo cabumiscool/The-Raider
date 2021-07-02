@@ -34,6 +34,7 @@ class BackgroundManager(commands.Cog):
         self.ping_maker.start()
         self.error_retriever.start()
         self.pastes_retriever.start()
+        self.chapter_pings_sender.start()
         self.services_names = {}
         self.services_ids = []
 
@@ -41,6 +42,30 @@ class BackgroundManager(commands.Cog):
     async def ping_maker(self):
         await self.background_process_interface.send_ping()
         self.last_ping = time.time()
+
+    @tasks.loop(seconds=5)
+    async def chapter_pings_sender(self):
+        pings = self.background_process_interface.return_all_chapters_pings()
+        messages_tasks = []
+        for chapter_ping in pings:
+            users_to_ping = []
+            for user_id in chapter_ping.users:
+                users_to_ping.append(await self.bot.fetch_user(user_id))
+            ranges = []
+            for chapters_range in chapter_ping.ranges:
+                if chapters_range[0] == [1]:
+                    ranges.append(f"{chapters_range[0]}")
+                else:
+                    ranges.append(f"{chapters_range[0]}-{chapters_range[1]}")
+            messages_to_send = []
+            for chapter_range in ranges:
+                messages_to_send.append(f"{chapter_ping.book_obj.name} - {chapter_range} was released!")
+
+            for user in users_to_ping:
+                for message in messages_to_send:
+                    messages_tasks.append(asyncio.create_task(user.send(message)))
+
+        await asyncio.gather(*messages_tasks)
 
     @tasks.loop(seconds=3)
     async def error_retriever(self):
@@ -163,7 +188,7 @@ class BackgroundManager(commands.Cog):
         embed = bot_utils.generate_embed('Bot Stats', ctx.author, ('Last Background Ping', last_ping_str),
                                          ('Fp Left', fp_count), ('Bot Uptime', bot_uptime),
                                          ('Background Process', background_process_status),
-                                         ('Accounts', f"{accounts_count[0]}/{accounts_count[1]}"),)
+                                         ('Accounts', f"{accounts_count[0]}/{accounts_count[1]}"))
         await ctx.send(embed=embed)
 
     def inner_services_cache_updater(self, services_status_object: AllServicesStatus):
