@@ -6,3 +6,4 @@ from .new_chapter_finder import NewChapterFinder
 from .paste_service import PasteCreator, PasteRequest, MultiPasteRequest, Paste
 from .proxy_manager_service import ProxyManager
 from .update_checking_service import BooksLibraryChecker
+from .ping_service import PingService
