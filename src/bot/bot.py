@@ -11,8 +11,11 @@ from config import ConfigReader
 from dependencies.database import Database
 from dependencies.exceptions import RaiderBaseException
 
-initial_extensions = ('bot.cogs.permission_management', 'bot.cogs.qi_commands', 'bot.cogs.background_manager',
-                      'bot.cogs.migration_cog')
+initial_extensions = ('bot.cogs.permission_management',
+                      'bot.cogs.qi_commands',
+                      'bot.cogs.background_manager',
+                      'bot.cogs.migration_cog',
+                      'bot.cogs.chapter_pings_cog')
 
 
 def _custom_prefix_adder(*args):
