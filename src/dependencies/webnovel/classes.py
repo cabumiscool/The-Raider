@@ -147,6 +147,7 @@ class Volume:
 
     def __init__(self, chapters_list: typing.List[SimpleChapter], volume_index: int, book_id: int,
                  volume_name: str = "No-Name"):
+        chapters_list = sorted(chapters_list, key=attrgetter("index"))
         self._chapters_with_index = {chapter.index: chapter for chapter in chapters_list}
         self._chapters = {chapter.id: chapter for chapter in chapters_list}
         self.index = int(volume_index)
