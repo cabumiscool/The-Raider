@@ -342,7 +342,7 @@ class BackgroundManager(commands.Cog):
         print('released extra accounts')
 
     @commands.command(hidden=True)
-    async def ping(self, ctx: Context):
+    async def pong(self, ctx: Context):
         await ctx.send('Ping!')
 
 
