@@ -222,18 +222,33 @@ class Database:
         book.add_volume_list(all_volumes_list)
         return book
 
-    async def get_all_books_ids_and_names_dict(self, *, invert: bool = False) -> typing.Dict[str: int]:
+    async def get_all_books_ids_and_names_dict(self, *, invert: bool = False, no_abbreviation: bool = False
+                                               ) -> typing.Dict[str: int]:
         await self.__init_check__()
-        request_query = '''SELECT "BOOK_NAME", "BOOK_ID" FROM "BOOKS_DATA"'''
+        if no_abbreviation:
+            request_query = '''SELECT "BOOK_NAME", "BOOK_ID" FROM "BOOKS_DATA"'''
+        else:
+            request_query = '''Select "BOOK_NAME", "BOOK_ABBREVIATION", "BOOK_ID" FROM "BOOKS_DATA"'''
         records_list = await self._db_pool.fetch(request_query)
         if len(records_list) == 0:
             return {}
-        if invert:
-            data_dict = {int(book_id): book_name for book_name, book_id in [(record[0],
-                                                                             record[1]) for record in records_list]}
+        if no_abbreviation:
+            if invert:
+                data_dict = {int(book_id): book_name for book_name, book_id in [(record[0],
+                                                                                 record[1]) for record in records_list]}
+            else:
+                data_dict = {book_name: int(book_id) for book_name, book_id in [(record[0],
+                                                                                 record[1]) for record in records_list]}
         else:
-            data_dict = {book_name: int(book_id) for book_name, book_id in [(record[0],
-                                                                             record[1]) for record in records_list]}
+            data_dict = {}
+            for (book_name, book_abbreviation, book_id) in records_list:
+                book_data_tuple = (book_name, book_abbreviation, book_id)
+                data_dict[book_id] = book_data_tuple
+                data_dict[book_name] = book_data_tuple
+                if book_abbreviation is not None:
+                    data_dict[book_abbreviation] = book_data_tuple
+            # data_dict = {book_id: book_name, book_id: book_abbreviation for book_name, book_abbreviation, book_id
+            # in [[record[0], record[1], record[2] for record in records_list]]}
         return data_dict
 
     async def retrieve_all_simple_comics(self) -> typing.List[SimpleComic]:
@@ -657,7 +672,7 @@ class Database:
 
     async def retrieve_all_books_pings(self) -> typing.Union[typing.Dict[int: int], None]:
         """Will retrieve all the books ids that have users requesting to be pinged about an update"""
-        query = '''SELECT "BOOK_ID", "USER_ID" FROM "PINGS_REQUESTS"'''
+        query = '''SELECT "BOOK_ID", "USER_ID" FROM "BOOKS_PINGS_REQUESTS"'''
         rows = await self._db_pool.fetch(query)
         if len(rows) == 0:
             return None
@@ -672,11 +687,46 @@ class Database:
 
         return return_dict
 
-    async def insert_ping_request(self):
-        pass
+    async def retrieve_user_pings(self, user_id: int):
+        """Will retrieve all the books ids that the specific user is requesting to be pinged about an update"""
+        query = '''SELECT "BOOK_ID" FROM "BOOKS_PINGS_REQUESTS" WHERE "USER_ID"=$1'''
+        rows = await self._db_pool.fetch(query, user_id)
+        if len(rows) == 0:
+            return None
+        books_list = []
+        for row in rows:
+            book_id = int(row[0])
+            books_list.append(book_id)
 
-    async def remove_ping_request(self):
-        pass
+        return {"books": books_list}
+
+    async def insert_ping_request(self, item_id: int, user_id: int, book_item: bool = True):
+        """Will insert a new ping entry to the respective table"""
+        if book_item:
+            query = '''INSERT INTO "BOOKS_PINGS_REQUESTS" ("USER_ID", "BOOK_ID") VALUES ($1, $2)'''
+        else:
+            # query = '''INSERT '''
+            raise NotImplementedError
+
+        try:
+            await self._db_pool.execute(query, user_id, item_id)
+            return True
+        except asyncpg.IntegrityConstraintViolationError:
+            raise NoEntryFoundInDatabaseError
+
+    async def remove_ping_request(self, item_id: int, user_id: int, book_item: bool = True):
+        """Will remove a ping entry from the respective table"""
+        if book_item:
+            query = '''DELETE FROM "BOOKS_PINGS_REQUESTS" WHERE "USER_ID"=$1 AND "BOOK_ID"=$2'''
+        else:
+            # query = '''INSERT '''
+            raise NotImplementedError
+
+        try:
+            await self._db_pool.execute(query, user_id, item_id)
+            return True
+        except asyncpg.IntegrityConstraintViolationError:
+            raise NoEntryFoundInDatabaseError
 
     # TODO Delete once complete migration from seeker to raider
     async def retrieve_email_accounts(self) -> typing.Dict[int: EmailAccount]:
