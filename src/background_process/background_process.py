@@ -9,7 +9,7 @@ from dependencies.database.database_exceptions import DatabaseDuplicateEntry
 from dependencies.webnovel import classes
 from .background_objects import *
 from .services import BaseService, BooksLibraryChecker, NewChapterFinder, BuyerService, PasteCreator, PasteRequest, \
-    MultiPasteRequest, Paste, CookieMaintainerService, CurrencyFarmerService
+    MultiPasteRequest, Paste, CookieMaintainerService, CurrencyFarmerService, PingService
 
 
 # from operator import attrgetter
@@ -33,7 +33,8 @@ class BackgroundProcess:
                                                         4: PasteCreator(),
                                                         # 5: ProxyManager(self.database)
                                                         5: CookieMaintainerService(self.database),
-                                                        6: CurrencyFarmerService(self.database)
+                                                        6: CurrencyFarmerService(self.database),
+                                                        7: PingService(self.database)
                                                         }
 
         if loop is None:
@@ -120,6 +121,12 @@ class BackgroundProcess:
                     new_chapters.append(possible_chapter)
 
         # TODO add the ping checker around here
+        # adding to the queue of the ping checker
+        self.services[7].add_to_queue(*new_chapters)
+
+        # retrieves the pings content
+        for chapter_ping in self.services[7].retrieve_completed_cache():
+            self.__return_data(chapter_ping)
 
         # adding to the queue of the chapter buyer
         self.services[3].add_to_queue(*new_chapters)
