@@ -53,7 +53,7 @@ class BackgroundManager(commands.Cog):
                 users_to_ping.append(await self.bot.fetch_user(user_id))
             ranges = []
             for chapters_range in chapter_ping.ranges:
-                if chapters_range[0] == [1]:
+                if chapters_range[0] == chapters_range[1]:
                     ranges.append(f"{chapters_range[0]}")
                 else:
                     ranges.append(f"{chapters_range[0]}-{chapters_range[1]}")
