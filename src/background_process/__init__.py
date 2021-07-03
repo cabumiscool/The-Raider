@@ -116,8 +116,8 @@ class BackgroundProcessInterface:
         return await self.wait_data_return(data_id)
 
     def return_all_chapters_pings(self) -> typing.List[ChapterPing]:
-        pastes = self._pastes.copy()
-        self._pastes.clear()
+        pastes = self._pings.copy()
+        self._pings.clear()
         return pastes
 
     async def request_all_services_status(self) -> AllServicesStatus:
