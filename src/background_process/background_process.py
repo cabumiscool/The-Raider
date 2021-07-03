@@ -125,7 +125,16 @@ class BackgroundProcess:
         self.services[7].add_to_queue(*new_chapters)
 
         # retrieves the pings content
-        for chapter_ping in self.services[7].retrieve_completed_cache():
+        chapter_pings = []
+        try:
+            chapter_pings.extend(self.services[7].retrieve_completed_cache())
+        except ErrorReport as e:
+            self.__return_data(e)
+        except ErrorList as e:
+            for error in e.errors:
+                self.__return_data(error)
+
+        for chapter_ping in chapter_pings:
             self.__return_data(chapter_ping)
 
         # adding to the queue of the chapter buyer
