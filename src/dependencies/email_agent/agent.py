@@ -4,8 +4,14 @@ from typing import List
 import aioimaplib
 from bs4 import BeautifulSoup
 
-from .exceptions import UnknownMailHost, InitializationFailure, ImapCommandFailure, NoMatchingMailsFound, \
-    MailParsingError, KeyCodeParseError
+from .exceptions import (
+    UnknownMailHost,
+    InitializationFailure,
+    ImapCommandFailure,
+    NoMatchingMailsFound,
+    MailParsingError,
+    KeyCodeParseError
+)
 
 
 class MailAgent:
@@ -49,11 +55,11 @@ class MailAgent:
             return True
         raise InitializationFailure(self.mail_address)
 
-    def __parse_mail(self, raw_mail: bytearray) -> str:
+    def __parse_mail(self, raw_mail: bytes) -> str:
         try:
             raw_mail = raw_mail.decode("utf-8")
             raw_mail = BeautifulSoup(raw_mail, "lxml").text
-            formatted_mail = raw_mail.replace('=\r\n', '').replace('\t', '').replace('=3D', '=')
+            formatted_mail = raw_mail.replace('=\r\n', '').replace('\t', '').replace('=3D', '=').replace('=09', '')
             return formatted_mail
         except Exception as e:
             raise MailParsingError(self.mail_address) from e
@@ -79,7 +85,7 @@ class MailAgent:
         mail_fetch = await self.__get_latest_mail__("Webnovel Support", recipient)
         parsed_mail = self.__parse_mail(mail_fetch[1])
 
-        match = re.search(r'([0-9A-Z]{6})[\s\n]+This email ', parsed_mail)
+        match = re.search(r'([0-9a-zA-Z]{6})[\s\n]+This email ', parsed_mail)
         if not match:
             raise KeyCodeParseError(self.mail_address)
         key_code = match.group(1)
