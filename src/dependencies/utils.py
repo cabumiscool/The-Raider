@@ -42,12 +42,14 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
     enough_fp_count = len(chapters)
     accounts_to_use = []
     accounts_used = []
-    use_account = True
+    use_account = False
     while True:
         for chapter in chapters:
             if not chapter.is_privilege:
-                use_account = False
+                use_account = True
                 break
+        if use_account is False:
+            break
         try:
             account = await account_retriever()
         except NoAccountFound:
