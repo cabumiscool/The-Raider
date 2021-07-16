@@ -132,13 +132,14 @@ class Database:
         query_args = (channel_id, channel_type)
         await self._db_pool.execute(query, *query_args)
 
-    async def channel_type_retriever(self, channel_type: int) -> typing.Union[None, int]:
+    async def channel_type_retriever(self, channel_type: int) -> typing.List[int]:
         await self.__init_check__()
         query = """SELECT "CHANNEL_ID" FROM "CHANNELS" WHERE "CHANNEL_TYPE"=$1"""
-        record = await self._db_pool.fetchrow(query, channel_type)
-        if record is None:
-            return None
-        return record[0]
+        records = await self._db_pool.fetch(query, channel_type)
+        channel_ids = []
+        for record in records:
+            channel_ids.append(record[0])
+        return channel_ids
 
     async def all_channel_type_retriever(self):
         await self.__init_check__()

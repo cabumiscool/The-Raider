@@ -2,6 +2,7 @@ import datetime
 import asyncio
 # from json import loads
 from io import StringIO
+from typing import List
 
 import discord
 from discord.ext import commands, tasks
@@ -125,23 +126,28 @@ class BackgroundManager(commands.Cog):
                            " restart it manually")
             return
 
-
     @tasks.loop(seconds=3)
     async def pastes_retriever(self):
         try:
             default_paste_channel: discord.TextChannel = await self.bot.fetch_channel(827393945796870184)
 
-            translated_paste_channel_id = await self.db.channel_type_retriever(1)
-            if translated_paste_channel_id is None:
-                translated_paste_channel = default_paste_channel
+            translated_paste_channel_ids = await self.db.channel_type_retriever(1)
+            if translated_paste_channel_ids is None:
+                translated_paste_channels = [default_paste_channel]
             else:
-                translated_paste_channel: discord.TextChannel = await self.bot.fetch_channel(translated_paste_channel_id)
+                translated_paste_channels: List[discord.TextChannel] = []
+                for channel_id in translated_paste_channel_ids:
+                    channel = await self.bot.fetch_channel(channel_id)
+                    translated_paste_channels.append(channel)
 
-            original_paste_channel_id = await self.db.channel_type_retriever(2)
-            if original_paste_channel_id is None:
-                original_paste_channel = default_paste_channel
+            original_paste_channel_ids = await self.db.channel_type_retriever(2)
+            if len(original_paste_channel_ids) == 0:
+                original_paste_channels = [default_paste_channel]
             else:
-                original_paste_channel: discord.TextChannel = await self.bot.fetch_channel(original_paste_channel_id)
+                original_paste_channels: List[discord.TextChannel] = []
+                for channel_id in original_paste_channel_ids:
+                    channel = await self.bot.fetch_channel(channel_id)
+                    original_paste_channels.append(channel)
 
             pastes = self.background_process_interface.return_all_pastes()
             send_tasks = []
@@ -150,11 +156,13 @@ class BackgroundManager(commands.Cog):
                     range_str = paste.ranges[0]
                 else:
                     range_str = f"{paste.ranges[0]}-{paste.ranges[1]}"
-                paste_format = f"!paste {paste.book_obj.name} - {range_str} <{paste.full_url}>"
+                paste_format = f"!paste {paste.book_obj.name} - {range_str} {paste.full_url}"
                 if paste.book_obj.book_type_num == 1:
-                    send_tasks.append(asyncio.create_task(translated_paste_channel.send(paste_format)))
+                    for channel in translated_paste_channels:
+                        send_tasks.append(asyncio.create_task(channel.send(paste_format)))
                 elif paste.book_obj.book_type_num == 2:
-                    send_tasks.append(asyncio.create_task(original_paste_channel.send(paste_format)))
+                    for channel in original_paste_channels:
+                        send_tasks.append(asyncio.create_task(channel.send(paste_format)))
 
             await asyncio.gather(*send_tasks)
         except Exception as e:
