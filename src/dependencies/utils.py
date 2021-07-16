@@ -16,13 +16,15 @@ data_from = ['qi', 'waka-waka']
 
 
 async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapter):
-    async def individual_buyer(inner_chapter: SimpleChapter, buyer_account: QiAccount):
+    async def individual_buyer(inner_chapter: SimpleChapter, buyer_account: QiAccount = None):
         if inner_chapter.is_privilege:
             waka_proxy = await db.retrieve_proxy(1)
             chapter_obj = await waka_book.chapter_retriever(book_id=inner_chapter.parent_id,
                                                             chapter_id=inner_chapter.id,
                                                             volume_index=inner_chapter.volume_index, proxy=waka_proxy)
         else:
+            if None:
+                raise ValueError("No buyer account was given for a non priv chapter")
             chapter_obj = await book.chapter_buyer(book_id=inner_chapter.parent_id, chapter_id=inner_chapter.id,
                                                    account=buyer_account)
 
@@ -40,7 +42,12 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
     enough_fp_count = len(chapters)
     accounts_to_use = []
     accounts_used = []
+    use_account = True
     while True:
+        for chapter in chapters:
+            if not chapter.is_privilege:
+                use_account = False
+                break
         try:
             account = await account_retriever()
         except NoAccountFound:
@@ -65,11 +72,14 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
 
     async_tasks = []
     for chapter in chapters:
-        async_tasks.append(asyncio.create_task(individual_buyer(chapter, accounts_to_use[0])))
-        accounts_to_use[0].fast_pass_count -= 1
-        if accounts_to_use[0].fast_pass_count == 0:
-            used_account = accounts_to_use.pop(0)
-            accounts_used.append(used_account)
+        if use_account:
+            async_tasks.append(asyncio.create_task(individual_buyer(chapter, accounts_to_use[0])))
+            accounts_to_use[0].fast_pass_count -= 1
+            if accounts_to_use[0].fast_pass_count == 0:
+                used_account = accounts_to_use.pop(0)
+                accounts_used.append(used_account)
+        else:
+            async_tasks.append(asyncio.create_task(individual_buyer(chapter)))
 
     ranges = [chapter.index for chapter in chapters]
     ranges.sort()
