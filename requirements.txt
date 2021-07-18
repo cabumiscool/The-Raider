@@ -1,13 +1,13 @@
-aiohttp~=3.7.3
 discord.py~=1.7.3
-aiohttp_socks~=0.6.0
-requests~=2.25.0
 asyncpg~=0.23.0
-fuzzywuzzy~=0.18.0
-python-Levenshtein-wheels~=0.13.2
-PrivateBinAPI~=1.0.0
-beautifulsoup4~=4.9.3
+aiohttp~=3.7.3
+aiohttp_socks~=0.6.0
 aioimaplib~=0.9.0
+beautifulsoup4~=4.9.3
 cryptography~=3.4.7
-pylint~=2.8.3
-lxml
+fuzzywuzzy~=0.18.0
+lxml== 4.6.3
+PrivateBinAPI~=1.0.0
+python-Levenshtein-wheels~=0.13.2
+pylint==2.9.3
+requests==2.26.0
