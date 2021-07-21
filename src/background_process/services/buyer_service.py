@@ -181,7 +181,7 @@ class BuyerService(BaseService):
 
         # will assign the chapters from the input qi to a pool
         for chapter in cache_content:
-            if chapter.is_privilege or not chapter.is_privilege:
+            if chapter.is_privilege:
                 self.priv_buyer.buy(chapter)
             else:
                 for pool in self.pools:
