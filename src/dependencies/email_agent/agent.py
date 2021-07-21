@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import List
 
@@ -65,6 +66,9 @@ class MailAgent:
             raise MailParsingError(self.mail_address) from e
 
     async def __get_latest_mail__(self, subject: str, recipient: str) -> List[bytes]:
+        # Patch to allow `theseeker` accounts (No idea why searching twice works)
+        res, result = await self.imap_client.search(f'(FROM "noreply@webnovel.com" SUBJECT "{subject}" TO {recipient})')
+        await asyncio.sleep(5)
         res, result = await self.imap_client.search(f'(FROM "noreply@webnovel.com" SUBJECT "{subject}" TO {recipient})')
         self.imap_response_check(res)
 
