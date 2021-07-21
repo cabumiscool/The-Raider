@@ -1,18 +1,18 @@
 import asyncio
 import re
-from typing import Union, List, Tuple, Dict
+from typing import Union, List, Tuple, Dict, Optional
 
+import discord
 import privatebinapi
 from discord.ext import commands
 from discord.ext.commands import Context
-import discord
 
 from bot.bot_utils import generate_embed, emoji_selection_detector
 from dependencies.database import database_exceptions, Database
+from dependencies.utils import generic_buyer
 from dependencies.webnovel.classes import SimpleBook, Book
 from dependencies.webnovel.utils import book_string_to_book_id
-from dependencies.webnovel.web.book import full_book_retriever, generate_thumbnail_url_or_file
-from dependencies.utils import generic_buyer
+from dependencies.webnovel.web.book import full_book_retriever, generate_thumbnail_url_or_file, trail_read_books_finder
 from . import bot_checks
 
 NUMERIC_EMOTES = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '0⃣']
@@ -173,6 +173,20 @@ class QiCommands(commands.Cog):
             full_book = await full_book_retriever(book_id)
             await self.db.insert_new_book(full_book)
             await ctx.send(f"Added {full_book.name} to database")
+
+    @commands.command()
+    @bot_checks.check_permission_level(6)
+    async def grab_trial(self, ctx: Context, add_to_db: Optional[str]):
+        trial_books = await trail_read_books_finder()
+        if len(trial_books) == 0:
+            return await ctx.reply('No trailer books were parsed!')
+        await ctx.reply('**Trail Books Found:**\n' + '\n'.join([str(trial_book) for trial_book in trial_books]))
+
+        if add_to_db:
+            for book_id in trial_books:
+                full_book = await full_book_retriever(book_id)
+                # await self.db.insert_new_book(full_book)
+                await ctx.send(f"Added `{full_book.id}` - `{full_book.name}` to database")
 
     @bot_checks.check_permission_level(6)
     @commands.command()

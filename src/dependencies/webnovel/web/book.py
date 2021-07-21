@@ -1,12 +1,12 @@
 import json
 from asyncio import CancelledError
+from io import BytesIO
 from time import time
 from typing import List, Union, Tuple
 
-from io import BytesIO
-
 import aiohttp
 import aiohttp_socks
+from bs4 import BeautifulSoup
 
 from dependencies.proxy_classes import Proxy
 from .. import classes, exceptions
@@ -68,6 +68,20 @@ async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session
             resp_dict = decode_qi_content(resp_bin)
 
     return resp_dict
+
+
+async def trail_read_books_finder() -> List[int]:
+    books_ids = set()
+    async with aiohttp.request("get", "https://www.webnovel.com/trailer") as resp:
+        page_html = await resp.read()
+    soup = BeautifulSoup(page_html, "lxml")
+    hyperlinks = soup.find_all("a")
+    for hyperlink in hyperlinks:
+        book_id_str = hyperlink.attrs.get("data-bookid", None)
+        if book_id_str:
+            book_id = int(book_id_str)
+            books_ids.add(book_id)
+    return list(books_ids)
 
 
 async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: aiohttp.ClientSession = None,
