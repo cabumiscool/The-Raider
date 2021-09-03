@@ -72,7 +72,7 @@ services:
 #      - PUID=$PUID
 #      - PGID=$PGID
 #    volumes:
-#      - .docker-files/raider-db:/var/lib/postgresql/data
+#      - .docker-files/raider-db/db:/var/lib/postgresql/data
 
   raider:
     # Run the build command in makefile to build the image
