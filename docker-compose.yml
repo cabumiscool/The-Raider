@@ -58,6 +58,9 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - .docker-files/openvpn-client:/vpn
+    environment:
+      PUID: $PUID
+      PGID: $PGID
 
 #  raider-db:
 #    container_name: 'RaiderDB'
@@ -85,3 +88,6 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./settings.ini:/Raider/settings.ini
+    environment:
+      PUID: $PUID
+      PGID: $PGID
