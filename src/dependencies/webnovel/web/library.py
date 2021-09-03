@@ -223,7 +223,7 @@ async def add_item_to_library(item: typing.Union[classes.SimpleBook, classes.Sim
     payload_data['bookIds'] = item.id
     payload_data['novelType'] = item.NovelType
     # add_data = {'_csrfToken': csrf, 'bookIds': item_id, 'novelType': type_}
-    api_url = '/'.join((main_api_url, 'AddLibraryItemsAjax'))
+    api_url = '/'.join((new_api_url, 'AddLibraryItemsAjax'))
     while True:
         try:
             if proxy:
@@ -270,7 +270,7 @@ async def remove_item_from_library(item: typing.Union[classes.SimpleBook, classe
     assert issubclass(type(item), supported_types) or isinstance(item, supported_types)
     use_session, payload_data = __request_data_generator(session, account)
     full_data = {**payload_data, 'bookItems': '[{"bookId":"%s","novelType":%s}]' % (item.id, item.NovelType)}
-    api_url = '/'.join((main_api_url, 'DeleteLibraryItemsAjax'))
+    api_url = '/'.join((new_api_url, 'deleteLibraryItemsAjax'))
     string = "&".join([f'{key}={value}' for key, value in full_data.items()])
     string.replace(' ', '')
     encoded_string = quote(string, encoding='UTF-8', safe='&=')
@@ -324,7 +324,7 @@ async def batch_remove_books_from_library(*items: typing.Union[classes.SimpleBoo
 
     full_data = {**payload_data, 'bookItems': f'[{",".join(items_dict_string)}]'}
     # full_data = {**payload_data, 'bookItems': '[{"bookId":"%s","novelType":%s}]' % (item.id, item.NovelType)}
-    api_url = '/'.join((main_api_url, 'DeleteLibraryItemsAjax'))
+    api_url = '/'.join((new_api_url, 'deleteLibraryItemsAjax'))
     string = "&".join([f'{key}={value}' for key, value in full_data.items()])
     string.replace(' ', '')
     encoded_string = quote(string, encoding='UTF-8', safe='&=')

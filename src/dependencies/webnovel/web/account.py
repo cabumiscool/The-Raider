@@ -35,18 +35,19 @@ async def retrieve_energy_stone_books() -> list:
 
 
 async def retrieve_power_stone_books() -> list:
-    params_args = {"pageIndex": "1", "type": "1"}
-    async with aiohttp.request("get", "https://www.webnovel.com/apiajax/ranking/getRanking",
-                               params=params_args) as resp:
-        content_bin = await resp.read()
-    content_dict = decode_qi_content(content_bin)
-    top_20_dict_list = content_dict["data"]["rankingItems"]
-    return [int(book["bookId"]) for book in top_20_dict_list]
+    books_ids = []
+    async with aiohttp.request("get", "https://www.webnovel.com/ranking/novel/monthly/power_rank") as resp:
+        page_html = await resp.read()
+    soup = BeautifulSoup(page_html, "lxml")
+    book_covers = soup.find_all("a", attrs={"data-report-uiname": "bookcover"})
+    for cover in book_covers:
+        books_ids.append(int(cover.attrs["data-report-did"]))
+    return books_ids
 
 
 async def retrieve_farm_status(session: aiohttp.ClientSession = None, account: QiAccount = None, proxy: Proxy = None):
-    task_list_url = 'https://www.webnovel.com/apiajax/task/taskList'
-    task_list_params = {'taskType': str(1)}
+    task_list_url = 'https://www.webnovel.com/go/pcm/task/getTaskList'
+    task_list_params = {'taskType': 1}
 
     if proxy:
         assert isinstance(proxy, Proxy)
@@ -79,9 +80,8 @@ async def retrieve_farm_status(session: aiohttp.ClientSession = None, account: Q
 
 
 async def claim_login(session: aiohttp.ClientSession = None, account: QiAccount = None, proxy: Proxy = None):
-    claim_url = 'https://www.webnovel.com/apiajax/SpiritStone/addSSAjax'
-    # claim_data = {'_csrfToken': csrf_token, 'type': '1'}
-    claim_data = {'type': '1'}
+    claim_url = 'https://www.webnovel.com/go/pcm/spiritStone/checkIn'
+    claim_data = {}
     if proxy:
         assert isinstance(proxy, Proxy)
         proxy_connector = proxy.generate_connector(**default_connector_settings)
@@ -111,7 +111,7 @@ async def claim_login(session: aiohttp.ClientSession = None, account: QiAccount 
 
 async def claim_power_stone(book_id: typing.Union[int, str], session: aiohttp.ClientSession = None,
                             account: QiAccount = None, proxy: Proxy = None):
-    power_stone_vote_url = 'https://www.webnovel.com/apiajax/powerStone/vote'
+    power_stone_vote_url = 'https://www.webnovel.com/go/pcm/powerStone/vote'
     # book_id = self.power_stone_books[random.randint(0, len(self.power_stone_books) - 1)]
     # power_stone_vote_data = {'_csrfToken': csrf_token, 'bookId': book_id, "novelType": 0}
     power_stone_vote_data = {'bookId': book_id, "novelType": 0}
@@ -145,7 +145,7 @@ async def claim_power_stone(book_id: typing.Union[int, str], session: aiohttp.Cl
 
 async def claim_energy_stone(book: typing.Union[SimpleBook, int, Book], session: aiohttp.ClientSession = None,
                              account: QiAccount = None, proxy: Proxy = None):
-    energy_stone_vote_url = 'https://www.webnovel.com/apiajax/translationVote/vote'
+    energy_stone_vote_url = 'https://www.webnovel.com/go/pcm/vote/like'
     # energy_stone_vote_data = {'_csrfToken': csrf_token, 'bookId': book_id}
     assert isinstance(book, (SimpleBook, int, Book))
     if proxy:
@@ -164,7 +164,7 @@ async def claim_energy_stone(book: typing.Union[SimpleBook, int, Book], session:
         if account:
             energy_stone_vote_data['_csrfToken'] = account.cookies['_csrfToken']
             async with aiohttp.request('POST', energy_stone_vote_url, data=energy_stone_vote_data,
-                                       connector=proxy_connector, cookies=account.cookies)as request:
+                                       connector=proxy_connector, cookies=account.cookies) as request:
                 response_dict = decode_qi_content(await request.read())
         else:
             raise ValueError(f"Missing either a session or account")

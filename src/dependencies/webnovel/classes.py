@@ -442,12 +442,12 @@ class QiAccount:
     #     return self._read_valid(user_dict)
 
     async def async_check_valid(self) -> bool:
+        task_list_url = 'https://www.webnovel.com/go/pcm/task/getTaskList'
         params = {'taskType': 1, '_csrfToken': self.cookies['_csrfToken']}
         try_attempt = 0
         while True:
             try:
-                async with aiohttp.request('get', 'https://www.webnovel.com/apiajax/task/taskList', params=params,
-                                           cookies=self.cookies) as req:
+                async with aiohttp.request('get', task_list_url, params=params, cookies=self.cookies) as req:
                     response_dict = decode_qi_content(await req.read())
                     break
             except json.JSONDecodeError:

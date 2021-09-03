@@ -107,7 +107,7 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
             if cookie.key == '_csrfToken':
                 csrf_token = cookie.value
         params['_csrfToken'] = csrf_token
-    api = '/'.join((API_ENDPOINT_1, 'GetChapterList'))
+    api = '/'.join((API_ENDPOINT_2, 'get-chapter-list'))
     try_attempts = 0
     errors = []
     while True:
@@ -154,22 +154,22 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
         data_message = resp_dict['data']
         book_metadata = data_message['bookInfo']
         book_name = book_metadata['bookName']
-        book_sub_name = book_metadata['bookSubName']
+        book_sub_name = book_metadata.get('bookSubName', None)
         total_chapters = book_metadata['totalChapterNum']
         volumes_dict = data_message['volumeItems']
         simple_book = classes.SimpleBook(book.id, book_name, total_chapters, book_abbreviation=book_sub_name)
         volumes = []
         for volume in volumes_dict:
             chapters = []
-            volume_index = volume['index']
-            volume_name = volume['name']
+            volume_index = volume['volumeId']
+            volume_name = volume['volumeName']
             chapters_list = volume['chapterItems']
             for chapter in chapters_list:
                 chapter_level = chapter['chapterLevel']
-                chapter_id = chapter['id']
-                chapter_index = chapter['index']
+                chapter_id = chapter['chapterId']
+                chapter_index = chapter['chapterIndex']
                 chapter_vip = chapter['isVip']
-                chapter_name = chapter['name']
+                chapter_name = chapter['chapterName']
                 chapters.append(classes.SimpleChapter(chapter_level, chapter_id, book.id, chapter_index, chapter_vip,
                                                       chapter_name, volume_index))
             volumes.append(classes.Volume(chapters, volume_index, book.id, volume_name))
