@@ -223,7 +223,7 @@ async def add_item_to_library(item: typing.Union[classes.SimpleBook, classes.Sim
     payload_data['bookIds'] = item.id
     payload_data['novelType'] = item.NovelType
     # add_data = {'_csrfToken': csrf, 'bookIds': item_id, 'novelType': type_}
-    api_url = '/'.join((new_api_url, 'AddLibraryItemsAjax'))
+    api_url = '/'.join((new_api_url, 'addLibraryItemsAjax'))
     while True:
         try:
             if proxy:
