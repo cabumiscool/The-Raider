@@ -166,8 +166,7 @@ class QiCommands(commands.Cog):
         await ctx.send(f'Book ID Received: {book_id}')
         try:
             db_book = await self.db.retrieve_complete_book(book_id)
-            await ctx.send(f'Book found in db with the name of:  {db_book.name}.    Enabled?:  '
-                           f'{bool(db_book.library_number)}')
+            await ctx.send(f'Book already in DB. Name:  {db_book.name}.    Enabled?:  {bool(db_book.library_number)}')
         except database_exceptions.NoEntryFoundInDatabaseError:
             await ctx.send(f"Book - {book_id} is not available in the Database. Retrieving from qi and adding...")
             full_book = await full_book_retriever(book_id)
@@ -177,15 +176,21 @@ class QiCommands(commands.Cog):
     @commands.command()
     @bot_checks.check_permission_level(6)
     async def grab_trial(self, ctx: Context, add_to_db: Optional[str]):
-        trial_books = await trail_read_books_finder()
-        if len(trial_books) == 0:
+        """
+        Grabs the latest trail novel IDs. Can be followed by any value to add the books to DB
+        """
+        trial_book_ids = await trail_read_books_finder()
+        if len(trial_book_ids) == 0:
             return await ctx.reply('No trailer books were parsed!')
-        await ctx.reply('**Trail Books Found:**\n' + '\n'.join([str(trial_book) for trial_book in trial_books]))
+        await ctx.reply('**Trail Book IDs Found:**\n' + '\n'.join([str(book_id) for book_id in trial_book_ids]))
 
-        if add_to_db:
-            for book_id in trial_books:
+        for book_id in trial_book_ids:
+            try:
+                db_book = await self.db.retrieve_complete_book(book_id)
+                await ctx.send(f'Book: `{db_book.name}` in DB.    Enabled?:  {bool(db_book.library_number)}')
+            except database_exceptions.NoEntryFoundInDatabaseError:
                 full_book = await full_book_retriever(book_id)
-                # await self.db.insert_new_book(full_book)
+                await self.db.insert_new_book(full_book)
                 await ctx.send(f"Added `{full_book.id}` - `{full_book.name}` to database")
 
     @bot_checks.check_permission_level(6)
