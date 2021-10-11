@@ -18,6 +18,7 @@ class BaseService:
         self._output_queue = []
         self._encountered_errors = []
         self._running = False
+        self._is_a_restart = False
         self._loop_interval = loop_time
         self.last_loop = 0
         self.output_service = output_service
@@ -75,6 +76,7 @@ class BaseService:
             successful_run = await self.inner_error_handler()
             if successful_run:
                 self.last_loop = time.time()
+                self._is_a_restart = False
             await asyncio.sleep(self._loop_interval)
 
     def start(self):
@@ -109,3 +111,6 @@ class BaseService:
             raise background_objects.ServiceIsNotRunningException(
                 f"service '{self.name}' was attempted to be made to stop "
                 f"when it isn't running")
+
+    def mark_restart(self):
+        self._is_a_restart = True
