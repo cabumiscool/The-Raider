@@ -32,9 +32,9 @@ async def chapter_retriever(book_id: int, chapter_id: int, volume_index: int, se
 
     else:
         if proxy:
-            proxy_connector = proxy.generate_connector(**default_connector_settings)
-            async with aiohttp.request('GET', api, params=params, connector=proxy_connector) as request:
-                data_dict = decode_qi_content(await request.read())
+            async with proxy.generate_connector(**default_connector_settings) as proxy_connector:
+                async with aiohttp.request('GET', api, params=params, connector=proxy_connector) as request:
+                    data_dict = decode_qi_content(await request.read())
         else:
             raise ValueError("Neither a session object or a proxy object was given. One of either is necessary")
 
