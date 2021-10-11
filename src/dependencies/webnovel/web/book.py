@@ -33,8 +33,9 @@ async def generate_thumbnail_url_or_file(book_id: int, url_only: bool = True, se
             if not proxy_connector:
                 proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
-            async with aiohttp.request('GET', cover_url, connector=proxy_connector) as req:
-                image_file = BytesIO(await req.read())
+            async with proxy_connector as connector:
+                async with aiohttp.request('GET', cover_url, connector=connector) as req:
+                    image_file = BytesIO(await req.read())
         else:
             async with session.get(cover_url) as req:
                 image_file = BytesIO(await req.read())
@@ -59,9 +60,10 @@ async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session
         if not proxy_connector:
             proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
-        async with aiohttp.request('GET', api_endpoint, params=params, connector=proxy_connector) as req:
-            resp_bin = await req.read()
-            resp_dict = decode_qi_content(resp_bin)
+        async with proxy_connector as connector:
+            async with aiohttp.request('GET', api_endpoint, params=params, connector=connector) as req:
+                resp_bin = await req.read()
+                resp_dict = decode_qi_content(resp_bin)
     else:
         async with session.get(api_endpoint, params=params) as req:
             resp_bin = await req.read()
@@ -215,8 +217,9 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
             params['_csrfToken'] = cookies['_csrfToken']
         else:
             cookies = {}
-        async with aiohttp.request('GET', api, params=params, connector=proxy, cookies=cookies) as resp:
-            resp_bin = await resp.read()
+        async with proxy as connector:
+            async with aiohttp.request('GET', api, params=params, connector=connector, cookies=cookies) as resp:
+                resp_bin = await resp.read()
 
     # resp_str = resp_bin.decode()
     # resp_dict = json.loads(resp_str)
@@ -403,10 +406,11 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
                 else:
                     proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
 
-                async with aiohttp.request('POST', api_url, data=form_data, cookies=cookies,
-                                           connector=proxy_connector) as req:
-                    content_dict = decode_qi_content(await req.read())
-                    break
+                async with proxy_connector as connector:
+                    async with aiohttp.request('POST', api_url, data=form_data, cookies=cookies,
+                                               connector=connector) as req:
+                        content_dict = decode_qi_content(await req.read())
+                        break
             except json.JSONDecodeError:
                 pass
             try_attempts += 1
