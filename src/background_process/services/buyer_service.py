@@ -15,6 +15,91 @@ from ..background_objects import NoAvailableBuyerAccountError
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
 
+class QueueItem:
+    def __init__(self, chapter: classes.SimpleChapter):
+        # This declares in what state does the item finds itself at the moment:
+        # 0: none  |  1: attempted buy  | 2: bought
+        self._state = 0
+        self._item: classes.SimpleChapter = chapter
+
+    def is_new(self):
+        return self._state == 0
+
+    def is_in_process(self):
+        return self._state == 1
+
+    def is_completed(self):
+        return self._state == 2
+
+    def set_as_in_process(self):
+        self._state = 1
+
+    def set_as_completed(self):
+        self._state = 2
+
+    def is_priv(self):
+        return self._item.is_privilege
+
+    def return_chapter_id(self):
+        return self._item.id
+
+    def return_item(self):
+        return self._item
+
+
+class InnerBuyQueue:
+    def __init__(self):
+        self._items: typing.Dict[int: QueueItem] = {}
+
+    def add_item(self, item: QueueItem):
+        self._items[item.return_chapter_id()] = item
+
+    def marked_as_complete(self, chapter_id: int):
+        self._items[chapter_id].set_as_completed()
+
+    def clean_queue(self):
+        chapter_ids = []
+        for chapter_id, queue_item in self._items.items():
+            queue_item: QueueItem
+            if queue_item.is_completed():
+                chapter_ids.append(chapter_id)
+
+        for chapter_id in chapter_ids:
+            del self._items[chapter_id]
+
+    def hard_clean_queue(self):
+        self._items.clear()
+
+    def return_new_chapters(self, amount: int = 80) -> list:
+        chapters_to_return = []
+        if amount > 80 or amount <= 0:
+            raise ValueError("it is invalid to request more than 80 chapters at once or less or equal to 0")
+
+        for chapter_id, queue_item in self._items.items():
+            queue_item: QueueItem
+            chapter_id: int
+            if queue_item.is_new():
+                chapters_to_return.append(queue_item.return_item())
+                self._items[chapter_id].queue_item.set_as_in_process()
+
+            if len(chapters_to_return) >= amount:
+                break
+
+        return chapters_to_return
+
+    def return_used_chapters(self) -> list:
+        chapters_to_return = []
+
+        for chapter_id, queue_item in self._items.items():
+            queue_item: QueueItem
+            chapter_id: int
+            if queue_item.is_in_process():
+                chapters_to_return.append(queue_item.return_item())
+                self._items[chapter_id].queue_item.set_as_in_process()
+
+        return chapters_to_return
+
+
 class BuyManager:
     def __init__(self, chapter: classes.SimpleChapter, session: aiohttp.ClientSession):
         self.chapter = chapter
@@ -63,6 +148,9 @@ class BuyerPool:
         if time.time() - self._created_time >= 180:
             self._slots = 0
         return self._slots > 0
+
+    def return_number_of_items_in_pool(self):
+        return len(self._buys)
 
     def is_empty(self) -> bool:
         return len(self._buys) == 0
@@ -169,18 +257,38 @@ class WakaBuyerPool:
 class BuyerService(BaseService):
     def __init__(self, database: Database):
         super().__init__("Buyer Service")
+        self._buyer_queue = InnerBuyQueue()
         self.database = database
         self.pools = []
         self.priv_buyer = None
 
+    def load_inner_queue(self):
+        cache_content = self._retrieve_input_queue()
+        cache_content: typing.List[classes.SimpleChapter]
+        for chapter in cache_content:
+            queue_item = QueueItem(chapter)
+            self._buyer_queue.add_item(queue_item)
+
     async def main(self):
         if self.priv_buyer is None:
             self.priv_buyer = WakaBuyerPool(await self.database.retrieve_proxy(1))
-        cache_content = self._retrieve_input_queue()
-        cache_content: typing.List[classes.SimpleChapter]
 
-        # will assign the chapters from the input qi to a pool
-        for chapter in cache_content:
+        self.load_inner_queue()
+
+        items_in_pools = 0
+        for pool in self.pools:
+            items_in_pools += pool.return_number_of_items_in_pool()
+
+        if not self._is_a_restart:
+            if 80 - items_in_pools > 0:
+                chapters_to_buy = self._buyer_queue.return_new_chapters(80 - items_in_pools)
+            else:
+                chapters_to_buy = []
+        else:
+            chapters_to_buy = self._buyer_queue.return_used_chapters()
+
+        # will assign the chapters from the input queue to a pool
+        for chapter in chapters_to_buy:
             if chapter.is_privilege:
                 self.priv_buyer.buy(chapter)
             else:
@@ -216,7 +324,10 @@ class BuyerService(BaseService):
 
         # will add to the output cache the completed values from the pools
         for pool in self.pools:
-            self._output_queue.extend(await pool.retrieve_done())
+            completed_chapters = await pool.retrieve_done()
+            for chapter in completed_chapters:
+                self._buyer_queue.marked_as_complete(chapter.id)
+            self._output_queue.extend(completed_chapters)
         self._output_queue.extend(self.priv_buyer.retrieve_done())
 
         # will look for empty pools and clean up
@@ -237,5 +348,7 @@ class BuyerService(BaseService):
             await self.database.release_account(pool_account)
             await pool.close()
             self.pools.remove(pool)
+
+        self._buyer_queue.clean_queue()
 
         await self.database.release_accounts_over_five_in_use_minutes()
