@@ -413,6 +413,7 @@ class BackgroundProcess:
 
         try:
             service_to_use.start()
+            service_to_use.mark_restart()
         except ServiceAlreadyRunningException:
             service_command.failed_status(comment=f"service {service_to_use.name} failed to start")
             return service_command
