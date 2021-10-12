@@ -80,7 +80,7 @@ class InnerBuyQueue:
             chapter_id: int
             if queue_item.is_new():
                 chapters_to_return.append(queue_item.return_item())
-                self._items[chapter_id].queue_item.set_as_in_process()
+                self._items[chapter_id].set_as_in_process()
 
             if len(chapters_to_return) >= amount:
                 break
