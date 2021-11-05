@@ -37,7 +37,8 @@ def book_string_and_range_matcher(user_string: str) -> Dict[str, List[Tuple[int,
             else:
                 range_end = int(chapter_range[1])
             chapter_indices.append((range_start, range_end))
-        book_string_and_ranges[book_string] = chapter_indices
+        book_string_and_ranges.setdefault(book_string, [])
+        book_string_and_ranges[book_string].extend(chapter_indices)
     return book_string_and_ranges
 
 
