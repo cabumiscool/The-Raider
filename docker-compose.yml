@@ -16,7 +16,7 @@ services:
 
   privoxy-vpn:
     # Needs a *.ovpn in /config/openvpn directory
-    container_name: 'PrivoxyVPN'
+    container_name: privoxy-vpn
     image: binhex/arch-privoxyvpn
     restart: unless-stopped
     networks:
@@ -41,7 +41,7 @@ services:
 
   openvpn-client:
     # Needs a vpn.conf in ./vpn directory
-    container_name: 'OpenVPNClient'
+    container_name: openvpn-client
     image: dperson/openvpn-client
     restart: unless-stopped
     networks:
@@ -79,7 +79,7 @@ services:
 
   raider:
     # Run the build command in makefile to build the image
-    container_name: 'Raider'
+    container_name: raider
     image: raider:latest
     restart: unless-stopped
     depends_on:
