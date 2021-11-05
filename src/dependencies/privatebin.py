@@ -212,7 +212,7 @@ async def privatebin_send(paste_url,
 
 
 async def upload_to_privatebin(paste_plaintext, expire_time='1day'):
-    paste_url = 'https://vim.cx/'
+    paste_url = 'https://pstbn.top/'
     paste_formatter = 'markdown'
     paste_compress = True
     paste_expire = expire_time
