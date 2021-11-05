@@ -271,7 +271,7 @@ class Database:
             typing.List[SimpleChapter]:
         await self.__init_check__()
         query = f'''SELECT "PRIVILEGE", "CHAPTER_ID", "INDEX", "VIP_LEVEL", "CHAPTER_NAME", "VOLUME" 
-        FROM "CHAPTERS" WHERE "BOOK_ID" = $1 AND "INDEX" BETWEEN $2 AND $3'''
+        FROM "CHAPTERS" WHERE "BOOK_ID" = $1 AND "INDEX" BETWEEN $2 AND $3 ORDER BY "INDEX"'''
         chapters_records = await self._db_pool.fetch(query, book_id, range_start, range_end)
         chapters = []
         for chapter_record in chapters_records:

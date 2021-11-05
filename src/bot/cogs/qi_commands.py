@@ -108,42 +108,44 @@ class QiCommands(commands.Cog):
         parsed_chapter_requests = book_string_and_range_matcher(user_input)
         book_chapter_requests = {}
         books_objs = {}
-        for book_string in parsed_chapter_requests:
+        for book_string, ranges in parsed_chapter_requests.items():
             book_obj = await self.__interactive_book_chapter_string_to_book(ctx, book_string)
-            if book_obj:
-                if book_chapter_requests.get(book_obj.id) is None:
-                    book_chapter_requests[book_obj.id] = []
+            if not book_obj:
+                continue
+            if book_chapter_requests.get(book_obj.id) is None:
+                book_chapter_requests[book_obj.id] = []
 
-                if books_objs.get(book_obj.id) is None:
-                    books_objs[book_obj.id] = book_obj
+            if books_objs.get(book_obj.id) is None:
+                books_objs[book_obj.id] = book_obj
 
-                for range_start, range_end in parsed_chapter_requests[book_string]:
-                    chapter_objs = await self.db.get_chapter_objs_from_index(book_obj.id, range_start, range_end)
-                    # chapter_ids_list = [chapter_ids[i:i + 20] for i in range(0, len(chapter_ids), 20)]  # Not sure
-                    # if understood this logic correctly and copied it for the change
-                    book_chapter_requests[book_obj.id].extend(chapter_objs)
+            for range_start, range_end in ranges:
+                chap_objs = await self.db.get_chapter_objs_from_index(book_obj.id, range_start, range_end)
+                batch_chap_objs = [chap_objs[i:i + 20]
+                                   for i in range(0, len(chap_objs), 20) if chap_objs[i:i + 20]]
+                # Batching chapter by 20
+                if chap_objs:
+                    book_chapter_requests[book_obj.id].extend(batch_chap_objs)
 
         async_tasks = []
-        no_chapters_found_books = []
-        for book_id, chapters_list in book_chapter_requests.items():
-            if len(chapters_list) == 0:
-                no_chapters_found_books.append(books_objs[book_id])
-                continue
-            tsk = asyncio.create_task(generic_buyer(self.db, books_objs[book_id], *chapters_list))
-            async_tasks.append(tsk)
+        no_chapters_found_book_names = set()
+        for book_id, chapter_lists in book_chapter_requests.items():
+            for chapters in chapter_lists:
+                if len(chapters) == 0:
+                    no_chapters_found_book_names.add(books_objs[book_id].name)
+                    continue
+                tsk = asyncio.create_task(generic_buyer(self.db, books_objs[book_id], *chapters))
+                async_tasks.append(tsk)
 
         pastes = await asyncio.gather(*async_tasks)
         paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
         await asyncio.gather(*paste_tasks)
 
-        error_messages = []
-        for book in no_chapters_found_books:
-            error_messages.append(asyncio.create_task(ctx.send(f"The chapters range given for book `{book.name}` were"
-                                                               f" not found on the db. A possible cause is that this "
-                                                               f"book is still in the background queue or a library "
-                                                               f"account has totally expired preventing the update "
-                                                               f"from being found.")))
-        await asyncio.gather(*error_messages)
+        if no_chapters_found_book_names:
+            error_msg = "The chapters entries range given for some books were not found on the db. A possible cause " \
+                        "is that this book is still in the background queue or a library account has totally expired" \
+                        " preventing updates from being found. Affected Books:\n" \
+                        "\n".join(no_chapters_found_book_names)
+            await ctx.send(error_msg)
 
     @commands.command(aliases=['ib'])
     @bot_checks.is_whitelist()
