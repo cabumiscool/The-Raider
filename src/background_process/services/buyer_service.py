@@ -70,10 +70,10 @@ class InnerBuyQueue:
     def hard_clean_queue(self):
         self._items.clear()
 
-    def return_new_chapters(self, amount: int = 80) -> list:
+    def return_new_chapters(self, amount: int = 40) -> list:
         chapters_to_return = []
-        if amount > 80 or amount <= 0:
-            raise ValueError("it is invalid to request more than 80 chapters at once or less or equal to 0")
+        if amount > 40 or amount <= 0:
+            raise ValueError("it is invalid to request more than 40 chapters at once or less or equal to 0")
 
         for chapter_id, queue_item in self._items.items():
             queue_item: QueueItem
@@ -261,6 +261,7 @@ class BuyerService(BaseService):
         self.database = database
         self.pools = []
         self.priv_buyer = None
+        self.max_buys = 30
 
     def load_inner_queue(self):
         cache_content = self._retrieve_input_queue()
@@ -280,8 +281,8 @@ class BuyerService(BaseService):
             items_in_pools += pool.return_number_of_items_in_pool()
 
         if not self._is_a_restart:
-            if 80 - items_in_pools > 0:
-                chapters_to_buy = self._buyer_queue.return_new_chapters(80 - items_in_pools)
+            if self.max_buys - items_in_pools > 0:
+                chapters_to_buy = self._buyer_queue.return_new_chapters(self.max_buys - items_in_pools)
             else:
                 chapters_to_buy = []
         else:
