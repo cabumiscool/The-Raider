@@ -137,8 +137,23 @@ class BackgroundProcess:
         for chapter_ping in chapter_pings:
             self.__return_data(chapter_ping)
 
-        # adding to the queue of the chapter buyer
-        self.services[3].add_to_queue(*new_chapters)
+        # will remove priv chapters from the queue
+        non_priv_chapters = []
+        priv_chapters = []
+        for chapter in new_chapters:
+            if chapter.is_privilege:
+                priv_chapters.append(chapter)
+            else:
+                non_priv_chapters.append(chapter)
+
+        # adding to the queue of the chapter buyer (only non priv chapters)
+        self.services[3].add_to_queue(*non_priv_chapters)
+
+        # will mark the priv chapter to be updated to the db
+        for chapter in priv_chapters:
+            self.queue_history[chapter.parent_id]['chs'][chapter.id]["buy_done"] = True
+            self.queue_history[chapter.parent_id]['chs'][chapter.id]["in_paste"] = True
+            self.queue_history[chapter.parent_id]['chs'][chapter.id]["paste"] = True
 
         # checking if there are new bought chapters in the output queue of the buyer service
         possible_new_bought_chapters = []
