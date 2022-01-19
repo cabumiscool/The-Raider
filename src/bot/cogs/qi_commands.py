@@ -100,6 +100,8 @@ class QiCommands(commands.Cog):
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
     async def buy(self, ctx: Context, *, user_input: str = None):
+        # request parser
+        removed_chapters = {}
         if user_input is None:
             user_input = ctx.message.content
         if user_input.startswith('.'):
@@ -107,6 +109,8 @@ class QiCommands(commands.Cog):
         if not user_input.endswith('\n'):  # To make regex parsing easier
             user_input += '\n'
         parsed_chapter_requests = book_string_and_range_matcher(user_input)
+
+        # retrieves the chapters from the db
         book_chapter_requests = {}
         books_objs = {}
         for book_string, ranges in parsed_chapter_requests.items():
@@ -121,10 +125,25 @@ class QiCommands(commands.Cog):
 
             for range_start, range_end in ranges:
                 chap_objs = await self.db.get_chapter_objs_from_index(book_obj.id, range_start, range_end)
-                batch_chap_objs = [chap_objs[i:i + 20]
-                                   for i in range(0, len(chap_objs), 20) if chap_objs[i:i + 20]]
+
+                # TODO add some sort of feedback when priv chapters are removed
+                # removing priv chapters from list
+                chap_objs_non_priv = []
+                for chapter in chap_objs:
+                    if chapter.is_privilege is not True:
+                        chap_objs_non_priv.append(chapter)
+                    else:
+                        if chapter.parent_id in removed_chapters:
+                            removed_chapters[chapter.parent_id]['chs'].add(chapter.index)
+                        else:
+                            removed_chapters[chapter.parent_id] = {"book": book_obj, "chs": {chapter.index}}
+
+                # divides in batches the chapters about to be bought
+                batch_chap_objs = [chap_objs_non_priv[i:i + 20]
+                                   for i in range(0, len(chap_objs_non_priv), 20) if chap_objs_non_priv[i:i + 20]]
+
                 # Batching chapter by 20
-                if chap_objs:
+                if chap_objs_non_priv:
                     book_chapter_requests[book_obj.id].extend(batch_chap_objs)
 
         async_tasks = []
@@ -140,6 +159,18 @@ class QiCommands(commands.Cog):
         pastes = await asyncio.gather(*async_tasks)
         paste_tasks = [asyncio.create_task(ctx.send(paste)) for paste in pastes]
         await asyncio.gather(*paste_tasks)
+
+        if len(removed_chapters) != 0:
+            messages = []
+            for book_id, book_data in removed_chapters.items():
+                missing_chapters_lsit = list(book_data['chs'])
+                missing_chapters_lsit = [str(chapter_ind) for chapter_ind in missing_chapters_lsit]
+                missing_chapters_lsit.sort()
+                missing_chapters = ", ".join(missing_chapters_lsit)
+                messages.append(f"The following chapters for `{book_data['book'].name}` could not be bought as "
+                                f"they are privilege chapters:  {missing_chapters}")
+            for message in messages:
+                await ctx.send(message)
 
         if no_chapters_found_book_names:
             error_msg = "The chapters entries range given for some books were not found on the db. A possible cause " \
