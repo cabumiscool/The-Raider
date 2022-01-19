@@ -23,6 +23,7 @@ async def full_book_retriever():
 
 async def chapter_retriever(book_id: int, chapter_id: int, volume_index: int, session: aiohttp.ClientSession = None,
                             proxy: Proxy = None):
+    raise NotImplementedError("The priv workaround is not working at the moment")
     api = '/'.join((API_ENDPOINT, 'chapter'))
     params = {'bookId': str(book_id), 'chapterId': str(chapter_id)}
 
