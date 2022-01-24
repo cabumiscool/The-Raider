@@ -167,7 +167,8 @@ class QiCommands(commands.Cog):
                 missing_chapters_lsit = [str(chapter_ind) for chapter_ind in missing_chapters_lsit]
                 missing_chapters_lsit.sort()
                 missing_chapters = ", ".join(missing_chapters_lsit)
-                messages.append(f"The following chapters for `{book_data['book'].name}` could not be bought as "
+                messages.append(f"The following chapters for `{book_data['book'].name}` | book id:"
+                                f"  `{book_data['book'].id}` could not be bought as "
                                 f"they are privilege chapters:  {missing_chapters}")
             for message in messages:
                 await ctx.send(message)
