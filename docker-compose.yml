@@ -14,30 +14,30 @@ networks:
 
 services:
 
-  privoxy-vpn:
-    # Needs a *.ovpn in /config/openvpn directory
-    container_name: privoxy-vpn
-    image: binhex/arch-privoxyvpn
-    restart: unless-stopped
-    networks:
-      raider-net:
-        ipv4_address: 172.30.30.30
-    cap_add:
-      - net_admin
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - .docker-files/privoxyvpn:/config
-    environment:
-      VPN_ENABLED: $ENABLE_PROXY
-      VPN_PROV: pia
-      VPN_CLIENT: openvpn
-      ENABLE_SOCKS: $ENABLE_SOCKS_PROXY
-      ENABLE_PRIVOXY: $ENABLE_PROXY
-      LAN_NETWORK: 172.30.30.0/24
-      NAME_SERVERS: 209.222.18.222,84.200.69.80,37.235.1.174,1.1.1.1,209.222.18.218,37.235.1.177,84.200.70.40,1.0.0.1
-      STRICT_PORT_FORWARD: 'no'
-      PUID: $PUID
-      PGID: $PGID
+#  privoxy-vpn:
+#    # Needs a *.ovpn in /config/openvpn directory
+#    container_name: privoxy-vpn
+#    image: binhex/arch-privoxyvpn
+#    restart: unless-stopped
+#    networks:
+#      raider-net:
+#        ipv4_address: 172.30.30.30
+#    cap_add:
+#      - net_admin
+#    volumes:
+#      - /etc/localtime:/etc/localtime:ro
+#      - .docker-files/privoxyvpn:/config
+#    environment:
+#      VPN_ENABLED: $ENABLE_PROXY
+#      VPN_PROV: pia
+#      VPN_CLIENT: openvpn
+#      ENABLE_SOCKS: $ENABLE_SOCKS_PROXY
+#      ENABLE_PRIVOXY: $ENABLE_PROXY
+#      LAN_NETWORK: 172.30.30.0/24
+#      NAME_SERVERS: 209.222.18.222,84.200.69.80,37.235.1.174,1.1.1.1,209.222.18.218,37.235.1.177,84.200.70.40,1.0.0.1
+#      STRICT_PORT_FORWARD: 'no'
+#      PUID: $PUID
+#      PGID: $PGID
 
   openvpn-client:
     # Needs a vpn.conf in ./vpn directory
@@ -63,7 +63,7 @@ services:
       PGID: $PGID
 
   raider-db:
-    container_name: 'RaiderDB'
+    container_name: 'raider-db'
     image: postgres:11
     restart: unless-stopped
     ports:
@@ -75,7 +75,7 @@ services:
       - PUID=$PUID
       - PGID=$PGID
     volumes:
-      - .docker-files/raider-db/db:/var/lib/postgresql/data
+      - .docker-files/raider-db:/var/lib/postgresql/data
 
   raider:
     # Run the build command in makefile to build the image
