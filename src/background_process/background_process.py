@@ -34,7 +34,7 @@ class BackgroundProcess:
                                                         # 5: ProxyManager(self.database)
                                                         5: CookieMaintainerService(self.database),
                                                         6: CurrencyFarmerService(self.database),
-                                                        7: PingService(self.database)
+                                                        # 7: PingService(self.database)
                                                         }
 
         if loop is None:
