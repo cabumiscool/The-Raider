@@ -119,6 +119,7 @@ class QiCommands(commands.Cog):
                 continue
             if book_chapter_requests.get(book_obj.id) is None:
                 book_chapter_requests[book_obj.id] = []
+                await self.refresh_book(ctx, book_obj.id)
 
             if books_objs.get(book_obj.id) is None:
                 books_objs[book_obj.id] = book_obj
@@ -232,7 +233,6 @@ class QiCommands(commands.Cog):
     @commands.command()
     async def refresh_book(self, ctx: Context, book_id: int):
         qi_book = await full_book_retriever(book_id)
-        await ctx.send(f"Checking metadata of {qi_book.name}")
         db_book = await self.db.retrieve_complete_book(book_id)
         qi_book_volumes = qi_book.return_volume_list()
         db_book_volumes = db_book.return_volume_list()
@@ -263,17 +263,17 @@ class QiCommands(commands.Cog):
             chapters_to_remove.append(chapter_obj)
 
         await self.db.update_book(qi_book)
-        await ctx.send(f"Metadata updated for {qi_book.name}")
+        msg = f"Metadata update `{qi_book.name}`: "
         if len(chapters_to_add) != 0:
-            await ctx.send(f"Adding {len(chapters_to_add)} chapter of book {qi_book.name}")
+            msg += f" {len(chapters_to_add)} + "
             await self.db.batch_add_chapters(*chapters_to_add)
         if len(chapters_to_update) != 0:
-            await ctx.send(f"Updating metadata of {len(chapters_to_update)} chapters for book {qi_book.name}")
+            msg += f" {len(chapters_to_update)} ⟳ "
             await self.db.batch_update_chapters(*chapters_to_update)
         if len(chapters_to_remove) != 0:
-            await ctx.send(f"Deleting {len(chapters_to_remove)} chapters from the db of book {qi_book.name}")
+            msg += f" {len(chapters_to_remove)} − "
             await self.db.batch_delete_chapters(*chapters_to_remove)
-        await ctx.send(f"Metadata successfully updated for {qi_book.name}")
+        await ctx.send(msg)
 
     @commands.group(brief='Checks the metadata of an object either from qi or db, for more info use [help check]')
     @bot_checks.check_permission_level(6)
