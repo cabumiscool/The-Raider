@@ -120,22 +120,22 @@ class BackgroundProcess:
                         'paste': False}
                     new_chapters.append(possible_chapter)
 
-        # TODO add the ping checker around here
-        # adding to the queue of the ping checker
-        self.services[7].add_to_queue(*new_chapters)
-
-        # retrieves the pings content
-        chapter_pings = []
-        try:
-            chapter_pings.extend(self.services[7].retrieve_completed_cache())
-        except ErrorReport as e:
-            self.__return_data(e)
-        except ErrorList as e:
-            for error in e.errors:
-                self.__return_data(error)
-
-        for chapter_ping in chapter_pings:
-            self.__return_data(chapter_ping)
+        # # TODO add the ping checker around here
+        # # adding to the queue of the ping checker
+        # self.services[7].add_to_queue(*new_chapters)
+        #
+        # # retrieves the pings content
+        # chapter_pings = []
+        # try:
+        #     chapter_pings.extend(self.services[7].retrieve_completed_cache())
+        # except ErrorReport as e:
+        #     self.__return_data(e)
+        # except ErrorList as e:
+        #     for error in e.errors:
+        #         self.__return_data(error)
+        #
+        # for chapter_ping in chapter_pings:
+        #     self.__return_data(chapter_ping)
 
         # will remove priv chapters from the queue
         non_priv_chapters = []
