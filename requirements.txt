@@ -11,3 +11,7 @@ PrivateBinAPI~=1.0.0
 python-Levenshtein-wheels~=0.13.2
 pylint==2.9.3
 requests==2.26.0
+
+ImageHash==4.2.1
+Pillow==9.1.0
+fonttools==4.31.2
