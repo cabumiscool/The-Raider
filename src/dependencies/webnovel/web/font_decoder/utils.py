@@ -173,7 +173,7 @@ class ContentInfo:
                     word.replace_with_children()
 
                 if (after := attr_map[p_tag][word.name].get("after", None)) is not None:
-                    paragraph.insert_after(len(paragraph.contents), word.attrs[after])
+                    paragraph.insert(len(paragraph.contents), word.attrs[after])
 
             doc.append(paragraph.text)
 
