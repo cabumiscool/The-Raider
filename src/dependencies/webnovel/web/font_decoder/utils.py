@@ -162,20 +162,18 @@ class ContentInfo:
             p_tag = paragraph.attrs["class"][0]
 
             words = [x.extract() for x in paragraph.contents.copy()]
-            words = sorted(words, key=lambda x: order_map.get(x.name, 0), reverse=True)
+            words = sorted(words, key=lambda x: order_map.get(x.name, 0))
 
             for word in words:
-                after = attr_map[p_tag][word.name].get("after", None)
-                if after is not None:
-                    paragraph.insert(0, word.attrs[after])
+                if (before := attr_map[p_tag][word.name].get("before", None)) is not None:
+                    paragraph.insert(len(paragraph.contents), word.attrs[before])
 
-                paragraph.insert(0, word)
-                if hasattr(word, "contents"):
+                paragraph.insert(len(paragraph.contents), word)
+                if hasattr(word, "contents") and word.tag in order_map:
                     word.replace_with_children()
 
-                before = attr_map[p_tag][word.name].get("before", None)
-                if before is not None:
-                    paragraph.insert(0, word.attrs[before])
+                if (after := attr_map[p_tag][word.name].get("after", None)) is not None:
+                    paragraph.insert_after(len(paragraph.contents), word.attrs[after])
 
             doc.append(str(paragraph))
 
