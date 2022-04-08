@@ -169,12 +169,12 @@ class ContentInfo:
                     paragraph.insert(len(paragraph.contents), word.attrs[before])
 
                 paragraph.insert(len(paragraph.contents), word)
-                if hasattr(word, "contents") and word.tag in order_map:
+                if hasattr(word, "contents") and word.name in order_map:
                     word.replace_with_children()
 
                 if (after := attr_map[p_tag][word.name].get("after", None)) is not None:
                     paragraph.insert_after(len(paragraph.contents), word.attrs[after])
 
-            doc.append(str(paragraph))
+            doc.append(paragraph.text)
 
-        return "\n".join(doc)
+        return "\n\n".join(doc)
