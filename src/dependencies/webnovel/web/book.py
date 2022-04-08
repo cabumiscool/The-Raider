@@ -12,14 +12,12 @@ from dependencies.proxy_classes import Proxy
 from .. import classes, exceptions
 from ..utils import decode_qi_content
 
-API_ENDPOINT_1 = 'https://www.webnovel.com/apiajax/chapter'
+# API_ENDPOINT_1 = 'https://www.webnovel.com/apiajax/chapter'
 
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
 API_ENDPOINT_2 = 'https://www.webnovel.com/go/pcm/chapter'
 
-
-# TODO change the api and related metadata from first api to second as first is gone
 
 # TODO change the input from the proxy connector to the proxy class where required
 
@@ -188,7 +186,7 @@ async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: 
 
 async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
                                        proxy: aiohttp_socks.ProxyConnector = None, return_both: bool = False,
-                                       cookies: dict = None,
+                                       cookies: dict = None, encrypt_type: int = 2,
                                        return_chapter_meta: bool = True) -> Union[dict, Tuple[dict, dict]]:
     """Retrieves the chapter content json
             args:
@@ -200,7 +198,8 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
     # aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True),
 
     api = '/'.join((API_ENDPOINT_2, 'getContent'))
-    params = {'bookId': book_id, 'chapterId': chapter_id, '_': str(time())}
+    params = {'bookId': book_id, 'chapterId': chapter_id, 'encryptType': encrypt_type,
+              'font': 'Merriweather', '_': str(time())}
     if not proxy:
         proxy = aiohttp.TCPConnector(**default_connector_settings)
 
@@ -255,6 +254,7 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
             note_obj = classes.ChapterNote(uut, note_avatar_pic_url, note_author, note_content, note_author_pen_name,
                                            note_author_type)
     content_list = chapter_info['contents']
+    encrypt_type = chapter_info['encryptType']
     content_str = '\n'.join([paragraph['content'] for paragraph in content_list])
     price = chapter_info['price']
     vip_status = chapter_info['vipStatus']
@@ -269,7 +269,7 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
     if len(editor_list) > 0:
         editor = editor_list[0]['name']
     return classes.Chapter(priv_level, chapter_id, book_id, index, vip_status, chapter_name, is_owned, content_str,
-                           price, volume_index, note_obj, editor, translator)
+                           price, volume_index, encrypt_type, note_obj, editor, translator)
 
 
 async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes.Book, int],
@@ -332,7 +332,7 @@ async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes
     return full_book
 
 
-async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index: int,
+async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index: int, encrypt_type: int = 2,
                             session: aiohttp.ClientSession = None,
                             account: classes.QiAccount = None, proxy: Proxy = None) -> classes.Chapter:
     cookies = {}
@@ -349,7 +349,7 @@ async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index:
 
             # TODO check after usage what excepts can happen here
             chapter_info = await __chapter_metadata_retriever(book_id, chapter_id, session, proxy_connector,
-                                                              cookies=cookies)
+                                                              cookies=cookies, encrypt_type=encrypt_type)
             break
         except json.JSONDecodeError:
             pass
@@ -364,7 +364,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
                                 cookies: dict = None, proxy: Proxy = None, unlock_type: int = 5, chapter_type: int = 2,
                                 chapter_price: int = 1) -> str:
     """Will buy a chapter with fastpass unless the rest of the data are modified    """
-    api_url = 'https://www.webnovel.com/apiajax/SpiritStone/useSSAjax'
+    # api_url = 'https://www.webnovel.com/apiajax/SpiritStone/useSSAjax'
     api_url = 'https://www.webnovel.com/go/pcm/book/unlockChapter'
 
     # _connector: aiohttp_socks.ProxyConnector =
@@ -423,7 +423,7 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
     if request_code == 0:
         data = content_dict['data']
         paragraphs_list = data['content']
-        return '\n'.join([paragraph_dict['content'] for paragraph_dict in paragraphs_list])
+        return '\n'.join([paragraph_dict['content'] for paragraph_dict in paragraphs_list]), data['encryptType']
     if request_code == 1:
         raise exceptions.ChapterBuyFailed()
     elif request_code == 2:
@@ -444,9 +444,13 @@ async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSe
                                       session=session, account=account, proxy=proxy)
     if chapter.is_full_content is False:
         if session:
-            chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, proxy=proxy)
+            chapter.content, chapter.encrypt_type = await __chapter_buy_request(book_id, chapter_id,
+                                                                                session=session, proxy=proxy)
         else:
-            chapter.content = await __chapter_buy_request(book_id, chapter_id, session=session, cookies=account.cookies,
-                                                          proxy=proxy)
+            chapter.content, chapter.encrypt_type = await __chapter_buy_request(book_id, chapter_id,
+                                                                                session=session,
+                                                                                cookies=account.cookies, proxy=proxy)
         chapter.is_full_content = True
+    if chapter.encrypt_type == 3:
+        chapter = await chapter_retriever(chapter.parent_id, chapter_id, chapter.volume_index, account=account)
     return chapter
