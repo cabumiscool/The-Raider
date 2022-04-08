@@ -29,7 +29,7 @@ class BackgroundProcess:
                                  min_conns=config.min_db_conns, max_conns=config.max_db_conns)
         self.services: typing.Dict[int: BaseService] = {1: BooksLibraryChecker(self.database),
                                                         2: NewChapterFinder(self.database),
-                                                        3: BuyerService(self.database),
+                                                        # 3: BuyerService(self.database),
                                                         4: PasteCreator(),
                                                         # 5: ProxyManager(self.database)
                                                         5: CookieMaintainerService(self.database),
@@ -147,7 +147,7 @@ class BackgroundProcess:
                 non_priv_chapters.append(chapter)
 
         # adding to the queue of the chapter buyer (only non priv chapters)
-        self.services[3].add_to_queue(*non_priv_chapters)
+        # self.services[3].add_to_queue(*non_priv_chapters) # TODO Remmeber to fix this service
 
         # will mark the priv chapter to be updated to the db
         for chapter in priv_chapters:
@@ -158,13 +158,14 @@ class BackgroundProcess:
         # checking if there are new bought chapters in the output queue of the buyer service
         possible_new_bought_chapters = []
         new_bought_chapters = []
-        try:
-            possible_new_bought_chapters.extend(self.services[3].retrieve_completed_cache())
-        except ErrorReport as e:
-            self.__return_data(e)
-        except ErrorList as e:
-            for error in e.errors:
-                self.__return_data(error)
+        # TODO REMEMBER TO UNCOMMENT THIS FOR THE BUYER SERVICE
+        # try:
+        #     possible_new_bought_chapters.extend(self.services[3].retrieve_completed_cache())
+        # except ErrorReport as e:
+        #     self.__return_data(e)
+        # except ErrorList as e:
+        #     for error in e.errors:
+        #         self.__return_data(error)
 
         for possible_bought_chapter in possible_new_bought_chapters:
             possible_bought_chapter: classes.Chapter
