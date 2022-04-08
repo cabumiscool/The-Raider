@@ -44,3 +44,37 @@ async def emoji_selection_detector(ctx: Context, emoji_list: List[Union[discord.
             return reaction_used.emoji
     except asyncio.TimeoutError:
         return None
+
+
+async def text_response_waiter(ctx: Context, message_monitor: discord.Message, wait_for: int = 30):
+    def response_check(message: discord.Message):
+        if message.reference is None:
+            return False
+        if message.reference.message_id == message_monitor.id:
+            return True
+        return False
+    full_wait_tume = wait_for
+    portions = full_wait_tume
+    range_ = list(range(1, 8))
+    range_.reverse()
+    for x in range_:
+        if full_wait_tume % x == 0:
+            portions = full_wait_tume / x
+            break
+
+    m = await ctx.send(f"Will wait for {full_wait_tume} seconds for a response! "
+                       f"Please reply to the message asking the question!")
+    while True:
+        try:
+            message_used = await ctx.bot.wait_for('message', check=response_check, timeout=portions)
+            await m.edit(content="Reply Received!!")
+            return message_used
+        except asyncio.TimeoutError:
+            full_wait_tume -= portions
+            if full_wait_tume != 0:
+                await m.edit(content=f"Will wait for {full_wait_tume} seconds for a response! "
+                                     f"Please reply to the message asking the question!")
+            else:
+                await m.edit(content="I was left alone :( I wil now ignore any reply to the message")
+                return None
+
