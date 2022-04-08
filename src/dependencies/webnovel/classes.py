@@ -98,8 +98,8 @@ class SimpleChapter:
 
 class Chapter(SimpleChapter):
     def __init__(self, chapter_level: int, chapter_id: int, parent_id: int, index: int, vip_status: int, name: str,
-                 full_content: bool, content: str, price: int, volume_index: int, chapter_note: ChapterNote = None,
-                 editor: str = None, translator: str = None):
+                 full_content: bool, content: str, price: int, volume_index: int, encrypt_type: int,
+                 chapter_note: ChapterNote = None, editor: str = None, translator: str = None):
         """Full metadata object for chapters
             :arg chapter_note takes the content of the author note at the end of chapters, may be
                 safely ignored
@@ -113,6 +113,7 @@ class Chapter(SimpleChapter):
         self.editor = editor
         self.translator = translator
         self.price = int(price)
+        self.encrypt_type = encrypt_type
 
     def __repr__(self):
         return f'<CHAPTER (ID:{self.id}, NAME:{self.name}, INDEX:{self.index}, PRIVILEGE:{self.is_privilege}, ' \
