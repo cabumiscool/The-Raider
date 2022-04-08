@@ -200,6 +200,7 @@ class QiCommands(commands.Cog):
     @bot_checks.is_whitelist()
     @bot_checks.check_permission_level(2)
     async def buy_decode(self, ctx: Context, *, user_input: str = None):
+        await self.db.release_accounts_over_five_in_use_minutes()
         cache_chapters = os.listdir("chapters")
         chapters_from_cache = []
 
@@ -292,24 +293,25 @@ class QiCommands(commands.Cog):
         chapters_to_decode = []
         async_tasks.clear()
         for list_ in lists:
-            for chapter in list_:
-                if type(chapter) == Chapter:
-                    chapters_to_decode.append(chapter)
-                    try:
-                        with open(f"chapters/{chapter.parent_id}_{chapter.id}", "wb") as file:
-                            file.write(pickle.dumps(chapter))
-                    except FileNotFoundError:
-                        os.makedirs("chapters")
-                        with open(f"chapters/{chapter.parent_id}_{chapter.id}", "wb") as file:
-                            file.write(pickle.dumps(chapter))
-                else:
-                    async_tasks.append(asyncio.create_task(ctx.send(chapter)))
+            if type(list_) == str:
+                async_tasks.append(asyncio.create_task(ctx.send(list_)))
+            else:
+                for chapter in list_:
+                    if type(chapter) == Chapter:
+                        chapters_to_decode.append(chapter)
+                        try:
+                            with open(f"chapters/{chapter.parent_id}_{chapter.id}", "wb") as file:
+                                file.write(pickle.dumps(chapter))
+                        except FileNotFoundError:
+                            os.makedirs("chapters")
+                            with open(f"chapters/{chapter.parent_id}_{chapter.id}", "wb") as file:
+                                file.write(pickle.dumps(chapter))
 
         for chapter_to_load in chapters_from_cache:
             with open(f"chapters/{chapter_to_load.parent_id}_{chapter_to_load.id}", "rb") as file:
                 chapters_to_decode.append(pickle.load(file))
 
-        print(True)
+        await asyncio.gather(*async_tasks)
         async_tasks.clear()
         pastes = []
         for chapter in chapters_to_decode:
