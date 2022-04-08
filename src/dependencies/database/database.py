@@ -307,6 +307,41 @@ class Database:
 
         return await self.retrieve_specific_account(selected_account_guid)
 
+    async def insert_new_font(self, font: bytes, bitwise: int, letters_in_font: str, chapter_id: int):
+        """Will insert a new font with its decoded and metadata to the db"""
+        await self.__init_check__()
+        count_of_letters = len(set(list(letters_in_font)))
+        query_arguments = (font, bitwise, letters_in_font, chapter_id, count_of_letters)
+        insert_query = '''INSERT INTO "FONTS" ("FONT", "BITWISE", "LETTERS", "CHAPTER_ID", "LETTERS_COUNT") 
+        VALUES ($1, $2, $3, $4, $5)'''
+        await self._db_pool.execute(insert_query, *query_arguments)
+
+    async def insert_new_char_bitwise(self, bit_value: int, char: str):
+        """Will insert a new char with its corresponding bitwise assigned"""
+        await self.__init_check__()
+        query_arguments = (bit_value, char)
+        insert_query = '''INSERT INTO "LETTERS" ("BIT", "LETTER") VALUES ($1, $2)'''
+        await self._db_pool.execute(insert_query, *query_arguments)
+
+    async def retrieve_top_50_fonts(self) -> typing.List[typing.Tuple[str, bytes]]:
+        await self.__init_check__()
+        return_list = []
+        retrieve_query = '''SELECT "FONT", "LETTERS" FROM "FONTS" ORDER BY "LETTERS_COUNT" LIMIT 50 '''
+        data = await self._db_pool.fetch(retrieve_query)
+        for row in data:
+            return_list.append((row[1], row[0]))
+        return return_list
+
+    async def retrieve_char_bitwise(self) -> typing.Dict[str, int]:
+        """Will retrieve all the char and its respective bitwise"""
+        await self.__init_check__()
+        dict_return = {}
+        retrieve_query = '''SELECT "LETTER", "BIT" FROM "LETTERS"'''
+        data = await self._db_pool.fetch(retrieve_query)
+        for row in data:
+            dict_return[row[0]] = int(row[1])
+        return dict_return
+
     async def __update_simple_book(self, book: SimpleBook):
         await self.__init_check__()
         update_book_query = '''UPDATE "BOOKS_DATA" SET "BOOK_NAME"=$2, "TOTAL_CHAPTERS"=$3, "COVER_ID"=$4'''
