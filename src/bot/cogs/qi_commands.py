@@ -3,6 +3,7 @@ import io
 import re
 import os
 import pickle
+import typing
 from typing import Union, List, Tuple, Dict, Optional
 
 import discord
@@ -13,7 +14,7 @@ from discord.ext.commands import Context
 from bot.bot_utils import generate_embed, emoji_selection_detector, text_response_waiter
 from dependencies.database import database_exceptions, Database
 from dependencies.utils import generic_buyer, generic_buyer_obj, paste_generator
-from dependencies.webnovel.classes import SimpleBook, Book, Chapter
+from dependencies.webnovel.classes import SimpleBook, Book, Chapter, QiAccount
 from dependencies.webnovel.utils import book_string_to_book_id
 from dependencies.webnovel.web.book import full_book_retriever, generate_thumbnail_url_or_file, trail_read_books_finder
 from . import bot_checks
@@ -342,7 +343,6 @@ class QiCommands(commands.Cog):
                     char_message = await text_response_waiter(ctx, message, 180)
                     letters_to_be_added.append((order_num, char, image_obj, char_message.clean_content,
                                                 content_info_helper.get_font()))
-                    print(True)
                 confirmation_list = [(char, image_obj) for order_num,
                                      coded_char, image_obj, char, font_file in letters_to_be_added]
                 await ctx.send("You told me the following images are the following: ")
@@ -356,7 +356,6 @@ class QiCommands(commands.Cog):
                     await ctx.send("Did not receive confirmation, will skip the chapter")
                 elif confirmation.clean_content.lower() == "yes":
                     await ctx.send("Learning new letters......")
-                    print(True)
                     for item_to_add in letters_to_be_added:
                         order_map[item_to_add[0]] = item_to_add[3]
                         tl_map[ord(item_to_add[1])] = item_to_add[3]
@@ -383,7 +382,6 @@ class QiCommands(commands.Cog):
                                 else:
                                     starting_num = starting_num << 1
                             font_num = font_num | starting_num
-                    print(True)
                     font = content_info_helper.get_font()
                     font.seek(0)
                     font_bytes = font.read()
@@ -402,7 +400,6 @@ class QiCommands(commands.Cog):
         for paste in pastes:
             async_tasks.append(asyncio.create_task(ctx.send(paste)))
         await asyncio.gather(*async_tasks)
-        print(True)
 
         if len(removed_chapters) != 0:
             messages = []
@@ -495,6 +492,38 @@ class QiCommands(commands.Cog):
     async def buy_link(self, ctx: Context, pastebin_link: str):
         paste = await privatebinapi.get_async(pastebin_link)
         await self.buy(ctx, user_input=paste['text'])
+
+    @commands.command()
+    @bot_checks.check_permission_level(8)
+    async def retrieve_cache_file(self, ctx: Context, book_id: int, chapter_id: int):
+        io_bytes = io.BytesIO()
+        with open(f"chapters/{book_id}_{chapter_id}", "rb") as file:
+            io_bytes.write(file.read())
+        io_bytes.seek(0)
+        await ctx.send(file=discord.File(io_bytes, f"{book_id}_{chapter_id}"))
+
+    @commands.command()
+    @bot_checks.check_permission_level(8)
+    async def update_accounts(self, ctx: Context):
+        accounts_guid = await self.db.retrieve_all_qi_accounts_guid()
+        async_tasks = []
+        for x in accounts_guid:
+            async_tasks.append(asyncio.create_task(self.db.retrieve_specific_account(x)))
+        accounts = await asyncio.gather(*async_tasks)
+        accounts: typing.List[QiAccount]
+        number = 1
+        await ctx.send(f"Starting update of {len(accounts)}")
+        for account in accounts:
+            fp_count = account.fast_pass_count
+            await account.async_check_valid()
+            if fp_count != account.fast_pass_count:
+                await self.db.update_qi_account(account.guid, ticket=account.ticket, expired_status=account.expired,
+                                                fp_count=account.fast_pass_count, cookies=account.cookies)
+                await ctx.send(f"One account had a mismatch amount of fp, in db:  {fp_count} | actual "
+                               f"count: {account.fast_pass_count} . Updated! It was account # {number}")
+            # print(True)
+            number += 1
+        await ctx.send("Accounts updated!!")
 
     @commands.command(aliases=['qi', 'q'])
     @bot_checks.check_permission_level(6)
