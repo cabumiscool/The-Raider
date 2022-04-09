@@ -159,6 +159,11 @@ class ContentInfo:
                 raise AssertionError
 
             paragraph = soup.contents[0]
+            paragraph = soup.contents[0]
+            if paragraph.name == "annotations":
+                # hope that it isn't word scrambled
+                doc.append(str(paragraph))
+                continue
             p_tag = paragraph.attrs["class"][0]
 
             words = [x.extract() for x in paragraph.contents.copy()]
@@ -175,6 +180,7 @@ class ContentInfo:
                 if (after := attr_map[p_tag][word.name].get("after", None)) is not None:
                     paragraph.insert(len(paragraph.contents), word.attrs[after])
 
-            doc.append(paragraph.text)
+            paragraph.attrs.clear()
+            doc.append(str(paragraph))
 
         return "\n\n".join(doc)
