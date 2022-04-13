@@ -781,14 +781,48 @@ class Database:
         records = await self._db_pool.fetch(query)
         return [record[0] for record in records]
 
-    # delete too
     # TODO make it also set time either in sql or python
     async def insert_qi_account(self, qi_email: str, qi_password: str, qi_cookies: dict, qi_ticket: str, qi_guid: int,
-                                expired: bool, fast_pass_count: int, main_email_id):
+                                expired: bool, fast_pass_count: int, main_email_id, owned: bool = True,
+                                connection: asyncpg.Connection = None):
         query = '''INSERT INTO "QIACCOUNT" ("EMAIL", "PASSWORD", "COOKIES", "TICKET", "GUID", "EXPIRED", "FP",
-        "MAIN_EMAIL") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)'''
-        query_args = (qi_email, qi_password, qi_cookies, qi_ticket, qi_guid, expired, fast_pass_count, main_email_id)
+        "MAIN_EMAIL", "OWNED") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)'''
+        query_args = (qi_email, qi_password, json.dumps(qi_cookies).replace("'", '"'),
+                      qi_ticket, qi_guid, expired, fast_pass_count, main_email_id, owned)
+        if connection:
+            await connection.execute(query, *query_args)
+        else:
+            await self._db_pool.execute(query, *query_args)
+
+    async def insert_user_account_entry(self, connection: asyncpg.Connection, discord_user_id: int, account_guid: int):
+        query = '''INSERT INTO "USER_ACCOUNTS" ("DISCORD_USER_ID", "ACCOUNT_GUID") VALUES ($1, $2)'''
+        query_args = (discord_user_id, account_guid)
+        await connection.execute(query, *query_args)
+
+    async def retrieve_user_accounts(self, discord_user_id: int):
+        query = '''SELECT "QIACCOUNT"."ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP",
+        "LIBRARY_TYPE", "LIBRARY_PAGES", "MAIN_EMAIL", "GUID", "OWNED" 
+        FROM "QIACCOUNT" INNER JOIN "USER_ACCOUNTS" UA on "QIACCOUNT"."GUID" = UA."ACCOUNT_GUID" 
+        WHERE UA."DISCORD_USER_ID" = $1'''
+        data = await self._db_pool.fetch(query, discord_user_id)
+        accounts = []
+        for row in data:
+            accounts.append(QiAccount(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9],
+                                      row[10], row[11], row[12]))
+        return accounts
+
+    async def mark_account_with_keycode_problem(self, account_guid: int):
+        query = '''UPDATE "QIACCOUNT" SET "KEYCODE_PROBLEM"=$1 WHERE "GUID" = $2'''
+        query_args = (True, account_guid)
         await self._db_pool.execute(query, *query_args)
+
+    async def insert_quest_account(self, account: QiAccount, user_id: int):
+        async with self._db_pool.acquire() as connection:
+            async with connection.transaction():
+                await self.insert_qi_account(account.email, account.password, account.cookies, account.ticket,
+                                             account.guid, account.expired, account.fast_pass_count,
+                                             account.host_email_id, account.owned, connection)
+                await self.insert_user_account_entry(connection, user_id, account.guid)
 
     async def batch_insert_qi_account(self, *args: typing.Tuple[str, str, dict, str, int, bool, int, int]):
         query = '''INSERT INTO "QIACCOUNT" ("EMAIL", "PASSWORD", "COOKIES", "TICKET", "GUID", "EXPIRED", "FP",
