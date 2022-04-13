@@ -46,7 +46,7 @@ async def emoji_selection_detector(ctx: Context, emoji_list: List[Union[discord.
         return None
 
 
-async def text_response_waiter(ctx: Context, message_monitor: discord.Message, wait_for: int = 30):
+async def text_response_waiter(ctx: Context, message_monitor: discord.Message, wait_for: int = 30) -> discord.Message:
     def response_check(message: discord.Message):
         if message.reference is None:
             return False
