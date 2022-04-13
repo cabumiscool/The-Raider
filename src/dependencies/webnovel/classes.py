@@ -404,7 +404,8 @@ class Comic(SimpleComic):
 
 class QiAccount:
     def __init__(self, id_: int, qi_email: str, qi_pass: str, cookies: dict, ticket: str, expired: bool,
-                 update_time: int, fp: int, library_type: int, library_pages: int, main_email_id: int, guid: int):
+                 update_time: int, fp: int, library_type: int, library_pages: int, main_email_id: int, guid: int,
+                 owned: bool = True):
         self.id = id_
         self.email = qi_email
         self.password = qi_pass
@@ -421,6 +422,7 @@ class QiAccount:
         self.library_pages = library_pages
         self.host_email_id = main_email_id
         self.guid = int(guid)
+        self.owned = owned
 
     def __repr__(self):
         return f'<QI_ACCOUNT (ID:{self.id}, GUID:{self.guid}, EMAIL:{self.email}, FP_COUNT:{self.fast_pass_count}, ' \
