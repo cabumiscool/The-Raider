@@ -604,8 +604,8 @@ class Database:
         """Will retrieve an expired account from the db giving priority to the library accounts"""
         await self.__init_check__()
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
-        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "EXPIRED" = TRUE and "IGNORE_RENEW" = False 
-        ORDER BY "UPDATED_AT"'''
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "EXPIRED" = TRUE and "IGNORE_RENEW" = False AND 
+        "KEYCODE_PROBLEM" = FALSE ORDER BY "UPDATED_AT"'''
         account_record = await self._db_pool.fetchrow(query)
         if account_record is None:
             return None
@@ -658,14 +658,15 @@ class Database:
         """will retrieve an specific account using the guid"""
         await self.__init_check__()
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
-        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT" WHERE "GUID" = $1'''
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID", "OWNED" FROM "QIACCOUNT" WHERE "GUID" = $1'''
         account_record_obj = await self._db_pool.fetchrow(query, guid)
         if account_record_obj is None:
             raise NoAccountFound
         account_obj = QiAccount(account_record_obj[0], account_record_obj[1], account_record_obj[2],
                                 account_record_obj[3], account_record_obj[4], account_record_obj[5],
                                 account_record_obj[6], account_record_obj[7], account_record_obj[8],
-                                account_record_obj[9], account_record_obj[10], account_record_obj[11])
+                                account_record_obj[9], account_record_obj[10], account_record_obj[11],
+                                account_record_obj[12])
         return account_obj
 
     async def expired_account(self, account: QiAccount):
