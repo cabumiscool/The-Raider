@@ -503,7 +503,7 @@ class QiCommands(commands.Cog):
         await ctx.send(file=discord.File(io_bytes, f"{book_id}_{chapter_id}"))
 
     @commands.command()
-    @bot_checks.check_permission_level(8)
+    @bot_checks.check_permission_level(2)
     async def update_accounts(self, ctx: Context):
         accounts_guid = await self.db.retrieve_all_qi_accounts_guid()
         async_tasks = []
