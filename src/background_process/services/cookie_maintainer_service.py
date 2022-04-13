@@ -28,6 +28,9 @@ class CookieMaintainerService(BaseService):
                     response, ticket = await auth.check_code(session, ticket, expired_acc.email, expired_acc.password)
 
                 if response['code'] == 11318:
+                    if expired_acc.owned is False:
+                        await self.db.mark_account_with_keycode_problem(expired_acc.guid)
+                        return
                     host_index = expired_acc.host_email_id
                     email_account = await self.db.retrieve_email_obj(id_=host_index)
                     mail_agent = MailAgent(email_account.email, email_account.password)
