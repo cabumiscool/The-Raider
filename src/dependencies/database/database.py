@@ -634,13 +634,13 @@ class Database:
     async def retrieve_account_for_farming(self):
         """Will retrieve an account that the last currency update was 24 hrs ago"""
         query = '''SELECT "ID", "EMAIL", "PASSWORD", "COOKIES", "TICKET", "EXPIRED", "UPDATED_AT", "FP", "LIBRARY_TYPE",
-        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID" FROM "QIACCOUNT"
+        "LIBRARY_PAGES", "MAIN_EMAIL", "GUID", "OWNED" FROM "QIACCOUNT"
         WHERE (select extract(epoch from now())) - "LAST_CURRENCY_UPDATE_AT" >= 86400.0 and "EXPIRED" = False
-          and "IN_USE" = False'''
+          and "IN_USE" = False and "OWNED" = True'''
         record = await self._db_pool.fetchrow(query)
         if record:
             return QiAccount(record[0], record[1], record[2], record[3], record[4], record[5], record[6], record[7],
-                             record[8], record[9], record[10], record[11])
+                             record[8], record[9], record[10], record[11], record[12])
         return None
 
     async def retrieve_account_stats(self) -> typing.Tuple[typing.Tuple[int, int], int]:
