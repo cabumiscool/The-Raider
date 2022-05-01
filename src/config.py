@@ -43,6 +43,10 @@ class ConfigReader:
         self.__test_settings()
 
     def __test_settings(self):
+        """
+        Checks if the config file is missing any values, and if it is, it writes the default values
+        to the config file.
+        """
         settings_file = self.config
         try:
             database_section = settings_file['database']
@@ -68,6 +72,9 @@ class ConfigReader:
             raise MissingConfiguration('token', 'Corresponding Bot Token is missing')
 
     def __write_default_settings_values(self):
+        """
+        Writes the default settings to the settings.ini file
+        """
         config = self.config
         config['main bot'] = {'token': '', 'prefix': '!', 'description': 'A bot'}
         config['test bot'] = {'token': '', 'prefix': '?', 'description': 'A test bot'}
@@ -78,6 +85,9 @@ class ConfigReader:
             config.write(settings_file)
 
     def __load_values_to_attribute(self):
+        """
+        Loads the values from the config file into the attributes of the class
+        """
         config_file = self.config
         bot_section = self.bot_section
         self.bot_token = bot_section['token']
@@ -93,6 +103,9 @@ class ConfigReader:
         self.max_db_conns: int = literal_eval(db_section['max conns'])
 
     def __init__(self):
+        """
+        Reads a config file and loads the values into the class attributes.
+        """
         self.bot_section = None  # this might be wrong
         self.config = ConfigParser()
         self.__read_settings_file()

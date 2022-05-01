@@ -32,10 +32,17 @@ class MigrationCog(commands.Cog):
     # TODO add a check that only seeker can run this command
     # TODO delete once raider can farm by itself
     async def load_wn_accounts(self, ctx: Context):
+        """
+        It takes a file, reads it, and then inserts the data into a database
+        
+        :param ctx: Context
+        :type ctx: Context
+        """
         await ctx.send('preparing to import')
         message_obj: discord.Message = ctx.message
         if len(message_obj.attachments) > 1 or len(message_obj.attachments) == 0:
             raise Exception
+       # Reading the file and converting it into a list of lists.
         data_file = message_obj.attachments[0]
         content_bin = await data_file.read()
         content_str = content_bin.decode()
@@ -50,6 +57,8 @@ class MigrationCog(commands.Cog):
                                        not bool(account[5]), 0, account[6], account[7], account[8], email_ids[account[9]],
                                        account[12]) for account in accounts_lists]
 
+        # Checking if the account is already in the database, if it is, it updates it, if not, it
+        # inserts it.
         accounts_to_insert = []
         accounts_to_update = []
         for account in account_objs_list:
@@ -66,12 +75,14 @@ class MigrationCog(commands.Cog):
         if len(account_insert_args) > 0:
             await self.db.batch_insert_qi_account(*account_insert_args)
 
+        # Creating a list of tuples, each tuple is a set of arguments to be passed to the database.
         account_update_args = []
         for account in accounts_to_update:
             account_update_args.append((account.guid, account.ticket, account.expired, account.fast_pass_count,
                                         account.cookies))
 
         await ctx.send(f'updating {len(account_update_args)} in the db')
+        # Checking if there are any accounts to update, if there are, it updates them.
         if len(account_update_args) > 0:
             await self.db.batch_update_qi_account(*account_update_args)
 
@@ -81,6 +92,14 @@ class MigrationCog(commands.Cog):
     @commands.command()
     @bot_checks.check_permission_level(10)
     async def import_proxies(self, ctx: Context, region: int):
+        """
+        It takes a file, reads it, and adds the proxies to the database.
+        
+        :param ctx: Context = The context of the command
+        :type ctx: Context
+        :param region: int
+        :type region: int
+        """
         message_obj: discord.Message = ctx.message
         if len(message_obj.attachments) > 1 or len(message_obj.attachments) == 0:
             raise Exception
@@ -97,11 +116,13 @@ class MigrationCog(commands.Cog):
         proxy_objects_list = [Proxy(0, proxy[0], proxy[1], proxy[2], speed=proxy[3], uptime=proxy[4], latency=proxy[5],
                                     region=region) for proxy in proxies_list]
 
+        # Checking if the proxy is already in the database, if it is, it doesn't add it.
         proxies_to_add = []
         for proxy in proxy_objects_list:
             if proxy.return_ip() not in db_proxy_ips:
                 proxies_to_add.append(proxy)
 
+        # Creating a list of tuples, each tuple is a set of arguments to be passed to the database.
         insert_args = []
         for proxy in proxies_to_add:
             insert_args.append((proxy.return_ip(), proxy.return_port(), proxy.type_str, proxy.uptime, proxy.latency,
@@ -119,6 +140,13 @@ class MigrationCog(commands.Cog):
     @bot_checks.has_attachment()
     @bot_checks.check_permission_level(10)
     async def import_batch_books(self, ctx: Context):
+        """
+        It takes a file with a list of book ids, checks if they are already in the database, if not, it
+        retrieves the metadata for them and adds them to the database.
+        
+        :param ctx: Context
+        :type ctx: Context
+        """
         message_obj = ctx.message
         attachments_list = message_obj.attachments
         attachment = attachments_list[0]

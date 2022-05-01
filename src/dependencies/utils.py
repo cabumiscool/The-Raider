@@ -17,6 +17,16 @@ data_from = ['qi', 'waka-waka']
 
 
 async def paste_generator(book_name: str, chapter: Chapter):
+    """
+    Takes a chapter object and returns a string that contains the chapter's metadata and content, and
+    uploads it to PrivateBin
+    
+    :param book_name: str
+    :type book_name: str
+    :param chapter: Chapter
+    :type chapter: Chapter
+    :return: The paste_url is being returned.
+    """
     metadata = paste_metadata % (
         chapter.parent_id, chapter.id, time.time(), chapter.price, chapter.index,
         chapter.is_vip, data_from[chapter.is_privilege], chapter.index, chapter.name)
@@ -27,7 +37,28 @@ async def paste_generator(book_name: str, chapter: Chapter):
 
 
 async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapter) -> Chapter:
+    """
+    Takes a book and a list of chapters, and returns a string that contains the chapters' content
+    
+    :param db: Database
+    :type db: Database
+    :param book_: SimpleBook
+    :type book_: SimpleBook
+    :param : db: Database
+    :type : SimpleChapter
+    :return: A coroutine object.
+    """
     async def individual_buyer(inner_chapter: SimpleChapter, buyer_account: QiAccount = None):
+        """
+        If the chapter is a privilege chapter, then use a proxy to retrieve the chapter, otherwise use
+        the buyer account to buy the chapter.
+        
+        :param inner_chapter: SimpleChapter
+        :type inner_chapter: SimpleChapter
+        :param buyer_account: QiAccount = None
+        :type buyer_account: QiAccount
+        :return: A chapter object
+        """
         if inner_chapter.is_privilege:
             waka_proxy = await db.retrieve_proxy(1)
             chapter_obj = await waka_book.chapter_retriever(book_id=inner_chapter.parent_id,
@@ -42,6 +73,11 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
         return chapter_obj
 
     async def account_retriever() -> QiAccount:
+        """
+        Retrieves a buyer account from the database, checks if it's valid, and if it's not, it
+        retrieves another one
+        :return: The return value is a coroutine object.
+        """
         buyer_account = await db.retrieve_buyer_account()
         while True:
             working = await buyer_account.async_check_valid()
@@ -128,7 +164,28 @@ async def generic_buyer(db: Database, book_: SimpleBook, *chapters: SimpleChapte
 
 
 async def generic_buyer_obj(db: Database, book_: SimpleBook, *chapters: SimpleChapter):
+    """
+    Buys chapters for a book
+    
+    :param db: Database
+    :type db: Database
+    :param book_: SimpleBook
+    :type book_: SimpleBook
+    :param : param db: Database
+    :type : SimpleChapter
+    :return: A list of Chapter objects
+    """
     async def individual_buyer(inner_chapter: SimpleChapter, buyer_account: QiAccount = None):
+        """
+        If the chapter is a privilege chapter, then use a proxy to retrieve the chapter, otherwise use
+        the buyer account to buy the chapter.
+        
+        :param inner_chapter: SimpleChapter
+        :type inner_chapter: SimpleChapter
+        :param buyer_account: QiAccount = None
+        :type buyer_account: QiAccount
+        :return: A chapter object
+        """
         if inner_chapter.is_privilege:
             waka_proxy = await db.retrieve_proxy(1)
             chapter_obj = await waka_book.chapter_retriever(book_id=inner_chapter.parent_id,
@@ -143,6 +200,11 @@ async def generic_buyer_obj(db: Database, book_: SimpleBook, *chapters: SimpleCh
         return chapter_obj
 
     async def account_retriever() -> QiAccount:
+        """
+        Retrieves a QiAccount from the database, checks if it's valid, and if it's not, it retrieves
+        another QiAccount from the database
+        :return: The return value is a coroutine object.
+        """
         buyer_account = await db.retrieve_buyer_account()
         while True:
             working = await buyer_account.async_check_valid()

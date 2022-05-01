@@ -7,6 +7,7 @@ import aiohttp
 
 # import aiohttp_socks
 
+# Defining the urls that will be used in the functions.
 check_status_url = 'https://ptlogin.webnovel.com/login/checkStatus'
 logout_url = 'https://ptlogin.webnovel.com/login/logout'
 login_url = 'https://ptlogin.webnovel.com/login/login'
@@ -26,6 +27,13 @@ default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True
 
 
 def __get_cookies_from_session__(session: aiohttp.ClientSession):
+    """
+    Takes a session object and returns a dictionary of cookies
+    
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :return: A dictionary of cookies.
+    """
     cookies_dict = {}
     for cookie in session.cookie_jar:
         cookie_key = cookie.key
@@ -35,6 +43,17 @@ def __get_cookies_from_session__(session: aiohttp.ClientSession):
 
 
 async def __general_post_request__(url: str, data: dict, session: aiohttp.ClientSession):
+    """
+    Sends a POST request to a given URL with a given data, and returns the response as a dictionary
+    
+    :param url: str - the url to send the request to
+    :type url: str
+    :param data: dict = {
+    :type data: dict
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :return: A dictionary
+    """
     retry_count = 0
     while True:
         try:
@@ -55,6 +74,19 @@ async def __general_post_request__(url: str, data: dict, session: aiohttp.Client
 
 async def __general_json_get_request(url: str, session: aiohttp.ClientSession, params: dict = None,
                                      headers: dict = None):
+    """
+    Makes a GET request to a URL, and returns the JSON response as a dictionary
+    
+    :param url: str = the url to make the request to
+    :type url: str
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :param params: dict = None, headers: dict = None
+    :type params: dict
+    :param headers: dict = None
+    :type headers: dict
+    :return: A dictionary
+    """
     retry_count = 0
     while True:
         try:
@@ -74,6 +106,15 @@ async def __general_json_get_request(url: str, session: aiohttp.ClientSession, p
 
 
 def __build_general_base_data__(csrf_token: str, ticket: str):
+    """
+    Builds a dictionary with the required parameters for the login request
+    
+    :param csrf_token: The csrf token that you got from the login page
+    :type csrf_token: str
+    :param ticket: The ticket that was returned from the first request
+    :type ticket: str
+    :return: A dictionary of data that will be used to make a POST request to the login endpoint.
+    """
     return {
         'appId': 900,
         'areaId': 1,
@@ -94,6 +135,17 @@ def __build_general_base_data__(csrf_token: str, ticket: str):
 
 
 async def check_status(ticket: str, session: aiohttp.ClientSession):
+    """
+    Takes a ticket and a session, gets the csrf token from the session, builds a data object, and
+    then makes a request to the server with the data object and the ticket
+    
+    :param ticket: str
+    :type ticket: str
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :return: A tuple of two values. The first value is the response from the server. The second value is
+    the ticket.
+    """
     cookies = __get_cookies_from_session__(session)
     csrf_token = cookies['_csrfToken']
     data = __build_general_base_data__(csrf_token, ticket)
@@ -105,6 +157,20 @@ async def check_status(ticket: str, session: aiohttp.ClientSession):
 
 
 async def check_code(session: aiohttp.ClientSession, ticket: str, webnovel_email: str, webnovel_password: str):
+    """
+    Checks the code sent to the user's email.
+    
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :param ticket: the ticket you got from the first step
+    :type ticket: str
+    :param webnovel_email: The email address you use to login to webnovel
+    :type webnovel_email: str
+    :param webnovel_password: The password of the account you want to login to
+    :type webnovel_password: str
+    :return: A tuple of two values. The first value is a dictionary containing the response from the
+    server. The second value is a string containing the ticket.
+    """
     cookies = __get_cookies_from_session__(session)
     csrf_token = cookies['_csrfToken']
     data = __build_general_base_data__(csrf_token, ticket)
@@ -128,6 +194,17 @@ async def check_code(session: aiohttp.ClientSession, ticket: str, webnovel_email
 
 
 async def send_trust_email(session: aiohttp.ClientSession, ticket: str, encry_param: str):
+    """
+    Sends a trust email to the user's email address
+    
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :param ticket: the ticket you got from the previous step
+    :type ticket: str
+    :param encry_param: the encrypted parameter that is used to send the email
+    :type encry_param: str
+    :return: The response is a JSON object.
+    """
     cookies = __get_cookies_from_session__(session)
     csrf_token = cookies['_csrfToken']
     data = __build_general_base_data__(csrf_token, ticket)
@@ -137,6 +214,22 @@ async def send_trust_email(session: aiohttp.ClientSession, ticket: str, encry_pa
 
 
 async def check_trust(session: aiohttp.ClientSession, ticket: str, encry_param: str, key_code: str):
+    """
+    Takes a session, a ticket, an encrypted parameter, and a key code, and returns a response and a
+    ticket
+    
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :param ticket: The ticket from the previous step
+    :type ticket: str
+    :param encry_param: This is the encrypted parameter that is returned from the get_trust_code
+    function
+    :type encry_param: str
+    :param key_code: The code that is sent to your phone
+    :type key_code: str
+    :return: A tuple of two values. The first is a dictionary of the response from the server. The
+    second is the ticket.
+    """
     cookies = __get_cookies_from_session__(session)
     csrf_token = cookies['_csrfToken']
     data = __build_general_base_data__(csrf_token, ticket)

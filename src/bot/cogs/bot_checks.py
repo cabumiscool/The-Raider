@@ -7,10 +7,24 @@ from dependencies.database.database import Database
 
 
 def has_attachment(attachment_len: int = 1):
+    """
+    It checks if the message has an attachment, and if it does, it returns True
+    
+    :param attachment_len: int = 1, defaults to 1
+    :type attachment_len: int (optional)
+    :return: The return value of the check function is being returned.
+    """
     if attachment_len <= 0:
         raise Exception("Invalid attachment requirement")
 
     async def check(ctx: Context):
+        """
+        It checks if the message has an attachment, and if it does, it returns True.
+        
+        :param ctx: Context
+        :type ctx: Context
+        :return: The return value of the check function is being returned.
+        """
         message = ctx.message
         if len(message.attachments) == 0:
             raise bot_exceptions.AttachmentNumberMismatch("This message is missing an attachment")
@@ -23,6 +37,13 @@ def has_attachment(attachment_len: int = 1):
 
 
 def check_permission_level(required_level: int = 0):
+    """
+    It checks if the user has the required permission level to run the command
+    
+    :param required_level: int = 0, defaults to 0
+    :type required_level: int (optional)
+    :return: A function that takes a context and returns a boolean.
+    """
     async def check(ctx: Context):
         bot = ctx.bot
         db: Database = bot.db
@@ -43,6 +64,10 @@ def check_permission_level(required_level: int = 0):
 
 
 def is_whitelist():
+    """
+    It checks if the channel the command was used in is whitelisted
+    :return: A function that takes a context and returns a boolean.
+    """
     async def check(ctx: Context):
         db: Database = ctx.bot.db
         channel_id: int = ctx.channel.id

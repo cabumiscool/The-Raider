@@ -7,6 +7,24 @@ from discord.ext.commands import Context
 
 def generate_embed(title: str, author: discord.Member, *fields: Tuple[AnyStr, AnyStr], description: str = None,
                    color: int = 0, image_url: str = None) -> discord.Embed:
+    """
+    It generates an embed with the given parameters
+    
+    :param title: str - The title of the embed
+    :type title: str
+    :param author: discord.Member - The author of the embed
+    :type author: discord.Member
+    :param : title: str, author: discord.Member, *fields: Tuple[AnyStr, AnyStr], description: str =
+    None, color: int = 0, image_url: str = None
+    :type : Tuple[AnyStr, AnyStr]
+    :param description: The description of the embed
+    :type description: str
+    :param color: The color of the embed, defaults to 0
+    :type color: int (optional)
+    :param image_url: The URL of the image you want to embed
+    :type image_url: str
+    :return: A discord.Embed object.
+    """
     for field in fields:
         assert len(field) == 2
 
@@ -26,7 +44,33 @@ def generate_embed(title: str, author: discord.Member, *fields: Tuple[AnyStr, An
 async def emoji_selection_detector(ctx: Context, emoji_list: List[Union[discord.Emoji, discord.PartialEmoji, str]],
                                    embed: discord.Embed = None, wait_for: int = 30, *, message_content: str = None,
                                    show_reject: bool = True) -> Union[None, discord.Emoji, discord.PartialEmoji, str]:
+    """
+    It sends a message with a list of emojis, and waits for the user to react with one of the emojis
+    
+    :param ctx: The context object
+    :type ctx: Context
+    :param emoji_list: A list of emojis that you want to use
+    :type emoji_list: List[Union[discord.Emoji, discord.PartialEmoji, str]]
+    :param embed: The embed object to be sent
+    :type embed: discord.Embed
+    :param wait_for: The amount of time to wait for a reaction, defaults to 30
+    :type wait_for: int (optional)
+    :param message_content: The message content to send
+    :type message_content: str
+    :param show_reject: If True, the ❌ emoji will be added to the message. If False, it won't be added,
+    defaults to True
+    :type show_reject: bool (optional)
+    :return: The emoji that was selected.
+    """
     def reaction_check(reaction, user_obj):
+        """
+        If the author of the message is the same as the user object and the reaction emoji is in the
+        emoji list or the emoji is ❌, return True. Otherwise, return False
+        
+        :param reaction: The reaction object
+        :param user_obj: The user object of the person who reacted
+        :return: A boolean value.
+        """
         if ctx.author.id == user_obj.id and reaction.emoji in [*emoji_list, '❌']:
             return True
         return False
@@ -47,6 +91,17 @@ async def emoji_selection_detector(ctx: Context, emoji_list: List[Union[discord.
 
 
 async def text_response_waiter(ctx: Context, message_monitor: discord.Message, wait_for: int = 30) -> discord.Message:
+    """
+    It waits for a reply to a message, and returns the reply
+    
+    :param ctx: Context - The context of the command
+    :type ctx: Context
+    :param message_monitor: The message that the bot will wait for a reply to
+    :type message_monitor: discord.Message
+    :param wait_for: The amount of time to wait for a response, defaults to 30
+    :type wait_for: int (optional)
+    :return: The message that was sent in response to the question
+    """
     def response_check(message: discord.Message):
         if message.reference is None:
             return False

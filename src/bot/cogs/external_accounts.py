@@ -19,6 +19,7 @@ from dependencies.webnovel.classes import QiAccount
 from . import bot_checks
 
 
+# It adds a new account to the database
 class ExternalAccounts(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -27,6 +28,13 @@ class ExternalAccounts(commands.Cog):
 
     @commands.command()
     async def add_account(self, ctx: Context):
+        """
+        It adds a new account to the database.
+        
+        :param ctx: Context
+        :type ctx: Context
+        :return: a coroutine object.
+        """
         message = await ctx.send("Respond to this message with the email of the qi account you wish to add, to abort "
                                  "you can ignore this message")
         response = await text_response_waiter(ctx, message, 120)
@@ -43,6 +51,7 @@ class ExternalAccounts(commands.Cog):
         if response.clean_content.lower() != 'yes':
             await ctx.send("Aborting!!")
         await ctx.send("Continuing!")
+        # A function that adds a new account to the database.
         async with aiohttp.ClientSession() as session:
             async with session.get("https://www.webnovel.com/") as req:
                 await req.read()

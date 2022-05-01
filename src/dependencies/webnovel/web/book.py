@@ -24,6 +24,20 @@ API_ENDPOINT_2 = 'https://www.webnovel.com/go/pcm/chapter'
 
 async def generate_thumbnail_url_or_file(book_id: int, url_only: bool = True, session: aiohttp.ClientSession = None,
                                          proxy_connector: aiohttp_socks.ProxyConnector = None) -> Union[str, BytesIO]:
+    """
+    Returns either a URL or a BytesIO object of the thumbnail of a book
+    
+    :param book_id: The book ID of the book you want to get the thumbnail of
+    :type book_id: int
+    :param url_only: If you want the url of the image, set this to True. If you want the image itself,
+    set this to False, defaults to True
+    :type url_only: bool (optional)
+    :param session: aiohttp.ClientSession = None
+    :type session: aiohttp.ClientSession
+    :param proxy_connector: aiohttp_socks.ProxyConnector = None
+    :type proxy_connector: aiohttp_socks.ProxyConnector
+    :return: A string or a BytesIO object.
+    """
     assert isinstance(book_id, int)
     cover_url = f"https://img.webnovel.com/bookcover/{book_id}/150/150.jpg"
     if not url_only:
@@ -43,6 +57,15 @@ async def generate_thumbnail_url_or_file(book_id: int, url_only: bool = True, se
 
 
 def find_volume_index_from_id(chapter_id, volumes: List[classes.Volume]) -> int:
+    """
+    Takes a chapter id and a list of volumes, and returns the index of the volume that contains the
+    chapter id
+    
+    :param chapter_id: The id of the chapter you want to find the volume index of
+    :param volumes: List[classes.Volume]
+    :type volumes: List[classes.Volume]
+    :return: The index of the volume that contains the chapter_id.
+    """
     for volume in volumes:
         if volume.check_if_id_in_volume(chapter_id):
             volume_index = volume.index
@@ -54,6 +77,20 @@ def find_volume_index_from_id(chapter_id, volumes: List[classes.Volume]) -> int:
 
 async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session: aiohttp.ClientSession = None,
                                         proxy_connector: aiohttp_socks.ProxyConnector = None):
+    """
+    Takes a dictionary of parameters, an API endpoint, and an optional aiohttp session and proxy
+    connector, and returns a dictionary of the response
+    
+    :param params: dict = {'manga_id': manga_id, 'chapter_id': chapter_id, 'page': page}
+    :type params: dict
+    :param api_endpoint: https://manga.bilibili.com/twirp/comic.v1.Comic/ComicDetail
+    :type api_endpoint: str
+    :param session: aiohttp.ClientSession = None
+    :type session: aiohttp.ClientSession
+    :param proxy_connector: aiohttp_socks.ProxyConnector = None
+    :type proxy_connector: aiohttp_socks.ProxyConnector
+    :return: A dictionary of the response from the API endpoint.
+    """
     if session is None:
         if not proxy_connector:
             proxy_connector = aiohttp.TCPConnector(**default_connector_settings)
@@ -71,6 +108,10 @@ async def __chapter_list_retriever_call(params: dict, api_endpoint: str, session
 
 
 async def trail_read_books_finder() -> List[int]:
+    """
+    Gets the book ids of all the books that are currently being promoted on the webnovel website
+    :return: A list of integers.
+    """
     books_ids = set()
     for i in range(1, 3):
         async with aiohttp.request("get", f"https://www.webnovel.com/trailer?sex={i}") as resp:
@@ -88,6 +129,20 @@ async def trail_read_books_finder() -> List[int]:
 async def chapter_list_retriever(book: Union[classes.SimpleBook, int], session: aiohttp.ClientSession = None,
                                  proxy: Proxy = None, return_book: bool = False
                                  ) -> Union[List[classes.Volume], Tuple[List[classes.Volume], classes.SimpleBook]]:
+    """
+    Takes a book object, and returns a list of Volume objects
+    
+    :param book: Union[classes.SimpleBook, int]
+    :type book: Union[classes.SimpleBook, int]
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :param return_book: bool = False, defaults to False
+    :type return_book: bool (optional)
+    :return: A list of Volume objects or a tuple in the following format (list[volume objects],simple
+    book])
+    """
     #  aiohttp_socks.ProxyConnector = aiohttp.TCPConnector(force_close=True, enable_cleanup_closed=True)
     """Retrieves a chapter list of a book
         :arg book receives either a book or a book_id from which to retrieve the chapter list
@@ -188,6 +243,28 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
                                        proxy: aiohttp_socks.ProxyConnector = None, return_both: bool = False,
                                        cookies: dict = None, encrypt_type: int = 2,
                                        return_chapter_meta: bool = True) -> Union[dict, Tuple[dict, dict]]:
+    """
+    Takes a book_id and chapter_id, and returns a dictionary of metadata
+    
+    :param book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
+    :type book_id: int
+    :param chapter_id: int = None,
+    :type chapter_id: int
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param proxy: aiohttp_socks.ProxyConnector = None,
+    :type proxy: aiohttp_socks.ProxyConnector
+    :param return_both: bool = False,, defaults to False
+    :type return_both: bool (optional)
+    :param cookies: dict = None, encrypt_type: int = 2,
+    :type cookies: dict
+    :param encrypt_type: int = 2,, defaults to 2
+    :type encrypt_type: int (optional)
+    :param return_chapter_meta: bool = True, defaults to True
+    :type return_chapter_meta: bool (optional)
+    :return: The chapter metadata and the book metadata.
+    """
+
     """Retrieves the chapter content json
             args:
                 :arg return_both will return both type of metadata, if False will return what return_chapter_meta asks
@@ -236,6 +313,19 @@ async def __chapter_metadata_retriever(book_id: int, chapter_id: int, session: a
 
 
 def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, volume_index: int) -> classes.Chapter:
+    """
+    Takes a chapter info dict and returns a Chapter object
+    
+    :param book_id: int
+    :type book_id: int
+    :param chapter_id: int
+    :type chapter_id: int
+    :param chapter_info: dict
+    :type chapter_info: dict
+    :param volume_index: int
+    :type volume_index: int
+    :return: A Chapter object
+    """
     chapter_name = chapter_info['chapterName']
     is_owned = bool(chapter_info['isAuth'])
     notes_dict = chapter_info['notes']
@@ -275,6 +365,18 @@ def __full_chapter_parser(book_id: int, chapter_id: int, chapter_info: dict, vol
 async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes.Book, int],
                               session: aiohttp.ClientSession = None,
                               proxy: Proxy = None) -> classes.Book:
+    """
+    Retrieves a book's metadata and chapter list, then uses the last chapter's metadata to retrieve
+    the book's metadata
+    
+    :param book_or_book_id: Union[classes.SimpleBook, classes.Book, int]
+    :type book_or_book_id: Union[classes.SimpleBook, classes.Book, int]
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :return: A full book object.
+    """
     if isinstance(book_or_book_id, int):
         book_or_book_id = classes.SimpleBook(book_or_book_id, '', 0)
     try_attempts = 0
@@ -335,6 +437,25 @@ async def full_book_retriever(book_or_book_id: Union[classes.SimpleBook, classes
 async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index: int, encrypt_type: int = 2,
                             session: aiohttp.ClientSession = None,
                             account: classes.QiAccount = None, proxy: Proxy = None) -> classes.Chapter:
+    """
+    Retrieves the chapter metadata from the server, and then parses it into a Chapter object
+    
+    :param book_id: int
+    :type book_id: int
+    :param chapter_id: int
+    :type chapter_id: int
+    :param chapter_volume_index: int = 0
+    :type chapter_volume_index: int
+    :param encrypt_type: int = 2, defaults to 2
+    :type encrypt_type: int (optional)
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param account: classes.QiAccount = None
+    :type account: classes.QiAccount
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :return: A chapter object
+    """
     cookies = {}
     if hasattr(account, 'cookies'):
         cookies = account.cookies
@@ -363,6 +484,28 @@ async def chapter_retriever(book_id: int, chapter_id: int, chapter_volume_index:
 async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aiohttp.ClientSession = None,
                                 cookies: dict = None, proxy: Proxy = None, unlock_type: int = 5, chapter_type: int = 2,
                                 chapter_price: int = 1) -> str:
+    """
+    Takes a book_id and chapter_id and returns the chapter content.
+    
+    :param book_id: int, chapter_id: int, *, session: aiohttp.ClientSession = None, cookies: dict =
+    None, proxy: Proxy = None, unlock_type: int = 5, chapter_type: int = 2, chapter_price: int = 1
+    :type book_id: int
+    :param chapter_id: int = chapter id
+    :type chapter_id: int
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param cookies: dict = None, proxy: Proxy = None, unlock_type: int = 5, chapter_type: int = 2,
+    :type cookies: dict
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :param unlock_type: 5 is fastpass, 2 is spirit stone, defaults to 5
+    :type unlock_type: int (optional)
+    :param chapter_type: 2 is for normal chapters, 3 is for vip chapters, defaults to 2
+    :type chapter_type: int (optional)
+    :param chapter_price: int = 1, defaults to 1
+    :type chapter_price: int (optional)
+    :return: The chapter content and the encryption type
+    """
     """Will buy a chapter with fastpass unless the rest of the data are modified    """
     # api_url = 'https://www.webnovel.com/apiajax/SpiritStone/useSSAjax'
     api_url = 'https://www.webnovel.com/go/pcm/book/unlockChapter'
@@ -434,6 +577,22 @@ async def __chapter_buy_request(book_id: int, chapter_id: int, *, session: aioht
 
 async def chapter_buyer(book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
                         account: classes.QiAccount = None, proxy: Proxy = None, *, use_ss=False) -> classes.Chapter:
+    """
+    Takes a book_id and a chapter_id, and returns a Chapter object
+    
+    :param book_id: int, chapter_id: int, session: aiohttp.ClientSession = None,
+    :type book_id: int
+    :param chapter_id: int = the chapter id
+    :type chapter_id: int
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param account: classes.QiAccount = None, proxy: Proxy = None, *, use_ss=False
+    :type account: classes.QiAccount
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :param use_ss: boolean, whether to use shadowsocks or not, defaults to False (optional)
+    :return: The chapter object
+    """
     if account is None and session is None:
         raise ValueError("Missing either account or session as a parameter")
     # volumes = await chapter_list_retriever(book_id, session=session, proxy=proxy)
