@@ -12,10 +12,6 @@ from dependencies.database import Database
 from dependencies.exceptions import RaiderBaseException
 
 initial_extensions = ('bot.cogs.permission_management',
-    """
-    Takes any number of arguments and returns a function that takes two arguments and returns a list
-    of strings.
-    """
                       'bot.cogs.qi_commands',
                       'bot.cogs.background_manager',
                       'bot.cogs.migration_cog',
