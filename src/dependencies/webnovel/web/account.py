@@ -11,10 +11,18 @@ from ..utils import decode_qi_content
 # import aiohttp_socks
 
 
+# A dictionary that is used to create a connector.
 default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True}
 
 
 def retrieve_csrftoken_from_session(session: aiohttp.ClientSession):
+    """
+    Retrieves the CSRF token from the session's cookie jar
+    
+    :param session: aiohttp.ClientSession
+    :type session: aiohttp.ClientSession
+    :return: The csrf_token is being returned.
+    """
     assert isinstance(session, aiohttp.ClientSession)
     csrf_token = ''
     for cookie in session.cookie_jar:
@@ -24,6 +32,11 @@ def retrieve_csrftoken_from_session(session: aiohttp.ClientSession):
 
 
 async def retrieve_energy_stone_books() -> list:
+    """
+    Gets the HTML of the voting page, parses it with BeautifulSoup, finds all the vote buttons, and
+    returns a list of the book IDs
+    :return: A list of book ids.
+    """
     books_ids = []
     async with aiohttp.request("get", "https://www.webnovel.com/vote") as resp:
         page_html = await resp.read()
@@ -35,6 +48,11 @@ async def retrieve_energy_stone_books() -> list:
 
 
 async def retrieve_power_stone_books() -> list:
+    """
+    Makes a request to the power stone ranking page, parses the html, and returns a list of the book
+    ids.
+    :return: A list of integers.
+    """
     books_ids = []
     async with aiohttp.request("get", "https://www.webnovel.com/ranking/novel/monthly/power_rank") as resp:
         page_html = await resp.read()
@@ -46,6 +64,17 @@ async def retrieve_power_stone_books() -> list:
 
 
 async def retrieve_farm_status(session: aiohttp.ClientSession = None, account: QiAccount = None, proxy: Proxy = None):
+    """
+    Checks if you can claim your daily rewards, and if you can get power stones and energy stones
+    
+    :param session: aiohttp.ClientSession = None, account: QiAccount = None, proxy: Proxy = None
+    :type session: aiohttp.ClientSession
+    :param account: QiAccount = None
+    :type account: QiAccount
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :return: The return value is a tuple of three booleans.
+    """
     task_list_url = 'https://www.webnovel.com/go/pcm/task/getTaskList'
     task_list_params = {'taskType': 1}
 
@@ -80,6 +109,18 @@ async def retrieve_farm_status(session: aiohttp.ClientSession = None, account: Q
 
 
 async def claim_login(session: aiohttp.ClientSession = None, account: QiAccount = None, proxy: Proxy = None):
+    """
+    Takes in a session or account, and if it has a session, it will use the session to claim login,
+    if it has an account, it will use the account to claim login
+    
+    :param session: aiohttp.ClientSession = None, account: QiAccount = None, proxy: Proxy = None
+    :type session: aiohttp.ClientSession
+    :param account: QiAccount = None
+    :type account: QiAccount
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :return: A boolean value.
+    """
     claim_url = 'https://www.webnovel.com/go/pcm/spiritStone/checkIn'
     claim_data = {}
     if proxy:
@@ -111,6 +152,20 @@ async def claim_login(session: aiohttp.ClientSession = None, account: QiAccount 
 
 async def claim_power_stone(book_id: typing.Union[int, str], session: aiohttp.ClientSession = None,
                             account: QiAccount = None, proxy: Proxy = None):
+    """
+    Takes a book_id, and either a session or an account, and then it posts a request to the power
+    stone vote url with the book_id and the csrf token
+    
+    :param book_id: The book id of the book you want to vote for
+    :type book_id: typing.Union[int, str]
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param account: QiAccount = None, proxy: Proxy = None
+    :type account: QiAccount
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :return: A coroutine object.
+    """
     power_stone_vote_url = 'https://www.webnovel.com/go/pcm/powerStone/vote'
     # book_id = self.power_stone_books[random.randint(0, len(self.power_stone_books) - 1)]
     # power_stone_vote_data = {'_csrfToken': csrf_token, 'bookId': book_id, "novelType": 0}
@@ -145,6 +200,20 @@ async def claim_power_stone(book_id: typing.Union[int, str], session: aiohttp.Cl
 
 async def claim_energy_stone(book: typing.Union[SimpleBook, int, Book], session: aiohttp.ClientSession = None,
                              account: QiAccount = None, proxy: Proxy = None):
+    """
+    Takes a book object, a session, an account, and a proxy, and returns a boolean
+    
+    :param book: typing.Union[SimpleBook, int, Book]
+    :type book: typing.Union[SimpleBook, int, Book]
+    :param session: aiohttp.ClientSession = None,
+    :type session: aiohttp.ClientSession
+    :param account: QiAccount = None, proxy: Proxy = None
+    :type account: QiAccount
+    :param proxy: Proxy = None
+    :type proxy: Proxy
+    :return: A boolean value.
+    """
+
     energy_stone_vote_url = 'https://www.webnovel.com/go/pcm/vote/like'
     # energy_stone_vote_data = {'_csrfToken': csrf_token, 'bookId': book_id}
     assert isinstance(book, (SimpleBook, int, Book))
