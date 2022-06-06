@@ -11,6 +11,13 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 async def base58_encode(v):
+    """
+    Takes a byte string, converts it to an integer, divides it by 58, and then converts it back to a
+    byte string
+    
+    :param v: The value to encode
+    :return: The base58 encoding of the input string.
+    """
     # 58 char alphabet
     alphabet = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     alphabet_len = len(alphabet)
@@ -37,6 +44,12 @@ async def base58_encode(v):
 
 
 async def json_encode(d):
+    """
+    Takes a Python dictionary and returns a byte string that is the JSON encoding of that dictionary
+    
+    :param d: The dictionary to be encoded
+    :return: A JSON string.
+    """
     return json.dumps(d, separators=(',', ':')).encode('utf-8')
 
 
@@ -53,6 +66,20 @@ async def privatebin_encrypt(paste_passphrase,
                              paste_compress,
                              paste_burn,
                              paste_opendicussion):
+    """
+    Takes a plaintext string, encrypts it, and returns the encrypted string.
+    
+    :param paste_passphrase: The passphrase used to encrypt the paste
+    :param paste_password: The password to encrypt the paste with
+    :param paste_plaintext: The actual content of the paste
+    :param paste_formatter: The syntax highlighting to use
+    :param paste_attachment_name: The name of the file you want to upload
+    :param paste_attachment: the file
+    :param paste_compress: True
+    :param paste_burn: bool
+    :param paste_opendicussion: 0 or 1
+    :return: paste_adata, paste_ciphertext
+    """
     if paste_password:
         paste_passphrase += bytes(paste_password, 'utf-8')
 
@@ -134,8 +161,25 @@ async def privatebin_send(paste_url,
                           paste_burn,
                           paste_opendicussion,
                           paste_expire):
+    """
+    Takes in a bunch of parameters, encrypts the data, and returns a url.
+    
+    :param paste_url: The URL of the PrivateBin instance
+    :param paste_password: The password to encrypt the paste with
+    :param paste_plaintext: The text that you want to paste
+    :param paste_formatter: The formatter to use
+    :param paste_attachment_name: The name of the attachment
+    :param paste_attachment: The attachment to be sent
+    :param paste_compress: True
+    :param paste_burn: If set to 1, the paste will be deleted after it is read
+    :param paste_opendicussion: Whether to allow discussion on the paste
+    :param paste_expire: The time in minutes after which the paste will be deleted
+    :return: The url of the paste.
+    """
+    # Generating a random 32 byte string.
     paste_passphrase = bytes(os.urandom(32))
 
+    # Encrypting the data.
     paste_adata, paste_ciphertext = await privatebin_encrypt(paste_passphrase,
                                                              paste_password,
                                                              paste_plaintext,
@@ -158,12 +202,15 @@ async def privatebin_send(paste_url,
     }
 
     # http content type
+    # A header that is required by the PrivateBin API.
     headers = {'X-Requested-With': 'JSONHttpRequest'}
     url = paste_url
 
+# Sending a post request to the url with the payload.
     async with aiohttp.ClientSession(headers=headers) as session:
         while True:
             try:
+                # Sending a post request to the url with the payload.
                 async with session.post(url, data=await json_encode(payload)) as resp:
                     r = await resp.read()
                     r_s = r.decode()
@@ -212,6 +259,13 @@ async def privatebin_send(paste_url,
 
 
 async def upload_to_privatebin(paste_plaintext, expire_time='1day'):
+    """
+    Takes a string, and returns a URL to a PrivateBin paste of that string
+    
+    :param paste_plaintext: The text you want to paste
+    :param expire_time: The time you want the paste to expire, defaults to 1day (optional)
+    :return: The URL of the paste.
+    """
     paste_url = 'https://pstbn.top/'
     paste_formatter = 'markdown'
     paste_compress = True
@@ -237,11 +291,16 @@ async def upload_to_privatebin(paste_plaintext, expire_time='1day'):
     return u_url
 
 
+# A way to run the code in the file as a script.
 if __name__ == '__main__':
     import asyncio
 
 
     async def main():
+        """
+        Takes a string, uploads it to a privatebin instance, and returns the url of the uploaded
+        string
+        """
         url = await upload_to_privatebin("sg")
         print(url)
 
