@@ -1,7 +1,39 @@
 import time
+from Crypto.Cipher import DES3
+from Crypto.Util.Padding import pad
+from base64 import b64encode
+import traceback
 
 
-def des_gen_encrypt(data_: str, key: str, iv: str):
+def des_gen_encrypt(data_: str, key: str, iv: str) -> bytes:    #is that the wanted return type?
+    """
+    encrypts data_ using DES3 with init vector and padding using CBC mode
+    returns bytes (so far?)
+    may return empty bytes object if encryption failed (invalid input or idiot programmer)
+    """
+    ct_b64 = bytes("")
+    try:
+        key_par = DES3.adjust_key_parity(bytes(key))
+        #not entirely sure if bytes() works as intended
+        cipher = DES3.new(key_par, mode=DES3.MODE_CBC, iv=bytes(iv))        
+        #pkcs7 should work for any blocksize, pkcs5 is specifically for 8 byte blocksizes
+        ct = cipher.encrypt(pad(data_, DES3.block_size, style="pkcs7"))     
+        ct_b64 = b64encode(ct)
+
+    except ValueError as e:
+        #missing logging stuff
+        print("invalid input, maybe key does not fulfull length requirements (16 or 24 bytes)")
+        traceback.print_exc()
+
+    except Exception as e:
+        print("Something went horribly wrong. IDFK what.")
+        traceback.print_exc()
+
+    return ct_b64
+
+    """
+    def des_gen_encrypt(data_: str, key: str, iv: str):
+        
     ivSpec = IvParameterSpec(iv.encode())
     # keyBytes = key.toByteArray(charset("UTF-8"))
     keyBytes = key.encode("UTF-8")
@@ -16,6 +48,7 @@ def des_gen_encrypt(data_: str, key: str, iv: str):
         cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec)
         DatatypeConverter.printBase64Binary(cipher.doFinal(data.toByteArray()))
     }
+    """#old code
 
 
 class ApiDeviceSpec:
