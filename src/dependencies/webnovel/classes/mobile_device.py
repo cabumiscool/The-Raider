@@ -41,8 +41,9 @@ def des_encrypt(data_: str, key: str) -> str:
 
     byte_key = str.encode(key[:8])
     byte_data = str.encode(data_)
+    byte_iv = bytes(8)
     try:
-        cipher = DES.new(byte_key, mode=DES.MODE_CBC)
+        cipher = DES.new(byte_key, iv=byte_iv, mode=DES.MODE_CBC)
         ct = cipher.encrypt(pad(byte_data, DES.block_size))
         return str(b64encode(ct))
     except ValueError as e:
