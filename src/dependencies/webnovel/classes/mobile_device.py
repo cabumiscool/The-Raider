@@ -7,7 +7,7 @@ from base64 import b64encode
 import traceback
 import random
 
-def des_gen_encrypt(data_: str, key: str, iv: str) -> str:    #is that the wanted return type?
+def des_gen_encrypt(data_: str, key: str, iv: str) -> str:
     """
     encrypts data_ using DES3 with init vector and padding using CBC mode, key gets cut down to len 24
     returns string
@@ -23,7 +23,7 @@ def des_gen_encrypt(data_: str, key: str, iv: str) -> str:    #is that the wante
 
     except ValueError as e:
         #missing logging stuff
-        print("invalid input, maybe key does not fulfull length requirements (16 or 24 bytes)")
+        print("invalid input, maybe key does not fulfull length requirements (at least 24 bytes)")
         traceback.print_exc()
 
     except Exception as e:
@@ -47,7 +47,7 @@ def des_encrypt(data_: str, key: str) -> str:
         return str(b64encode(ct))
     except ValueError as e:
         #missing logging stuff
-        print("invalid input, maybe key does not fulfull length requirements (16 or 24 bytes)")
+        print("invalid input, maybe key does not fulfull length requirements (8 bytes)")
         traceback.print_exc()
 
     except Exception as e:
@@ -61,7 +61,7 @@ def aes_encrypt(data_: str, key: str, iv: str) -> str:
     returns None if encryption failed (invalid input or idiot programmer)
     """
 
-    byte_key = str.encode(key)
+    byte_key = str.encode(key[:32])
     byte_iv = str.encode(iv)
     byte_data = str.encode(data_)
     try:
@@ -71,14 +71,12 @@ def aes_encrypt(data_: str, key: str, iv: str) -> str:
 
     except ValueError as e:
         #missing logging stuff
-        print("invalid input, maybe key does not fulfull length requirements (16 or 24 bytes)")
+        print("invalid input, maybe key does not fulfull length requirements (at least 32 bytes)")
         traceback.print_exc()
 
     except Exception as e:
         print("Something went horribly wrong. IDFK what.")
         traceback.print_exc()
-
-
 
 class ApiDeviceSpec:
     # imei: str
