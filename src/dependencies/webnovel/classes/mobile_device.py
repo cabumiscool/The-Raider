@@ -137,12 +137,6 @@ if __name__ == '__main__':
     QD_INFO_KEY = "0821CAAD409B8402"
     SIGNATURE_KEY = "bMyzJ1D7Kl7zt9mwjegtJGMoF53msSfP"
     SIGNATURE_IV = "W9F1bXrz"
-    print(len(WD_TOKEN_KEY))
-    print(len(WD_TOKEN_IV))
-    print(len(QD_INFO_KEY))
-    print(len(SIGNATURE_KEY))
-    print(len(SIGNATURE_IV))
-
 
     print(aes_encrypt("abcdefghijklm", WD_TOKEN_KEY, WD_TOKEN_IV))
     #Iy6AOT1A8d8Gg2+8zQT6DQ==

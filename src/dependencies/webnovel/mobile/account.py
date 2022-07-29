@@ -4,15 +4,15 @@ import json
 from dependencies.webnovel.classes.mobile_device import QiDeviceSpec
 
 
-def assemble_request_form(device: QiDeviceSpec):
+def assemble_request_form(device: QiDeviceSpec, email: str, password:str):
     form = aiohttp.FormData(
         {
             "password": password,
             "source": device.app_source,
             "nextAction": "0",
-            "signature": device.toSignature(),
+            "signature": device.to_signature(),
             "autotime": "30",
-            "version": this.deviceSpec.appVersion,
+            "version": device.app_version,
             "appid": "901",
             "username": email,
             "auto": "1",
