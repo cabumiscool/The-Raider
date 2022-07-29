@@ -91,9 +91,6 @@ class QiDeviceSpec(ApiDeviceSpec):
         self.const4 = const4
         self.is_emulator = is_emulator
 
-    def copy(self):  # needed?
-        pass
-
     def to_qd_info(self):
         des_encrypt(self.to_raw_qd_info(),self.qd_info_key)
 
