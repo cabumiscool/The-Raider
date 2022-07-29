@@ -1,83 +1,8 @@
 import time
-from Crypto.Cipher import DES3
-from Crypto.Cipher import DES
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
-from base64 import b64encode
-import traceback
 import random
 
-def des_gen_encrypt(data_: str, key: str, iv: str) -> str:
-    """
-    encrypts data_ using DES3 with init vector and padding using CBC mode, key gets cut down to len 24
-    returns string
-    returns None if encryption failed (invalid input or idiot programmer)
-    """
-    byte_key = str.encode(key[:24])
-    byte_iv = str.encode(iv)
-    byte_data = str.encode(data_)
-    try:
-        cipher = DES3.new(byte_key, iv=byte_iv, mode=DES3.MODE_CBC)
-        ct = cipher.encrypt(pad(byte_data, DES3.block_size))
-        return str(b64encode(ct))
+from crypto import des_encrypt,des_gen_encrypt,aes_encrypt
 
-    except ValueError as e:
-        #missing logging stuff
-        print("invalid input, maybe key does not fulfull length requirements (at least 24 bytes)")
-        traceback.print_exc()
-
-    except Exception as e:
-        print("Something went horribly wrong. IDFK what.")
-        traceback.print_exc()
-
-    return None
-
-def des_encrypt(data_: str, key: str) -> str:
-    """
-    encrypts data_ using DES (?) with init vector and padding using CBC mode
-    returns string
-    returns None if encryption failed (invalid input or idiot programmer)
-    """
-
-    byte_key = str.encode(key[:8])
-    byte_data = str.encode(data_)
-    byte_iv = bytes(8)
-    try:
-        cipher = DES.new(byte_key, iv=byte_iv, mode=DES.MODE_CBC)
-        ct = cipher.encrypt(pad(byte_data, DES.block_size))
-        return str(b64encode(ct))
-    except ValueError as e:
-        #missing logging stuff
-        print("invalid input, maybe key does not fulfull length requirements (8 bytes)")
-        traceback.print_exc()
-
-    except Exception as e:
-        print("Something went horribly wrong. IDFK what.")
-        traceback.print_exc()
-
-def aes_encrypt(data_: str, key: str, iv: str) -> str:
-    """
-    encrypts data_ using AES with init vector and padding using CBC mode
-    returns string
-    returns None if encryption failed (invalid input or idiot programmer)
-    """
-
-    byte_key = str.encode(key[:32])
-    byte_iv = str.encode(iv)
-    byte_data = str.encode(data_)
-    try:
-        cipher = AES.new(byte_key, iv=byte_iv, mode=AES.MODE_CBC)
-        ct = cipher.encrypt(pad(byte_data, AES.block_size))
-        return str(b64encode(ct))
-
-    except ValueError as e:
-        #missing logging stuff
-        print("invalid input, maybe key does not fulfull length requirements (at least 32 bytes)")
-        traceback.print_exc()
-
-    except Exception as e:
-        print("Something went horribly wrong. IDFK what.")
-        traceback.print_exc()
 
 class ApiDeviceSpec:
     # imei: str
@@ -114,6 +39,8 @@ class ApiDeviceSpec:
         self.version_code = version_code
         print(self.csrftoken)
 
+    def encrypt_wd(self, data_:str) -> str:
+        return aes_encrypt(data_,self.wd_token_key,self.wd_token_iv)
 
 
 class QiDeviceSpec(ApiDeviceSpec):
