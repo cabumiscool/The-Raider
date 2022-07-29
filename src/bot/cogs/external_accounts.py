@@ -81,7 +81,6 @@ class ExternalAccounts(commands.Cog):
 
             if response['code'] == 11104:
                 response, ticket = await check_code(session, ticket, email_response, password)
-                print(True)
 
             if response['code'] == 11401:
                 # print('Captcha block!')
@@ -110,7 +109,16 @@ class ExternalAccounts(commands.Cog):
 
     @commands.command()
     async def remove_account(self, ctx: Context):
-        pass
+        raise NotImplementedError()
+        """
+        It removes an account from the database.
+        
+        :param ctx: Context
+        :type ctx: Context
+        :return: a coroutine object.
+        """
+        email = ctx.message.content #not sure how to get the argument? its supposed to be like !remove_account my@mail.com
+        await self.db.remove_quest_account(email)
 
     @commands.command()
     async def fix_account(self, ctx: Context):

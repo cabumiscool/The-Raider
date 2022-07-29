@@ -4,6 +4,7 @@ import asyncio
 import json
 import time
 import typing
+from xdrlib import ConversionError
 
 import asyncpg
 
@@ -823,6 +824,33 @@ class Database:
                                              account.guid, account.expired, account.fast_pass_count,
                                              account.host_email_id, account.owned, connection)
                 await self.insert_user_account_entry(connection, user_id, account.guid)
+
+    async def remove_quest_account(self, email:str):
+        async with self._db_pool.acquire() as connection:
+            async with connection.transaction():
+                guid = await self.delete_qi_account(email, connection)
+                await self.delete_user_account_entry(guid, connection)
+
+    async def delete_user_account_entry(self, account_guid: int, connection: asyncpg.Connection):
+        query = """DELETE FROM "USER_ACCOUNTS" WHERE "ACCOUNT_GUID" LIKE '$1';"""
+        #really hope that it takes in $1 as an integer and doesnt need '', but idk?
+        await connection.execute(query, account_guid)
+
+    #TODO: Error handeling if I did an oopsie with SQL probably inadequate
+    async def delete_qi_account(self, email:str, connection: asyncpg.Connection = None):
+        try:
+            query1 = """SELECT ID,GUID FROM "QIACCOUNT" WHERE EMAIL LIKE '$1';"""
+            id_,guid = await self._db_pool.fetch(query1, email.lower())
+        except Exception:
+            print("SQL Request failed, who asked me to do SQL T_T At least I didnt break the DB tho.")
+            return -1
+        query2 = """DELETE FROM "QIACCOUNT" WHERE ID LIKE '$1';"""
+        #really hope that it takes in $1 as an integer and doesnt need '' removed, but idk?
+        if connection:
+            await connection.execute(query2, id_)
+        else:
+            await self._db_pool.execute(query2, id_)
+        return guid
 
     async def batch_insert_qi_account(self, *args: typing.Tuple[str, str, dict, str, int, bool, int, int]):
         query = '''INSERT INTO "QIACCOUNT" ("EMAIL", "PASSWORD", "COOKIES", "TICKET", "GUID", "EXPIRED", "FP",
