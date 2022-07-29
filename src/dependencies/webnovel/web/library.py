@@ -20,7 +20,7 @@ default_connector_settings = {'force_close': True, 'enable_cleanup_closed': True
 
 # TODO deal with the connector to be able to self close or something... Needs further thinking
 
-def __request_data_generator(session: aiohttp.ClientSession, account: classes.QiAccount) -> (bool, dict):
+def __request_data_generator(session: aiohttp.ClientSession, account: classes.QiAccount) -> (bool, dict):   #deprecated as of python 3.10, needs to be bool | dict
     """Returns the initial return values indicates if a session should be used the other is the payload data"""
     if session is None and account is None:
         raise ValueError("No valid value was passed to either session or account")
