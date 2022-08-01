@@ -103,13 +103,23 @@ class ExternalAccounts(commands.Cog):
 
 
 
-    @commands.command()
-    async def list_accounts(self, ctx: Context):
-        pass
 
     @commands.command()
-    async def remove_account(self, ctx: Context):
-        raise NotImplementedError()
+    async def list_accounts(self, ctx: Context, *args):    #command scheme/expected ctx: !list_accounts [optional: discord_id]
+        """
+        command scheme: !list_accounts [optional: discord_id]\n
+        may need refining in terms of async and format of account ID is unclear (is it <@1243252345> or just 1241235421)
+        """
+        discord_id = int(args[0]) if args else ctx.author.id
+        accounts = self.db.retrieve_all_accounts_from_discord_id(discord_id)
+        if accounts == []:
+            await ctx.send("Seems like this discord account does not have any webnovel accounts registered!")
+        else:
+            accounts_str = await "\n".join(accounts)
+            await ctx.send(f"Your accounts are:\n```{accounts_str}```")
+
+    @commands.command()
+    async def remove_account(self, ctx: Context, mail:str) -> None:
         """
         It removes an account from the database.
         
@@ -117,8 +127,8 @@ class ExternalAccounts(commands.Cog):
         :type ctx: Context
         :return: a coroutine object.
         """
-        email = ctx.message.content #not sure how to get the argument? its supposed to be like !remove_account my@mail.com
-        await self.db.remove_quest_account(email)
+        await self.db.remove_quest_account(mail)
+        ctx.send("Account has been removed!")
 
     @commands.command()
     async def fix_account(self, ctx: Context):

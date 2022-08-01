@@ -877,3 +877,10 @@ class Database:
             query_args_list.append((account_arg[1], account_arg[2], account_arg[3],
                                     json.dumps(account_arg[4]).replace("'", '"'), account_arg[0]))
         await self._db_pool.executemany(query, query_args_list)
+
+
+    async def retrieve_all_accounts_from_discord_id(self, account_id: int) -> list:    
+        query = 'SELECT * FROM "QIACCOUNT" WHERE "GUID"=$1;'
+        guids = await self._db_pool.fetch(query, account_id)    #not sure if this returns a list, idk what fetch returns
+        accounts = [self.retrieve_specific_account(id_) for id_ in guids]
+        return accounts
