@@ -16,7 +16,7 @@ from dependencies.database import database_exceptions, Database
 from dependencies.utils import generic_buyer, generic_buyer_obj, paste_generator
 from dependencies.webnovel.classes import SimpleBook, Book, Chapter, QiAccount
 from dependencies.webnovel.utils import book_string_to_book_id
-from dependencies.webnovel.web.book import full_book_retriever, generate_thumbnail_url_or_file, trail_read_books_finder
+from dependencies.webnovel.web.book import full_book_retriever, generate_thumbnail_url_or_file, trail_read_books_finder, chapter_retriever
 from . import bot_checks
 
 from dependencies.webnovel.web.font_decoder import decoder as font_decoder_module
