@@ -422,6 +422,117 @@ class QiCommands(commands.Cog):
             await ctx.send(error_msg)
 
     @commands.command()
+    @bot_checks.check_permission_level(4)
+    async def release_accounts(self, ctx: Context):
+        await self.db.release_accounts_over_five_in_use_minutes()
+        await ctx.send("accounts released!!!")
+
+    @commands.command(aliases=['bdi'])
+    @bot_checks.is_whitelist()
+    @bot_checks.check_permission_level(2)
+    async def buy_decode_id(self, ctx: Context, book_id: int, chapter_id: int):
+        book = await self.db.retrieve_simple_book(book_id)
+        chapter = await chapter_retriever(book_id, chapter_id, -1)
+
+        if not chapter.is_full_content:
+            chapter = await generic_buyer_obj(self.db, book, chapter)
+            chapter = chapter[0]
+            if type(chapter) == str:
+                await ctx.send(chapter)
+                return
+
+            if self.retrieved_dataset is False:
+                if self.being_retrieved is True:
+                    await ctx.send("The data set is still being retrieved!!! Please Wait!!")
+                else:
+                    self.being_retrieved = True
+                    self.font_cache = await self.db.retrieve_top_50_fonts()
+                    self.letters_bitwise = await self.db.retrieve_char_bitwise()
+                    self.retrieved_dataset = True
+
+            content_info_helper = font_utilities.ContentInfo.from_content_info(chapter.content)
+            decoder = font_decoder_module.MetricsBasedDecoder(content_info_helper.get_font())
+            for font in self.font_cache:
+                font_file = io.BytesIO()
+                font_file.write(font[1])
+                font_file.seek(0)
+                decoder.add_sample(font_file, font[0])
+            obfs = content_info_helper.unscramble()
+            tl_map, order_map, unknown_glyphs = decoder._build_map()
+
+            if len(unknown_glyphs) == 0:
+                decoded_content = obfs.translate(tl_map)
+                chapter.encrypt_type = 0
+                chapter.content = decoded_content
+                paste = await paste_generator(book.name, chapter)
+                await ctx.send(paste)
+                # url = await privatebin.upload_to_privatebin(decoded_content)
+                # await ctx.send(url)
+
+            else:
+                letters_to_be_added = []
+                await ctx.send("There are some things I don't know how to read :( Could you help me?")
+                for order_num, (char, image_obj) in unknown_glyphs.items():
+                    image_obj.seek(0)
+                    message = await ctx.send("Please reply me what character this image is, **This is CASE SENSITIVE**",
+                                             file=discord.File(image_obj, "image.png"))
+                    char_message = await text_response_waiter(ctx, message, 180)
+                    letters_to_be_added.append((order_num, char, image_obj, char_message.clean_content,
+                                                content_info_helper.get_font()))
+                confirmation_list = [(char, image_obj) for order_num,
+                                     coded_char, image_obj, char, font_file in letters_to_be_added]
+                await ctx.send("You told me the following images are the following: ")
+                for (char, image_obj) in confirmation_list:
+                    image_obj.seek(0)
+                    await ctx.send(char, file=discord.File(image_obj, "image.png"))
+                message = await ctx.send("Reply to this message with `yes` if you are sure so that I can "
+                                         "save this for future chapters")
+                confirmation = await text_response_waiter(ctx, message, 120)
+                if confirmation is None:
+                    await ctx.send("Did not receive confirmation, will skip the chapter")
+                elif confirmation.clean_content.lower() == "yes":
+                    await ctx.send("Learning new letters......")
+                    for item_to_add in letters_to_be_added:
+                        order_map[item_to_add[0]] = item_to_add[3]
+                        tl_map[ord(item_to_add[1])] = item_to_add[3]
+                    order_nums = list(order_map.keys())
+                    order_nums.sort()
+                    letters_to_join = []
+                    for x in order_nums:
+                        letters_to_join.append(order_map[x])
+                    font_letters = ''.join(letters_to_join)
+                    bitwise_letters = list(self.letters_bitwise.keys())
+                    bitwise_values = list(self.letters_bitwise.values())
+                    font_num = 0
+                    for char in letters_to_join:
+                        if char in bitwise_letters:
+                            font_num = font_num | self.letters_bitwise[char]
+                        else:
+                            starting_num = 1
+                            while True:
+                                if starting_num not in bitwise_values:
+                                    self.letters_bitwise[char] = starting_num
+                                    await self.db.insert_new_char_bitwise(starting_num, char)
+                                    bitwise_values.append(starting_num)
+                                    break
+                                else:
+                                    starting_num = starting_num << 1
+                            font_num = font_num | starting_num
+                    font = content_info_helper.get_font()
+                    font.seek(0)
+                    font_bytes = font.read()
+                    await self.db.insert_new_font(font_bytes, font_num, font_letters, chapter.id)
+                    self.font_cache.append((font_letters, font_bytes))
+
+                    decoded_content = obfs.translate(tl_map)
+                    chapter.encrypt_type = 0
+                    chapter.content = decoded_content
+                    paste = await paste_generator(book.name, chapter)
+                    await ctx.send(paste)
+                else:
+                    await ctx.send(f"Received negative confirmation, ignoring chapter {chapter.index} of {book.name}.")
+
+    @commands.command()
     @bot_checks.check_permission_level(8)
     async def build_sample(self, ctx: Context):
         chapters = os.listdir("chapters")
