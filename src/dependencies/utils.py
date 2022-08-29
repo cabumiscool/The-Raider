@@ -253,7 +253,7 @@ async def generic_buyer_obj(db: Database, book_: SimpleBook, *chapters: SimpleCh
             accounts_to_use[0].fast_pass_count -= 1
             if accounts_to_use[0].fast_pass_count == 0:
                 used_account = accounts_to_use.pop(0)
-                accounts_used.append(used_account)
+            accounts_used.append(accounts_to_use[0])
         else:
             async_tasks.append(asyncio.create_task(individual_buyer(chapter)))
 
