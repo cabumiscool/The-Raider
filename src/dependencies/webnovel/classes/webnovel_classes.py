@@ -4,8 +4,8 @@ from operator import attrgetter
 
 import aiohttp
 
-from . import exceptions
-from .utils import decode_qi_content
+from dependencies.webnovel import exceptions
+from dependencies.webnovel.utils import decode_qi_content
 
 
 class DataDescriptorChecker:
