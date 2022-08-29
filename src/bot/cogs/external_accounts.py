@@ -99,6 +99,7 @@ class ExternalAccounts(commands.Cog):
                                         cookies_dict['uid'], False)
                 await account_obj.async_check_valid()
                 await self.db.insert_quest_account(account_obj, ctx.author.id)
+                await self.db.release_accounts_over_five_in_use_minutes()
                 await ctx.send("Account added succesfully!")
 
 
